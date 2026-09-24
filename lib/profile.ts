@@ -88,6 +88,10 @@ function subscribeClient(onChange: () => void) {
   };
 }
 
+export function useClientReady() {
+  return useSyncExternalStore(subscribeClient, () => true, () => false);
+}
+
 export function useRoleProfile(role: UserRole): { ready: boolean; profile: UserProfile | null } {
   const ready = useSyncExternalStore(subscribeClient, () => true, () => false);
   const saved = useSyncExternalStore(subscribeProfile, () => snapshotFromRaw(window.localStorage.getItem(PROFILE_KEY)), () => null);

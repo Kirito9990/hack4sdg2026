@@ -1,6 +1,6 @@
 "use client";
 
-import { writeProfile, type UserRole } from "@/lib/profile";
+import { useClientReady, writeProfile, type UserRole } from "@/lib/profile";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
@@ -11,6 +11,7 @@ export default function LoginPage() {
   const [role, setRole] = useState<UserRole>("resident");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const clientReady = useClientReady();
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -121,10 +122,10 @@ export default function LoginPage() {
           ) : null}
           <button
             type="submit"
-            disabled={submitting}
+            disabled={!clientReady || submitting}
             className="inline-flex min-h-14 w-full items-center justify-center rounded-2xl bg-foreground px-5 text-lg font-semibold text-white disabled:opacity-60"
           >
-            {submitting ? "Saving your sign-in…" : "Continue"}
+            {!clientReady ? "Opening sign-in…" : submitting ? "Saving your sign-in…" : "Continue"}
           </button>
         </form>
       </section>
