@@ -1,0 +1,51 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f3efe4;
+  --foreground: #16140f;
+  --surface: #fffdf8;
+  --line: #d7d0c2;
+  --muted: #4a453c;
+  --danger: #9f1239;
+  --ok: #166534;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-line: var(--line);
+  --color-muted: var(--muted);
+  --color-danger: var(--danger);
+  --color-ok: var(--ok);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+html {
+  color-scheme: light;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+:focus-visible {
+  outline: 3px solid #16140f;
+  outline-offset: 3px;
+}
+
+@keyframes pulse-dot {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.rec-dot {
+  animation: pulse-dot 1s ease-in-out infinite;
+}
