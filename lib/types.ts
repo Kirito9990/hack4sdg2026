@@ -1,5 +1,5 @@
 export const URGENCY_LEVELS = ["HIGH", "MEDIUM", "LOW"] as const;
-export const CATEGORIES = ["MEDICAL", "NON_MEDICAL", "DEBRIS_MOBILITY", "OTHER"] as const;
+export const CATEGORIES = ["MEDICAL", "NON_MEDICAL", "MOBILITY", "OTHER"] as const;
 export const DISPATCH_ACTIONS = [
   "EMERGENCY_medical",
   "EMERGENCY_nonmedical",
@@ -70,12 +70,26 @@ export function isTriageFields(value: unknown): value is TriageFields {
   );
 }
 
-export function fallbackTriage(residentName: string): TriageFields {
+export function ensureContactSummary(summary: string, residentName: string, residentPhone: string): string {
   const name = residentName.trim() || "A resident";
+  const phone = residentPhone.trim() || "unknown number";
+  const text = summary.trim().replace(/\s+/g, " ");
+  const hasName = text.toLowerCase().includes(name.toLowerCase());
+  const phoneDigits = phone.replace(/\D/g, "");
+  const hasPhone =
+    text.includes(phone) || (phoneDigits.length >= 6 && text.replace(/\D/g, "").includes(phoneDigits));
+  if (hasName && hasPhone) return text.slice(0, 500);
+  const issue = text.replace(/[.?!]+$/g, "");
+  return `${name} (${phone}) — ${issue}.`.slice(0, 500);
+}
+
+export function fallbackTriage(residentName: string, residentPhone: string): TriageFields {
+  const name = residentName.trim() || "A resident";
+  const phone = residentPhone.trim() || "unknown number";
   return {
     urgency_level: "HIGH",
     category: "OTHER",
-    summary: `${name} sent a distress note that could not be read automatically and needs a neighbour to check in.`,
+    summary: `${name} (${phone}) sent a distress note that could not be read automatically and needs a neighbour to check in.`,
     dispatch_action: "NEIGHBORHOOD_VOLUNTEER",
   };
 }

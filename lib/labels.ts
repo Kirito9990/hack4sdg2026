@@ -16,7 +16,7 @@ export function urgencyLabel(level: UrgencyLevel): string {
 export function categoryLabel(category: RequestCategory): string {
   if (category === "MEDICAL") return "Medical";
   if (category === "NON_MEDICAL") return "Shelter or supplies";
-  if (category === "DEBRIS_MOBILITY") return "Debris or access";
+  if (category === "MOBILITY") return "Mobility";
   return "Other";
 }
 

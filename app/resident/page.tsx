@@ -359,13 +359,19 @@ export default function ResidentPage() {
             {live && emergency ? (
               <section role="alert" className="rounded-3xl bg-danger p-5 text-white sm:p-6">
                 <p className="text-sm font-semibold uppercase tracking-[0.14em]">Emergency</p>
-                <h2 className="mt-2 text-2xl font-semibold">This needs emergency services.</h2>
+                <h2 className="mt-2 text-2xl font-semibold">
+                  {live.dispatch_action === "EMERGENCY_medical"
+                    ? "This needs medical emergency services."
+                    : "This needs non-medical emergency services."}
+                </h2>
                 <p className="mt-3 text-lg leading-7">{live.summary}</p>
                 <a
                   href={`tel:${EMERGENCY_NUMBER}`}
                   className="mt-5 inline-flex min-h-14 w-full items-center justify-center rounded-2xl bg-white px-5 text-lg font-semibold text-danger"
                 >
-                  📞 Call Emergency ({EMERGENCY_NUMBER})
+                  {live.dispatch_action === "EMERGENCY_medical"
+                    ? `📞 Call medical emergency (${EMERGENCY_NUMBER})`
+                    : `📞 Call non-medical emergency (${EMERGENCY_NUMBER})`}
                 </a>
               </section>
             ) : null}

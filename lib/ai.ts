@@ -22,6 +22,7 @@ export async function triageRequestWithGemini(
   mediaBuffer: Buffer,
   mimeType: string,
   residentName: string,
+  residentPhone: string,
 ) {
   const response = await ai.models.generateContent({
     model: "gemini-2.5-flash",
@@ -32,7 +33,7 @@ export async function triageRequestWithGemini(
           mimeType: mimeType || "audio/webm",
         },
       },
-      `Analyze this post-typhoon distress audio or image input from resident "${residentName}". Classify the urgency, category, summary, and dispatch action needed.`,
+      `Analyze this post-typhoon distress audio or image input from resident "${residentName}", contact phone ${residentPhone}. Classify the urgency, category, summary, and dispatch action needed. The summary must be one sentence that includes the resident name "${residentName}" and phone ${residentPhone}.`,
     ],
     config: {
       responseMimeType: "application/json",
@@ -40,10 +41,11 @@ export async function triageRequestWithGemini(
         type: Type.OBJECT,
         properties: {
           urgency_level: { type: Type.STRING, enum: ["HIGH", "MEDIUM", "LOW"] },
-          category: { type: Type.STRING, enum: ["MEDICAL", "NON_MEDICAL", "DEBRIS_MOBILITY", "OTHER"] },
+          category: { type: Type.STRING, enum: ["MEDICAL", "NON_MEDICAL", "MOBILITY", "OTHER"] },
           summary: {
             type: Type.STRING,
-            description: "1-sentence summary including resident name and specific emergency issue",
+            description:
+              "One sentence that includes the resident name, phone number, and the specific emergency issue",
           },
           dispatch_action: {
             type: Type.STRING,

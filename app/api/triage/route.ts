@@ -1,6 +1,6 @@
 import { triageRequestWithGemini } from "@/lib/ai";
 import { createRequest } from "@/lib/db";
-import { fallbackTriage, isTriageFields, type TriageFields } from "@/lib/types";
+import { ensureContactSummary, fallbackTriage, isTriageFields, type TriageFields } from "@/lib/types";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
@@ -56,7 +56,7 @@ export async function POST(request: Request) {
     .filter(Boolean)
     .join(", ");
 
-  let triage: TriageFields = fallbackTriage(residentName);
+  let triage: TriageFields = fallbackTriage(residentName, residentPhone);
   let source: "gemini" | "fallback" = "fallback";
   const apiKey = process.env.GEMINI_API_KEY?.trim();
 
@@ -64,12 +64,12 @@ export async function POST(request: Request) {
     try {
       const buffer = Buffer.from(await media.arrayBuffer());
       const mimeType = media.type || (audio ? "audio/webm" : "image/jpeg");
-      const parsed = await triageRequestWithGemini(buffer, mimeType, residentName);
+      const parsed = await triageRequestWithGemini(buffer, mimeType, residentName, residentPhone);
       if (isTriageFields(parsed)) {
         triage = {
           urgency_level: parsed.urgency_level,
           category: parsed.category,
-          summary: parsed.summary.trim().slice(0, 500),
+          summary: ensureContactSummary(parsed.summary, residentName, residentPhone),
           dispatch_action: parsed.dispatch_action,
         };
         source = "gemini";

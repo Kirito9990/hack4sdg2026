@@ -17,7 +17,7 @@ export async function GET(request: Request) {
   }
 
   const tasks = listRequests()
-    .filter((item) => item.status === "PENDING")
+    .filter((item) => item.status === "PENDING" && item.dispatch_action === "NEIGHBORHOOD_VOLUNTEER")
     .map((item) => ({
       id: item.id,
       residentName: item.residentName,
