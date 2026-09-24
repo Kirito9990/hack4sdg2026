@@ -18,23 +18,33 @@ function parseModelJson(text: string | undefined): unknown {
   }
 }
 
-export async function triageRequestWithGemini(
-  mediaBuffer: Buffer,
-  mimeType: string,
-  residentName: string,
-  residentPhone: string,
-) {
+export async function triageRequestWithGemini(input: {
+  residentName: string;
+  residentPhone: string;
+  transcript?: string;
+  mediaBuffer?: Buffer;
+  mimeType?: string;
+}) {
+  const { residentName, residentPhone, transcript, mediaBuffer, mimeType } = input;
+  const heard = transcript?.trim()
+    ? `The resident said: "${transcript.trim()}".`
+    : "Analyze the attached post-typhoon distress audio or image.";
+  const contents: Array<{ inlineData: { data: string; mimeType: string } } | string> = [];
+  if (mediaBuffer) {
+    contents.push({
+      inlineData: {
+        data: mediaBuffer.toString("base64"),
+        mimeType: mimeType || "image/jpeg",
+      },
+    });
+  }
+  contents.push(
+    `${heard} This is from resident "${residentName}", contact phone ${residentPhone}. Classify the urgency, category, summary, and dispatch action needed. The summary must be one sentence that includes the resident name "${residentName}" and phone ${residentPhone}.`,
+  );
+
   const response = await ai.models.generateContent({
     model: "gemini-2.5-flash",
-    contents: [
-      {
-        inlineData: {
-          data: mediaBuffer.toString("base64"),
-          mimeType: mimeType || "audio/webm",
-        },
-      },
-      `Analyze this post-typhoon distress audio or image input from resident "${residentName}", contact phone ${residentPhone}. Classify the urgency, category, summary, and dispatch action needed. The summary must be one sentence that includes the resident name "${residentName}" and phone ${residentPhone}.`,
-    ],
+    contents,
     config: {
       responseMimeType: "application/json",
       responseSchema: {

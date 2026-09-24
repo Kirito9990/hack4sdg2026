@@ -133,7 +133,7 @@ export default function LoginPage() {
         <h2 className="text-lg font-semibold">What happens next</h2>
         <ol className="mt-4 space-y-3 text-base leading-7 text-muted">
           <li>1. A resident records what is wrong, or photographs the blocked road.</li>
-          <li>2. Gemini reads the audio or image and marks how urgent it is.</li>
+          <li>2. Deepgram transcribes the voice note. A free OpenRouter model turns that text into urgency and dispatch. Gemini still reads a photo when there is no transcript.</li>
           <li>3. Life-threatening cases point straight to 999. Everything else is offered to volunteers within 5 km.</li>
         </ol>
       </aside>

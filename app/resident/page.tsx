@@ -15,7 +15,8 @@ type LiveRequest = {
   summary: string;
   urgency_level: UrgencyLevel;
   category: RequestCategory;
-  source?: "gemini" | "fallback";
+  source?: "openrouter" | "gemini" | "fallback";
+  transcript?: string | null;
 };
 
 type GeoState = "loading" | "ready" | "error";
@@ -147,7 +148,7 @@ export default function ResidentPage() {
         }
         if (!cancelled) {
           setPollError(null);
-          setLive((current) => ({ ...payload, source: current?.source }));
+          setLive((current) => ({ ...payload, source: current?.source, transcript: current?.transcript }));
         }
       } catch {
         if (!cancelled) setPollError("Could not refresh this request. Still trying…");
@@ -300,6 +301,7 @@ export default function ResidentPage() {
         urgency_level: payload.urgency_level,
         category: payload.category,
         source: payload.source,
+        transcript: payload.transcript,
       });
       window.setTimeout(() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
     } catch {
@@ -386,6 +388,11 @@ export default function ResidentPage() {
                   <p className="mt-4 text-base leading-7">Waiting for someone nearby to accept. This page checks every few seconds.</p>
                 )}
               </section>
+            ) : null}
+            {live?.transcript ? (
+              <p className="mt-3 rounded-2xl border border-line bg-surface px-4 py-3 text-base" role="status">
+                Heard: {live.transcript}
+              </p>
             ) : null}
             {live?.source === "fallback" ? (
               <p className="mt-3 rounded-2xl border border-line bg-surface px-4 py-3 text-base" role="status">

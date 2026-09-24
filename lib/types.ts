@@ -83,13 +83,16 @@ export function ensureContactSummary(summary: string, residentName: string, resi
   return `${name} (${phone}) — ${issue}.`.slice(0, 500);
 }
 
-export function fallbackTriage(residentName: string, residentPhone: string): TriageFields {
+export function fallbackTriage(residentName: string, residentPhone: string, transcript?: string): TriageFields {
   const name = residentName.trim() || "A resident";
   const phone = residentPhone.trim() || "unknown number";
+  const spoken = transcript?.trim().replace(/\s+/g, " ");
   return {
     urgency_level: "HIGH",
     category: "OTHER",
-    summary: `${name} (${phone}) sent a distress note that could not be read automatically and needs a neighbour to check in.`,
+    summary: spoken
+      ? `${name} (${phone}) said: ${spoken}`.slice(0, 500)
+      : `${name} (${phone}) sent a distress note that could not be read automatically and needs a neighbour to check in.`,
     dispatch_action: "NEIGHBORHOOD_VOLUNTEER",
   };
 }

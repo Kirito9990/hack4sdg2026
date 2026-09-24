@@ -1,5 +1,7 @@
 import { triageRequestWithGemini } from "@/lib/ai";
+import { triageTextWithOpenRouter } from "@/lib/openrouter";
 import { createRequest } from "@/lib/db";
+import { transcribeWithDeepgram } from "@/lib/speech";
 import { ensureContactSummary, fallbackTriage, isTriageFields, type TriageFields } from "@/lib/types";
 import { NextResponse } from "next/server";
 
@@ -49,22 +51,71 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "That file is larger than 8 MB. Send a shorter note or a smaller photo." }, { status: 413 });
   }
 
+  const audioBuffer = audio ? Buffer.from(await audio.arrayBuffer()) : null;
+  const imageBuffer = image ? Buffer.from(await image.arrayBuffer()) : null;
+
+  let transcript: string | undefined;
+  if (audioBuffer && process.env.DEEPGRAM_API_KEY?.trim()) {
+    try {
+      transcript = await transcribeWithDeepgram(audioBuffer, audio?.type || "audio/webm");
+    } catch (error) {
+      console.error("Deepgram transcription failed; Gemini will hear the audio directly if a photo or the audio can still be read.", error);
+    }
+  }
+
   const mediaNote = [
     audio ? `audio:${audio.type || "audio/webm"}` : null,
+    transcript ? "transcript:deepgram" : null,
     image ? `image:${image.type || "image"}` : null,
   ]
     .filter(Boolean)
     .join(", ");
 
-  let triage: TriageFields = fallbackTriage(residentName, residentPhone);
-  let source: "gemini" | "fallback" = "fallback";
+  let triage: TriageFields = fallbackTriage(residentName, residentPhone, transcript);
+  let source: "openrouter" | "gemini" | "fallback" = "fallback";
   const apiKey = process.env.GEMINI_API_KEY?.trim();
 
-  if (apiKey) {
+  if (transcript && process.env.OPENROUTER_API_KEY?.trim()) {
     try {
-      const buffer = Buffer.from(await media.arrayBuffer());
-      const mimeType = media.type || (audio ? "audio/webm" : "image/jpeg");
-      const parsed = await triageRequestWithGemini(buffer, mimeType, residentName, residentPhone);
+      const parsed = await triageTextWithOpenRouter(transcript, residentName, residentPhone);
+      if (isTriageFields(parsed)) {
+        triage = {
+          urgency_level: parsed.urgency_level,
+          category: parsed.category,
+          summary: ensureContactSummary(parsed.summary, residentName, residentPhone),
+          dispatch_action: parsed.dispatch_action,
+        };
+        source = "openrouter";
+      } else {
+        const record = parsed && typeof parsed === "object" ? (parsed as Record<string, unknown>) : {};
+        console.error("OpenRouter JSON did not match the triage schema.", {
+          urgency_level: record.urgency_level,
+          category: record.category,
+          dispatch_action: record.dispatch_action,
+        });
+      }
+    } catch (error) {
+      console.error("OpenRouter triage failed; trying Gemini.", error);
+    }
+  }
+
+  if (source !== "openrouter" && apiKey && (transcript || audioBuffer || imageBuffer)) {
+    const mediaBuffer = transcript ? (imageBuffer ?? undefined) : (audioBuffer ?? imageBuffer ?? undefined);
+    const mimeType = mediaBuffer
+      ? transcript
+        ? image?.type || "image/jpeg"
+        : audioBuffer
+          ? audio?.type || "audio/webm"
+          : image?.type || "image/jpeg"
+      : undefined;
+    try {
+      const parsed = await triageRequestWithGemini({
+        residentName,
+        residentPhone,
+        transcript,
+        mediaBuffer,
+        mimeType,
+      });
       if (isTriageFields(parsed)) {
         triage = {
           urgency_level: parsed.urgency_level,
@@ -96,6 +147,7 @@ export async function POST(request: Request) {
     dispatch_action: saved.dispatch_action,
     status: saved.status,
     source,
+    transcript: transcript ?? null,
     request: saved,
   });
 }
