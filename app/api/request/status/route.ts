@@ -1,17 +1,18 @@
-import { getRequest } from "@/lib/db";
-import { NextResponse } from "next/server";
-
+import { getRequest, member, store, view } from "@/lib/db";
+import { currentUser, fail, json } from "@/lib/server";
 export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
-
 export async function GET(request: Request) {
-  const id = new URL(request.url).searchParams.get("id")?.trim() ?? "";
-  if (!id) {
-    return NextResponse.json({ error: "Missing request id." }, { status: 400 });
-  }
+  const user = await currentUser();
+  if (!user) return fail("sessionExpired", 401);
+  const id = new URL(request.url).searchParams.get("id");
+  if (!id)
+    return json({
+      requests: store()
+        .requests.filter((r) => member(r, user))
+        .map((r) => view(r, user))
+        .reverse(),
+    });
   const found = getRequest(id);
-  if (!found) {
-    return NextResponse.json({ error: "That request is not on this server." }, { status: 404 });
-  }
-  return NextResponse.json(found, { headers: { "Cache-Control": "no-store" } });
+  if (!found || !member(found, user)) return fail("notFound", 404);
+  return json(view(found, user));
 }

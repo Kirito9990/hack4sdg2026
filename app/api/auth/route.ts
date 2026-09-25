@@ -1,33 +1,70 @@
-import { createSession, createUser } from "@/lib/db";
-import { NextResponse } from "next/server";
-
+import { cookies } from "next/headers";
+import { store } from "@/lib/db";
+import {
+  COOKIE,
+  currentUser,
+  fail,
+  json,
+  normalizePhone,
+  publicOrigin,
+  sameOrigin,
+  validPhone,
+} from "@/lib/server";
 export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
-
+export async function GET() {
+  return json({ user: (await currentUser()) ?? null });
+}
 export async function POST(request: Request) {
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "Send your name, phone, and role as JSON." }, { status: 400 });
-  }
-
-  const record = body && typeof body === "object" ? (body as Record<string, unknown>) : {};
-  const name = typeof record.name === "string" ? record.name.trim() : "";
-  const phone = typeof record.phone === "string" ? record.phone.trim() : "";
-  const role = record.role === "resident" || record.role === "volunteer" ? record.role : null;
-
-  if (name.length < 2 || name.length > 80) {
-    return NextResponse.json({ error: "Enter the name people should call you." }, { status: 400 });
-  }
-  if (!/^[0-9+().\-\s]{6,20}$/.test(phone)) {
-    return NextResponse.json({ error: "Enter a phone number volunteers can call." }, { status: 400 });
-  }
-  if (!role) {
-    return NextResponse.json({ error: "Choose resident or volunteer." }, { status: 400 });
-  }
-
-  const user = createUser({ name, phone, role });
-  const session = createSession(user.id);
-  return NextResponse.json({ user, session });
+  if (!sameOrigin(request)) return fail("forbidden", 403);
+  const body = await request.json().catch(() => null);
+  if (
+    !body ||
+    typeof body.name !== "string" ||
+    body.name.trim().length < 2 ||
+    body.name.length > 80
+  )
+    return fail("invalidName");
+  const phone = normalizePhone(
+    typeof body.phone === "string" ? body.phone : "",
+  );
+  if (!validPhone(phone)) return fail("invalidPhone");
+  if (!["resident", "volunteer"].includes(body.role))
+    return fail("invalidRole");
+  const data = store();
+  const user = {
+    id: crypto.randomUUID(),
+    name: body.name.trim(),
+    phone,
+    role: body.role,
+    privacy: {
+      allowCalls: body.allowCalls === true,
+      allowChat: true,
+      allowAI: false,
+    },
+    createdAt: new Date().toISOString(),
+  };
+  data.users.push(user);
+  const session = {
+    id: crypto.randomUUID(),
+    userId: user.id,
+    createdAt: new Date().toISOString(),
+  };
+  data.sessions.push(session);
+  (await cookies()).set(COOKIE, session.id, {
+    httpOnly: true,
+    sameSite: "strict",
+    secure: new URL(publicOrigin() || request.url).protocol === "https:",
+    path: "/",
+    maxAge: 604800,
+  });
+  return json({ user });
+}
+export async function DELETE(request: Request) {
+  if (!sameOrigin(request)) return fail("forbidden", 403);
+  const jar = await cookies(),
+    token = jar.get(COOKIE)?.value,
+    data = store();
+  data.sessions = data.sessions.filter((s) => s.id !== token);
+  jar.delete(COOKIE);
+  return json({ ok: true });
 }

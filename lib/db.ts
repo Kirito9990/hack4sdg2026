@@ -1,94 +1,94 @@
-import type { HelpRequest, Session, TriageFields, User, UserRole } from "@/lib/types";
-
+import type { ChatMessage, HelpRequest, Session, User } from "@/lib/types";
 type Store = {
   users: User[];
   sessions: Session[];
   requests: HelpRequest[];
+  messages: ChatMessage[];
 };
-
-const globalStore = globalThis as typeof globalThis & {
-  __porchlineStore?: Store;
-};
-
-function store(): Store {
-  if (!globalStore.__porchlineStore) {
-    globalStore.__porchlineStore = { users: [], sessions: [], requests: [] };
-  }
-  return globalStore.__porchlineStore;
+const globalStore = globalThis as typeof globalThis & { __carecallV2?: Store };
+export function store(): Store {
+  const data = (globalStore.__carecallV2 ??= {
+    users: [],
+    sessions: [],
+    requests: [],
+    messages: [],
+  });
+  const active = new Set(
+    data.requests
+      .filter(
+        (r) =>
+          r.status === "ACCEPTED" &&
+          Date.parse(r.chatExpiresAt || "") > Date.now(),
+      )
+      .map((r) => r.id),
+  );
+  data.messages = data.messages.filter((m) => active.has(m.requestId));
+  data.sessions = data.sessions.filter(
+    (s) => Date.parse(s.createdAt) + 7 * 86400000 > Date.now(),
+  );
+  return data;
 }
-
-export function haversineMeters(lat1: number, lng1: number, lat2: number, lng2: number): number {
-  const earthRadius = 6_371_000;
-  const toRadians = (degrees: number) => (degrees * Math.PI) / 180;
-  const deltaLat = toRadians(lat2 - lat1);
-  const deltaLng = toRadians(lng2 - lng1);
+export function haversineMeters(
+  lat1: number,
+  lng1: number,
+  lat2: number,
+  lng2: number,
+) {
+  const rad = (n: number) => (n * Math.PI) / 180;
   const a =
-    Math.sin(deltaLat / 2) ** 2 +
-    Math.cos(toRadians(lat1)) * Math.cos(toRadians(lat2)) * Math.sin(deltaLng / 2) ** 2;
-  return 2 * earthRadius * Math.asin(Math.min(1, Math.sqrt(a)));
+    Math.sin(rad(lat2 - lat1) / 2) ** 2 +
+    Math.cos(rad(lat1)) *
+      Math.cos(rad(lat2)) *
+      Math.sin(rad(lng2 - lng1) / 2) ** 2;
+  return 6371000 * 2 * Math.asin(Math.min(1, Math.sqrt(a)));
 }
-
-export function createUser(input: { name: string; phone: string; role: UserRole }): User {
-  const user: User = {
-    id: crypto.randomUUID(),
-    name: input.name.trim(),
-    phone: input.phone.trim(),
-    role: input.role,
-    createdAt: new Date().toISOString(),
+export function getRequest(id: string) {
+  return store().requests.find((r) => r.id === id);
+}
+export function member(r: HelpRequest, user: User) {
+  return r.residentId === user.id || r.volunteerId === user.id;
+}
+export function chatOpen(r: HelpRequest) {
+  const data = store();
+  return (
+    r.status === "ACCEPTED" &&
+    Date.parse(r.chatExpiresAt || "") > Date.now() &&
+    !!data.users.find((u) => u.id === r.residentId)?.privacy.allowChat &&
+    !!data.users.find((u) => u.id === r.volunteerId)?.privacy.allowChat
+  );
+}
+export function redact(text: string, people: User[] = store().users) {
+  let result = text;
+  for (const person of people)
+    result = result
+      .split(person.phone)
+      .join("[contact hidden]")
+      .split(person.name)
+      .join("[name hidden]");
+  return result
+    .replace(/\+?\d[\d\s().-]{5,}\d/g, "[contact hidden]")
+    .slice(0, 2000);
+}
+export function view(r: HelpRequest, user: User) {
+  const data = store(),
+    resident = data.users.find((u) => u.id === r.residentId),
+    volunteer = data.users.find((u) => u.id === r.volunteerId);
+  const other = user.id === r.residentId ? volunteer : resident;
+  const active =
+    r.status === "ACCEPTED" && Date.parse(r.chatExpiresAt || "") > Date.now();
+  const testPhone = process.env.CARECALL_TEST_CALL_PHONE?.trim();
+  const callPhone =
+    active && other?.privacy.allowCalls
+      ? user.role === "volunteer" && testPhone
+        ? testPhone
+        : other.phone
+      : null;
+  return {
+    ...r,
+    residentName: resident?.name || "",
+    volunteerName: volunteer?.name,
+    chatAvailable: chatOpen(r),
+    callPhone,
+    testCall: !!(callPhone && testPhone && user.role === "volunteer"),
   };
-  store().users.push(user);
-  return { ...user };
-}
-
-export function createSession(userId: string): Session {
-  const session: Session = {
-    id: crypto.randomUUID(),
-    userId,
-    createdAt: new Date().toISOString(),
-  };
-  store().sessions.push(session);
-  return { ...session };
-}
-
-export function createRequest(
-  input: TriageFields & {
-    residentName: string;
-    residentPhone: string;
-    lat: number;
-    lng: number;
-    mediaNote?: string;
-  },
-): HelpRequest {
-  const request: HelpRequest = {
-    id: crypto.randomUUID(),
-    residentName: input.residentName.trim(),
-    residentPhone: input.residentPhone.trim(),
-    lat: input.lat,
-    lng: input.lng,
-    urgency_level: input.urgency_level,
-    category: input.category,
-    summary: input.summary.trim(),
-    dispatch_action: input.dispatch_action,
-    status: "PENDING",
-    createdAt: new Date().toISOString(),
-    mediaNote: input.mediaNote,
-  };
-  store().requests.push(request);
-  return { ...request };
-}
-
-export function listRequests(): HelpRequest[] {
-  return store().requests.map((request) => ({ ...request }));
-}
-
-export function getRequest(id: string): HelpRequest | null {
-  const found = store().requests.find((request) => request.id === id);
-  return found ? { ...found } : null;
-}
-
-export function acceptRequest(id: string): HelpRequest | null {
-  const found = store().requests.find((request) => request.id === id);
-  if (!found) return null;
-  found.status = "ACCEPTED";
-  return { ...found };
 }

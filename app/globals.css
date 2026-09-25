@@ -1,5 +1,43 @@
 @import "tailwindcss";
 
+@layer components {
+  .page {
+    @apply mx-auto w-full px-4 py-8 sm:px-6;
+  }
+  .page h1 {
+    @apply text-3xl font-semibold tracking-tight sm:text-4xl;
+  }
+  .page h2 {
+    @apply text-xl font-semibold;
+  }
+  .hint {
+    @apply mt-2 leading-7 text-muted;
+  }
+  .panel {
+    @apply rounded-3xl border border-line bg-surface p-5;
+  }
+  .button {
+    @apply inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-foreground px-5 py-3 font-semibold text-white disabled:opacity-50;
+  }
+  .button.secondary {
+    @apply border border-line bg-white text-foreground;
+  }
+  .call-button {
+    @apply inline-flex min-h-16 items-center justify-center gap-3 rounded-2xl px-5 py-4 text-lg font-bold text-white shadow-md;
+  }
+  .field {
+    @apply flex flex-col gap-2 font-medium;
+  }
+  .field input,
+  .field textarea,
+  .field select {
+    @apply min-h-12 w-full rounded-xl border border-line bg-white px-3 py-3 font-normal;
+  }
+  .error {
+    @apply rounded-xl border border-danger p-3 text-danger;
+  }
+}
+
 :root {
   --background: #f3efe4;
   --foreground: #16140f;
@@ -48,4 +86,19 @@ body {
 
 .rec-dot {
   animation: pulse-dot 1s ease-in-out infinite;
+}
+
+.carecall-map-pin span {
+  display: flex;
+  width: 32px;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid white;
+  border-radius: 50%;
+  color: white;
+  font:
+    600 14px var(--font-geist-sans),
+    sans-serif;
+  box-shadow: 0 2px 6px #0004;
 }

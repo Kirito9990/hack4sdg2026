@@ -1,28 +1,31 @@
-import { acceptRequest } from "@/lib/db";
-import { NextResponse } from "next/server";
-
+import { getRequest, haversineMeters, store, view } from "@/lib/db";
+import { currentUser, fail, json, sameOrigin, validCoords } from "@/lib/server";
 export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
-
 export async function POST(request: Request) {
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "Send the request id as JSON." }, { status: 400 });
-  }
-
-  const id =
-    body && typeof body === "object" && typeof (body as { id?: unknown }).id === "string"
-      ? (body as { id: string }).id.trim()
-      : "";
-  if (!id) {
-    return NextResponse.json({ error: "Missing request id." }, { status: 400 });
-  }
-
-  const updated = acceptRequest(id);
-  if (!updated) {
-    return NextResponse.json({ error: "That request is not on this server." }, { status: 404 });
-  }
-  return NextResponse.json(updated);
+  if (!sameOrigin(request)) return fail("forbidden", 403);
+  const user = await currentUser();
+  if (!user) return fail("sessionExpired", 401);
+  if (user.role !== "volunteer") return fail("forbidden", 403);
+  const body = await request.json().catch(() => null);
+  if (!body || !validCoords(body.lat, body.lng)) return fail("locationError");
+  const found = getRequest(body.id);
+  if (!found || found.dispatch_action !== "NEIGHBORHOOD_VOLUNTEER")
+    return fail("notFound", 404);
+  if (found.status === "ACCEPTED" && found.volunteerId === user.id)
+    return json(view(found, user));
+  if (found.status !== "PENDING") return fail("alreadyAccepted", 409);
+  if (
+    store().requests.some(
+      (r) => r.volunteerId === user.id && r.status === "ACCEPTED",
+    )
+  )
+    return fail("activeTask", 409);
+  if (haversineMeters(body.lat, body.lng, found.lat, found.lng) > 5000)
+    return fail("outOfRange", 403);
+  // Synchronous check and mutation: concurrent local accepts cannot overwrite this match.
+  found.volunteerId = user.id;
+  found.status = "ACCEPTED";
+  found.acceptedAt = new Date().toISOString();
+  found.chatExpiresAt = new Date(Date.now() + 86400000).toISOString();
+  return json(view(found, user));
 }

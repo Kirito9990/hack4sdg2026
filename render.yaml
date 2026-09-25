@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: carecall
+    runtime: node
+    plan: free
+    region: singapore
+    branch: codex/CareCall
+    buildCommand: npm ci --include=dev && npm run build && node scripts/prepare-standalone.mjs
+    startCommand: HOSTNAME=0.0.0.0 node .next/standalone/server.js
+    healthCheckPath: /api/health
+    autoDeployTrigger: off
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_TELEMETRY_DISABLED
+        value: "1"
+      - key: CARECALL_TEST_CALL_PHONE
+        value: ""

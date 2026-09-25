@@ -1,0 +1,16 @@
+{
+  email {$ACME_EMAIL}
+}
+
+{$CARECALL_DOMAIN} {
+  encode zstd gzip
+  request_body {
+    max_size 18MB
+  }
+  header {
+    X-Content-Type-Options nosniff
+    Referrer-Policy strict-origin-when-cross-origin
+    Permissions-Policy "camera=(self), microphone=(self), geolocation=(self)"
+  }
+  reverse_proxy app:3000
+}

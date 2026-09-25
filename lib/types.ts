@@ -1,98 +1,76 @@
-export const URGENCY_LEVELS = ["HIGH", "MEDIUM", "LOW"] as const;
-export const CATEGORIES = ["MEDICAL", "NON_MEDICAL", "MOBILITY", "OTHER"] as const;
-export const DISPATCH_ACTIONS = [
-  "EMERGENCY_medical",
-  "EMERGENCY_nonmedical",
-  "NEIGHBORHOOD_VOLUNTEER",
-] as const;
-export const REQUEST_STATUSES = ["PENDING", "ACCEPTED"] as const;
-export const USER_ROLES = ["resident", "volunteer"] as const;
-
-export type UrgencyLevel = (typeof URGENCY_LEVELS)[number];
-export type RequestCategory = (typeof CATEGORIES)[number];
-export type DispatchAction = (typeof DISPATCH_ACTIONS)[number];
-export type RequestStatus = (typeof REQUEST_STATUSES)[number];
-export type UserRole = (typeof USER_ROLES)[number];
-
+export type UserRole = "resident" | "volunteer";
+export type Locale = "en" | "zh-Hant" | "zh-Hans";
+export type UrgencyLevel = "HIGH" | "MEDIUM" | "LOW";
+export type RequestCategory = "MEDICAL" | "NON_MEDICAL" | "MOBILITY" | "OTHER";
+export type DispatchAction =
+  "EMERGENCY_medical" | "EMERGENCY_nonmedical" | "NEIGHBORHOOD_VOLUNTEER";
+export type RequestStatus = "PENDING" | "ACCEPTED" | "CLOSED";
+export type Privacy = {
+  allowCalls: boolean;
+  allowAI: boolean;
+  allowChat: boolean;
+};
+export type User = {
+  id: string;
+  name: string;
+  phone: string;
+  role: UserRole;
+  privacy: Privacy;
+  createdAt: string;
+};
+export type Session = { id: string; userId: string; createdAt: string };
 export type TriageFields = {
   urgency_level: UrgencyLevel;
   category: RequestCategory;
   summary: string;
   dispatch_action: DispatchAction;
 };
-
 export type HelpRequest = TriageFields & {
   id: string;
-  residentName: string;
-  residentPhone: string;
+  residentId: string;
+  volunteerId?: string;
   lat: number;
   lng: number;
   status: RequestStatus;
   createdAt: string;
-  mediaNote?: string;
+  acceptedAt?: string;
+  chatExpiresAt?: string;
+  transcript?: string;
+  source: "openrouter" | "gemini" | "fallback";
+  audioStatus: "none" | "transcribed" | "provided" | "unavailable";
+  imageStatus: "none" | "prepared" | "analyzed";
+  imageWidth?: number;
+  imageHeight?: number;
 };
-
-export type User = {
+export type ChatMessage = {
   id: string;
-  name: string;
-  phone: string;
-  role: UserRole;
+  requestId: string;
+  senderId: string;
+  text: string;
   createdAt: string;
 };
-
-export type Session = {
-  id: string;
-  userId: string;
-  createdAt: string;
+export type RequestView = HelpRequest & {
+  residentName: string;
+  volunteerName?: string;
+  chatAvailable: boolean;
+  callPhone: string | null;
+  testCall: boolean;
+  distanceMeters?: number;
 };
-
-export function isUrgencyLevel(value: unknown): value is UrgencyLevel {
-  return typeof value === "string" && URGENCY_LEVELS.includes(value as UrgencyLevel);
-}
-
-export function isCategory(value: unknown): value is RequestCategory {
-  return typeof value === "string" && CATEGORIES.includes(value as RequestCategory);
-}
-
-export function isDispatchAction(value: unknown): value is DispatchAction {
-  return typeof value === "string" && DISPATCH_ACTIONS.includes(value as DispatchAction);
-}
-
 export function isTriageFields(value: unknown): value is TriageFields {
   if (!value || typeof value !== "object") return false;
-  const record = value as Record<string, unknown>;
+  const r = value as Record<string, unknown>;
   return (
-    isUrgencyLevel(record.urgency_level) &&
-    isCategory(record.category) &&
-    isDispatchAction(record.dispatch_action) &&
-    typeof record.summary === "string" &&
-    record.summary.trim().length > 0
+    ["HIGH", "MEDIUM", "LOW"].includes(String(r.urgency_level)) &&
+    ["MEDICAL", "NON_MEDICAL", "MOBILITY", "OTHER"].includes(
+      String(r.category),
+    ) &&
+    [
+      "EMERGENCY_medical",
+      "EMERGENCY_nonmedical",
+      "NEIGHBORHOOD_VOLUNTEER",
+    ].includes(String(r.dispatch_action)) &&
+    typeof r.summary === "string" &&
+    r.summary.trim().length > 0
   );
-}
-
-export function ensureContactSummary(summary: string, residentName: string, residentPhone: string): string {
-  const name = residentName.trim() || "A resident";
-  const phone = residentPhone.trim() || "unknown number";
-  const text = summary.trim().replace(/\s+/g, " ");
-  const hasName = text.toLowerCase().includes(name.toLowerCase());
-  const phoneDigits = phone.replace(/\D/g, "");
-  const hasPhone =
-    text.includes(phone) || (phoneDigits.length >= 6 && text.replace(/\D/g, "").includes(phoneDigits));
-  if (hasName && hasPhone) return text.slice(0, 500);
-  const issue = text.replace(/[.?!]+$/g, "");
-  return `${name} (${phone}) — ${issue}.`.slice(0, 500);
-}
-
-export function fallbackTriage(residentName: string, residentPhone: string, transcript?: string): TriageFields {
-  const name = residentName.trim() || "A resident";
-  const phone = residentPhone.trim() || "unknown number";
-  const spoken = transcript?.trim().replace(/\s+/g, " ");
-  return {
-    urgency_level: "HIGH",
-    category: "OTHER",
-    summary: spoken
-      ? `${name} (${phone}) said: ${spoken}`.slice(0, 500)
-      : `${name} (${phone}) sent a distress note that could not be read automatically and needs a neighbour to check in.`,
-    dispatch_action: "NEIGHBORHOOD_VOLUNTEER",
-  };
 }
