@@ -23,6 +23,13 @@ export function store(): Store {
       .map((r) => r.id),
   );
   data.messages = data.messages.filter((m) => active.has(m.requestId));
+  for (const r of data.requests) {
+    if (
+      r.status === "CLOSED" ||
+      Date.parse(r.createdAt) + 86400000 < Date.now()
+    )
+      delete r.imageData;
+  }
   data.sessions = data.sessions.filter(
     (s) => Date.parse(s.createdAt) + 7 * 86400000 > Date.now(),
   );

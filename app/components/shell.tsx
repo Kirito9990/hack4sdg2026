@@ -21,7 +21,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
     emergency = process.env.NEXT_PUBLIC_EMERGENCY_NUMBER || "999";
   return (
     <>
-      <header className="border-b border-line bg-surface">
+      <header className="compact-header border-b border-line bg-surface">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
           <Link
             href={user ? "/" + user.role : "/login"}
@@ -45,7 +45,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
             </select>
             <Link
               href="/account"
-              className="inline-flex min-h-12 items-center gap-2 rounded-xl bg-foreground px-4 font-semibold text-white"
+              className="account-link inline-flex min-h-12 items-center gap-2 rounded-xl bg-foreground px-4 font-semibold text-white"
             >
               <span aria-hidden>◉</span>
               {t("account")}
@@ -54,7 +54,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
         </div>
       </header>
       <div className="flex-1">{children}</div>
-      <footer className="border-t border-line bg-surface">
+      <footer className="compact-footer border-t border-line bg-surface">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-5">
           <p className="text-sm text-muted">{t("emergency")}</p>
           <a href={"tel:" + emergency} className="call-button bg-danger">

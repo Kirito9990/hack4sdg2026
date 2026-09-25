@@ -13,6 +13,7 @@ export async function POST(request: Request) {
     return fail("notFound", 404);
   if (found.status === "ACCEPTED" && found.volunteerId === user.id)
     return json(view(found, user));
+  if (!user.available) return fail("offShiftHint", 403);
   if (found.status !== "PENDING") return fail("alreadyAccepted", 409);
   if (
     store().requests.some(

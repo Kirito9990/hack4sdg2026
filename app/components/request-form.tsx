@@ -27,9 +27,11 @@ export default function RequestForm({
   onSent,
 }: {
   coords: { lat: number; lng: number } | null;
-  onSent: () => Promise<void>;
+  onSent: (id: string) => Promise<void>;
 }) {
   const { t, locale } = useApp(),
+    [step, setStep] = useState(0),
+    [mode, setMode] = useState("writeTab"),
     [text, setText] = useState(""),
     [audio, setAudio] = useState<Blob | null>(null),
     [audioUrl, setAudioUrl] = useState(""),
@@ -221,9 +223,10 @@ export default function RequestForm({
   }
   return (
     <form
-      className="space-y-5"
+      className="request-wizard"
       onSubmit={async (e) => {
         e.preventDefault();
+        if (busy) return;
         setError("");
         if (!coords) {
           setError("locationError");
@@ -231,6 +234,10 @@ export default function RequestForm({
         }
         if (!text.trim() && !audio && !photo) {
           setError("emptyRequest");
+          return;
+        }
+        if (step === 0) {
+          setStep(1);
           return;
         }
         setBusy(true);
@@ -243,11 +250,14 @@ export default function RequestForm({
           body.set("language", language);
           if (audio) body.set("audio", audio, "voice-note");
           if (photo) body.set("image", photo);
-          await api("/api/triage", { method: "POST", body });
+          const saved = await api<{ id: string }>("/api/triage", {
+            method: "POST",
+            body,
+          });
           setText("");
           setAudio(null);
           setPhoto(null);
-          await onSent();
+          await onSent(saved.id);
         } catch (e) {
           setError((e as Error).message);
         } finally {
@@ -255,116 +265,190 @@ export default function RequestForm({
         }
       }}
     >
-      <label className="field">
-        {t("description")}
-        <textarea
-          rows={4}
-          maxLength={4000}
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-        />
-      </label>
-      <label className="field">
-        {t("speechLanguage")}
-        <select
-          disabled={recording || dictating}
-          value={language}
-          onChange={(e) => setLanguage(e.target.value)}
-        >
-          <option value="zh-HK">{t("cantonese")}</option>
-          <option value="zh-CN">{t("mandarin")}</option>
-          <option value="en">{t("english")}</option>
-        </select>
-      </label>
-      <div className="panel space-y-3">
-        <button
-          type="button"
-          className={"button w-full " + (recording ? "bg-danger" : "secondary")}
-          disabled={busy || dictating || starting}
-          onClick={() => void record()}
-        >
-          <span aria-hidden className="text-xl">
-            ●
-          </span>
-          {t(starting ? "loading" : recording ? "stop" : "record")}
-        </button>
-        <p className="text-sm text-muted">{t("recordLimit")}</p>
-        {recording && <p role="status">{t("recording")}</p>}
-        {audio && (
-          <>
-            <p role="status">{t("recordReady")}</p>
-            <audio controls src={audioUrl} className="w-full" />
-            <button
-              type="button"
-              className="min-h-11 underline"
-              onClick={() => setAudio(null)}
-            >
-              {t("removeAudio")}
-            </button>
-          </>
-        )}
-        <details>
-          <summary className="cursor-pointer py-2 font-semibold">
-            {t("dictate")}
-          </summary>
-          <p className="hint text-sm">{t("speechConsent")}</p>
-          <label className="my-3 flex items-start gap-3">
-            <input
-              type="checkbox"
-              checked={speechConsent}
-              onChange={(e) => {
-                setSpeechConsent(e.target.checked);
-                if (!e.target.checked) recognition.current?.abort();
-              }}
-              className="mt-1 h-5 w-5"
-            />
-            {t("speechAgree")}
-          </label>
-          <button
-            type="button"
-            className="button secondary"
-            disabled={!speechConsent || recording || starting || busy}
-            onClick={dictate}
-          >
-            {t(dictating ? "stopDictation" : "dictate")}
-          </button>
-        </details>
+      <div className="flex items-center justify-between">
+        <h2>{t(step === 0 ? "describeTitle" : "reviewTitle")}</h2>
+        <span className="step-count">{step + 1} / 2</span>
       </div>
-      <label className="button secondary w-full cursor-pointer focus-within:ring-2 focus-within:ring-foreground">
-        {t("addPhoto")}
-        <input
-          type="file"
-          className="sr-only"
-          accept="image/jpeg,image/png,image/webp"
-          disabled={busy}
-          onChange={(e) => void preparePhoto(e.target.files?.[0])}
-        />
-      </label>
-      {imageBusy && <p role="status">{t("loading")}</p>}
-      {photo && (
-        <div className="panel">
-          <Image
-            unoptimized
-            width={640}
-            height={480}
-            src={
-              photoUrl ||
-              "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
-            }
-            alt={t("photoPreview")}
-            className="max-h-64 w-full rounded-xl object-contain"
-          />
-          <p className="hint text-sm">{t("imagePrepared")}</p>
-          <button
-            type="button"
-            className="min-h-11 underline"
-            onClick={() => {
-              imageGeneration.current++;
-              setPhoto(null);
-            }}
+      {step === 0 ? (
+        <>
+          <p className="text-sm text-muted">{t("describeHint")}</p>
+          <div
+            className="segmented"
+            role="tablist"
+            aria-label={t("description")}
           >
-            {t("removePhoto")}
-          </button>
+            {["writeTab", "photoTab", "voiceTab"].map((k) => (
+              <button
+                type="button"
+                role="tab"
+                aria-selected={mode === k}
+                key={k}
+                onClick={() => setMode(k)}
+              >
+                {t(k)}
+                {(k === "writeTab" && text.trim()) ||
+                (k === "photoTab" && photo) ||
+                (k === "voiceTab" && audio)
+                  ? " •"
+                  : ""}
+              </button>
+            ))}
+          </div>
+          <div className="wizard-content stage-scroll">
+            {mode === "writeTab" && (
+              <label className="field h-full">
+                <span className="sr-only">{t("description")}</span>
+                <textarea
+                  aria-label={t("description")}
+                  className="request-text"
+                  rows={5}
+                  placeholder={t("describeHint")}
+                  maxLength={4000}
+                  value={text}
+                  onChange={(e) => setText(e.target.value)}
+                  disabled={busy}
+                />
+                <span className="text-right text-xs text-muted">
+                  {text.length} / 4000
+                </span>
+              </label>
+            )}
+            {mode === "photoTab" && (
+              <div className="photo-stage">
+                {photo ? (
+                  <>
+                    <Image
+                      unoptimized
+                      width={640}
+                      height={480}
+                      src={
+                        photoUrl ||
+                        "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
+                      }
+                      alt={t("photoPreview")}
+                      className="request-photo-preview"
+                    />
+                    <button
+                      type="button"
+                      className="button secondary"
+                      onClick={() => {
+                        imageGeneration.current++;
+                        setPhoto(null);
+                      }}
+                    >
+                      {t("removePhoto")}
+                    </button>
+                  </>
+                ) : (
+                  <div className="photo-empty" aria-hidden>
+                    ＋
+                  </div>
+                )}
+                <label className="button secondary cursor-pointer">
+                  {t("addPhoto")}
+                  <input
+                    className="sr-only"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    disabled={busy || imageBusy}
+                    onChange={(e) => {
+                      void preparePhoto(e.target.files?.[0]);
+                      e.target.value = "";
+                    }}
+                  />
+                </label>
+                <p className="text-xs text-muted">{t("requestShared")}</p>
+                {imageBusy && <p role="status">{t("loading")}</p>}
+              </div>
+            )}
+            {mode === "voiceTab" && (
+              <div className="space-y-3">
+                <label className="field">
+                  {t("speechLanguage")}
+                  <select
+                    disabled={recording || dictating}
+                    value={language}
+                    onChange={(e) => setLanguage(e.target.value)}
+                  >
+                    <option value="zh-HK">{t("cantonese")}</option>
+                    <option value="zh-CN">{t("mandarin")}</option>
+                    <option value="en">{t("english")}</option>
+                  </select>
+                </label>
+                <button
+                  type="button"
+                  className={
+                    "button w-full " + (recording ? "bg-danger" : "secondary")
+                  }
+                  disabled={busy || dictating || starting}
+                  onClick={() => void record()}
+                >
+                  <span aria-hidden className={recording ? "rec-dot" : ""}>
+                    ●
+                  </span>
+                  {t(starting ? "loading" : recording ? "stop" : "record")}
+                </button>
+                <p className="text-xs text-muted">{t("recordLimit")}</p>
+                {recording && <p role="status">{t("recording")}</p>}
+                {audio && (
+                  <>
+                    <audio controls src={audioUrl} className="w-full" />
+                    <button
+                      type="button"
+                      className="min-h-11 underline"
+                      onClick={() => setAudio(null)}
+                    >
+                      {t("removeAudio")}
+                    </button>
+                  </>
+                )}
+                <details>
+                  <summary className="py-2 cursor-pointer">
+                    {t("dictate")}
+                  </summary>
+                  <p className="text-xs text-muted">{t("speechConsent")}</p>
+                  <label className="my-3 flex gap-3">
+                    <input
+                      type="checkbox"
+                      checked={speechConsent}
+                      onChange={(e) => {
+                        setSpeechConsent(e.target.checked);
+                        if (!e.target.checked) recognition.current?.abort();
+                      }}
+                    />
+                    {t("speechAgree")}
+                  </label>
+                  <button
+                    type="button"
+                    className="button secondary"
+                    disabled={!speechConsent || recording || starting || busy}
+                    onClick={dictate}
+                  >
+                    {t(dictating ? "stopDictation" : "dictate")}
+                  </button>
+                </details>
+              </div>
+            )}
+          </div>
+        </>
+      ) : (
+        <div className="wizard-content stage-scroll review-content">
+          <p className="location-chip">✓ {t("locationReady")}</p>
+          <p className="whitespace-pre-wrap break-words">
+            {text || t("mediaRequest")}
+          </p>
+          {photo && photoUrl && (
+            <Image
+              unoptimized
+              src={photoUrl}
+              width={320}
+              height={200}
+              alt={t("photoPreview")}
+              className="request-photo-preview"
+            />
+          )}
+          {audio && <audio controls src={audioUrl} className="w-full" />}
+          <p className="text-sm text-muted">{t("requestShared")}</p>
         </div>
       )}
       {error && (
@@ -372,14 +456,32 @@ export default function RequestForm({
           {t(error)}
         </p>
       )}
-      <button
-        className="button w-full"
-        disabled={
-          busy || recording || starting || dictating || imageBusy || !coords
-        }
-      >
-        {t(busy ? "sending" : "sendRequest")}
-      </button>
+      <div className="flex gap-2">
+        {step === 1 && (
+          <button
+            type="button"
+            className="button secondary"
+            disabled={busy}
+            onClick={() => setStep(0)}
+          >
+            {t("back")}
+          </button>
+        )}
+        <button
+          className="button flex-1"
+          disabled={
+            busy ||
+            recording ||
+            starting ||
+            dictating ||
+            imageBusy ||
+            !coords ||
+            (!text.trim() && !audio && !photo)
+          }
+        >
+          {t(busy ? "sending" : step === 0 ? "reviewRequest" : "sendRequest")}
+        </button>
+      </div>
     </form>
   );
 }
