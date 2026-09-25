@@ -1,5 +1,4 @@
 import sharp from "sharp";
-import { chatImage } from "@/lib/chat-image";
 import { triageRequestWithGemini } from "@/lib/ai";
 import { triageTextWithOpenRouter } from "@/lib/openrouter";
 import { audioContentType, transcribeWithDeepgram } from "@/lib/speech";
@@ -52,7 +51,6 @@ export async function POST(request: Request) {
     ].includes(audioContentType(audio.type))
   )
     return fail("invalidAudio");
-  let imageData: string | undefined;
   let imageBuffer: Buffer | undefined,
     imageWidth: number | undefined,
     imageHeight: number | undefined;
@@ -81,7 +79,6 @@ export async function POST(request: Request) {
       imageBuffer = output.data;
       imageWidth = output.info.width;
       imageHeight = output.info.height;
-      imageData = await chatImage(image);
     } catch {
       return fail("invalidImage");
     }
@@ -156,7 +153,6 @@ export async function POST(request: Request) {
     imageStatus,
     imageWidth,
     imageHeight,
-    imageData,
   };
   store().requests.push(saved);
   return json(view(saved, user), 201);

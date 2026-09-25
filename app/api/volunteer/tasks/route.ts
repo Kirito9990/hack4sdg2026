@@ -5,7 +5,6 @@ export async function GET(request: Request) {
   const user = await currentUser();
   if (!user) return fail("sessionExpired", 401);
   if (user.role !== "volunteer") return fail("forbidden", 403);
-  if (!user.available) return json({ tasks: [] });
   const params = new URL(request.url).searchParams;
   if (!params.has("lat") || !params.has("lng")) return fail("locationError");
   const lat = Number(params.get("lat")),

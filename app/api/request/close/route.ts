@@ -8,12 +8,7 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => null),
     found = body && getRequest(body.id);
   if (!found || !member(found, user)) return fail("notFound", 404);
-  if (found.residentId !== user.id) return fail("residentOnlyFinish", 403);
-  if (found.status === "CLOSED") return json(view(found, user));
-  found.closedReason = found.status === "ACCEPTED" ? "completed" : "cancelled";
-  found.closedAt = new Date().toISOString();
   found.status = "CLOSED";
-  delete found.imageData;
   const data = store();
   data.messages = data.messages.filter((m) => m.requestId !== found.id);
   return json(view(found, user));

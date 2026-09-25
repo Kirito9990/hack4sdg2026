@@ -7,28 +7,28 @@ import type { User } from "@/lib/types";
 function AccountForm({ user }: { user: User }) {
   const { t, setUser } = useApp(),
     router = useRouter();
-  const [tab, setTab] = useState("profileTab"),
-    [name, setName] = useState(user.name),
+  const [name, setName] = useState(user.name),
     [phone, setPhone] = useState(user.phone),
     [privacy, setPrivacy] = useState(user.privacy),
     [busy, setBusy] = useState(false),
     [message, setMessage] = useState("");
+  async function remove() {
+    if (!confirm(t("deleteConfirm"))) return;
+    setBusy(true);
+    try {
+      await api("/api/account", { method: "DELETE" });
+      setUser(null);
+      router.push("/login");
+    } catch (e) {
+      setMessage((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
   return (
     <>
-      <div className="segmented" role="tablist" aria-label={t("account")}>
-        {["profileTab", "privacy", "manageTab"].map((k) => (
-          <button
-            role="tab"
-            key={k}
-            aria-selected={tab === k}
-            onClick={() => setTab(k)}
-          >
-            {t(k)}
-          </button>
-        ))}
-      </div>
       <form
-        className="app-stage"
+        className="mt-6 space-y-5"
         onSubmit={async (e) => {
           e.preventDefault();
           setBusy(true);
@@ -48,136 +48,93 @@ function AccountForm({ user }: { user: User }) {
           }
         }}
       >
-        <div className="stage-scroll account-content">
-          {tab === "profileTab" ? (
-            <>
-              <label className="field">
-                {t("name")}
-                <input
-                  required
-                  minLength={2}
-                  maxLength={80}
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                />
-              </label>
-              <label className="field">
-                {t("phone")}
-                <input
-                  required
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                />
-                <span className="text-sm text-muted">{t("phoneHint")}</span>
-              </label>
-              <p className="text-sm text-muted">{t("demo")}</p>
-            </>
-          ) : tab === "privacy" ? (
-            <>
-              {(["allowCalls", "allowChat", "allowAI"] as const).map((key) => (
-                <div key={key} className="privacy-option">
-                  <label className="flex items-start gap-3">
-                    <input
-                      type="checkbox"
-                      className="mt-1 h-5 w-5 shrink-0"
-                      checked={privacy[key]}
-                      onChange={(e) =>
-                        setPrivacy({ ...privacy, [key]: e.target.checked })
-                      }
-                    />
-                    <strong>{t(key)}</strong>
-                  </label>
-                  <details>
-                    <summary>{t("detailsTab")}</summary>
-                    <p>
-                      {t(
-                        key === "allowCalls"
-                          ? "callPrivacy"
-                          : key === "allowAI"
-                            ? "aiPrivacy"
-                            : "privacyInfo",
-                      )}
-                    </p>
-                  </details>
-                </div>
-              ))}
-            </>
-          ) : (
-            <>
-              <p className="text-sm text-muted">{t("demo")}</p>
-              <button
-                type="button"
-                className="button secondary w-full"
-                disabled={busy}
-                onClick={async () => {
-                  try {
-                    await api("/api/auth", { method: "DELETE" });
-                    setUser(null);
-                    router.push("/login");
-                  } catch {
-                    setMessage("networkError");
-                  }
-                }}
-              >
-                {t("signout")}
-              </button>
-              <button
-                type="button"
-                className="button bg-danger w-full"
-                disabled={busy}
-                onClick={async () => {
-                  if (!confirm(t("deleteConfirm"))) return;
-                  setBusy(true);
-                  try {
-                    await api("/api/account", { method: "DELETE" });
-                    setUser(null);
-                    router.push("/login");
-                  } catch (e) {
-                    setMessage((e as Error).message);
-                  } finally {
-                    setBusy(false);
-                  }
-                }}
-              >
-                {t("deleteAccount")}
-              </button>
-            </>
-          )}
-        </div>
-        {message && (
-          <p role="status" className="location-chip">
-            {t(message)}
-          </p>
-        )}
-        {tab !== "manageTab" && (
-          <button className="button w-full" disabled={busy}>
-            {t(busy ? "saving" : "save")}
-          </button>
-        )}
+        <label className="field">
+          {t("name")}
+          <input
+            required
+            minLength={2}
+            maxLength={80}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+        </label>
+        <label className="field">
+          {t("phone")}
+          <input
+            required
+            type="tel"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+          />
+          <span className="hint text-sm">{t("phoneHint")}</span>
+        </label>
+        <h2>{t("privacy")}</h2>
+        {(["allowCalls", "allowChat", "allowAI"] as const).map((key) => (
+          <label className="flex items-start gap-3" key={key}>
+            <input
+              className="mt-1 h-5 w-5 shrink-0"
+              type="checkbox"
+              checked={privacy[key]}
+              onChange={(e) =>
+                setPrivacy({ ...privacy, [key]: e.target.checked })
+              }
+            />
+            <span>{t(key)}</span>
+          </label>
+        ))}
+        <p className="hint text-sm">{t("callPrivacy")}</p>
+        <p className="hint text-sm">{t("aiPrivacy")}</p>
+        <p className="hint text-sm">{t("privacyInfo")}</p>
+        <button className="button" disabled={busy}>
+          {t(busy ? "saving" : "save")}
+        </button>
+        {message && <p role="status">{t(message)}</p>}
       </form>
-      <Link className="button secondary" href={"/" + user.role}>
-        {t("back")}
-      </Link>
+      <div className="mt-8 flex flex-wrap gap-3">
+        <Link className="button secondary" href={"/" + user.role}>
+          {t("home")}
+        </Link>
+        <button
+          className="button secondary"
+          disabled={busy}
+          onClick={async () => {
+            try {
+              await api("/api/auth", { method: "DELETE" });
+              setUser(null);
+              router.push("/login");
+            } catch {
+              setMessage("networkError");
+            }
+          }}
+        >
+          {t("signout")}
+        </button>
+        <button
+          className="button bg-danger"
+          disabled={busy}
+          onClick={() => void remove()}
+        >
+          {t("deleteAccount")}
+        </button>
+      </div>
     </>
   );
 }
 export default function Account() {
   const { t, user, ready } = useApp();
   return (
-    <main className="mobile-app account-workspace">
-      <div className="workspace-heading">
-        <h1>{t("account")}</h1>
-      </div>
+    <main className="page max-w-2xl">
+      <h1>{t("account")}</h1>
       {!ready ? (
         <p>{t("loading")}</p>
       ) : user ? (
         <AccountForm key={user.id} user={user} />
       ) : (
-        <Link className="button" href="/login">
+        <Link href="/login" className="button mt-6">
           {t("start")}
         </Link>
       )}
+      <p className="hint mt-8 text-sm">{t("demo")}</p>
     </main>
   );
 }

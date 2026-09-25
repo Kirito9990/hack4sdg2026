@@ -13,11 +13,11 @@ export default function Login() {
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
   return (
-    <main className="mobile-app login-workspace">
+    <main className="page max-w-xl">
       <h1>{t("start")}</h1>
       <p className="hint">{t("intro")}</p>
       <form
-        className="stage-scroll login-form space-y-4"
+        className="mt-6 space-y-5"
         onSubmit={async (e) => {
           e.preventDefault();
           setBusy(true);
@@ -83,10 +83,7 @@ export default function Login() {
           />
           <span>{t("allowCalls")}</span>
         </label>
-        <details className="text-xs text-muted">
-          <summary>{t("contactPrivacy")}</summary>
-          <p>{t("callPrivacy")}</p>
-        </details>
+        <p className="hint text-sm">{t("callPrivacy")}</p>
         {error && (
           <p role="alert" className="error">
             {t(error)}
@@ -96,7 +93,7 @@ export default function Login() {
           {t(busy ? "saving" : "continue")}
         </button>
       </form>
-      <p className="text-xs text-muted">{t("demo")}</p>
+      <p className="mt-6 text-sm leading-6 text-muted">{t("demo")}</p>
     </main>
   );
 }

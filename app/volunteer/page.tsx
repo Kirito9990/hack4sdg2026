@@ -5,8 +5,7 @@ import { useRoleProfile } from "@/lib/profile";
 import { useLocation, useRequests } from "@/lib/client-hooks";
 import LocationMap from "@/app/components/location-map";
 import RequestPanel from "@/app/components/request-panel";
-import PriorityCard from "@/app/components/priority-card";
-import type { RequestCategory, UrgencyLevel, User } from "@/lib/types";
+import type { RequestCategory, UrgencyLevel } from "@/lib/types";
 type Task = {
   id: string;
   lat: number;
@@ -17,33 +16,22 @@ type Task = {
   distanceMeters: number;
 };
 export default function Volunteer() {
-  const { t, user, setUser } = useApp(),
+  const { t } = useApp(),
     { ready, profile } = useRoleProfile("volunteer"),
     geo = useLocation(!!profile),
-    feed = useRequests(!!profile);
-  const [tasks, setTasks] = useState<Task[]>([]),
+    feed = useRequests(!!profile),
+    [tasks, setTasks] = useState<Task[]>([]),
     [error, setError] = useState(""),
-    [accepting, setAccepting] = useState(""),
-    [tab, setTab] = useState("allTasks"),
-    [selected, setSelected] = useState(""),
-    [shiftBusy, setShiftBusy] = useState(false);
-  const available = !!user?.available,
-    active = feed.requests.find((r) => r.status === "ACCEPTED");
-  const request =
-    feed.requests.find((r) => r.id === selected) || active || feed.requests[0];
-  // An incoming or restored active assignment always opens the task workspace.
-  const actualTab = active && tab === "allTasks" ? "activity" : tab;
+    [accepting, setAccepting] = useState("");
+  const active = feed.requests.filter((r) => r.status === "ACCEPTED");
   useEffect(() => {
-    if (!geo.coords || !profile || !available) return;
+    if (!geo.coords || !profile) return;
     let live = true;
+    const url =
+      "/api/volunteer/tasks?lat=" + geo.coords.lat + "&lng=" + geo.coords.lng;
     const poll = async () => {
       try {
-        const b = await api<{ tasks: Task[] }>(
-          "/api/volunteer/tasks?lat=" +
-            geo.coords!.lat +
-            "&lng=" +
-            geo.coords!.lng,
-        );
+        const b = await api<{ tasks: Task[] }>(url);
         if (live) {
           setTasks(b.tasks);
           setError("");
@@ -58,204 +46,114 @@ export default function Volunteer() {
       live = false;
       clearInterval(id);
     };
-  }, [geo.coords, profile, available]);
-  if (!ready || !profile) return <main className="page">{t("loading")}</main>;
+  }, [geo.coords, profile]);
+  if (!ready || !profile)
+    return (
+      <main className="page">
+        <p>{t("loading")}</p>
+      </main>
+    );
   return (
-    <main className="mobile-app">
-      <div className="workspace-heading">
-        <div>
-          <p className="eyebrow">{t("volunteer")}</p>
-          <h1>
-            {t(
-              actualTab === "activity"
-                ? "yourTask"
-                : actualTab === "mapTab"
-                  ? "mapTab"
-                  : "nearby",
-            )}
-          </h1>
+    <main className="page max-w-6xl">
+      <h1>{t("nearby")}</h1>
+      <p className="hint">{t("nearbyHint")}</p>
+      {(!geo.coords || geo.error) && (
+        <div className="panel mt-5">
+          <p>{t(geo.error || "findingLocation")}</p>
+          {geo.error && (
+            <button className="button secondary mt-3" onClick={geo.retry}>
+              {t("retry")}
+            </button>
+          )}
         </div>
-        <button
-          role="switch"
-          aria-checked={available}
-          aria-label={t("shiftLabel")}
-          className={"shift-toggle " + (available ? "on" : "")}
-          disabled={shiftBusy}
-          onClick={async () => {
-            setShiftBusy(true);
-            try {
-              const b = await api<{ user: User }>("/api/volunteer/shift", {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ available: !available }),
-              });
-              setUser(b.user);
-              setTasks([]);
-            } catch (e) {
-              setError((e as Error).message);
-            } finally {
-              setShiftBusy(false);
-            }
-          }}
-        >
-          <span className="switch-track">
-            <i />
-          </span>
-          {t(available ? "onShift" : "offShift")}
-        </button>
-      </div>
+      )}
       {(error || feed.error) && (
-        <p role="alert" className="error">
+        <p className="error mt-4" role="alert">
           {t(error || feed.error)}
         </p>
       )}
-      {actualTab !== "activity" &&
-        feed.requests[0]?.closedReason === "completed" && (
-          <button
-            className="status-banner status-complete text-left"
-            onClick={() => {
-              setSelected(feed.requests[0].id);
-              setTab("activity");
-            }}
-          >
-            <span aria-hidden>✓</span>
-            <span role="status">{t("residentConfirmed")}</span>
-          </button>
-        )}
-      <div className="app-stage">
-        {actualTab === "activity" ? (
-          <div className="activity-stage">
-            {feed.requests.length > 1 && (
-              <select
-                className="request-picker"
-                aria-label={t("chooseRequest")}
-                value={request?.id || ""}
-                onChange={(e) => setSelected(e.target.value)}
-              >
-                {feed.requests.map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {t(r.status === "CLOSED" ? "closed" : "yourTask")} ·{" "}
-                    {t(r.category)} · {r.id.slice(0, 6)}
-                  </option>
-                ))}
-              </select>
-            )}
-            {request ? (
-              <RequestPanel
-                key={request.id}
-                request={request}
-                coords={geo.coords}
-                refresh={feed.refresh}
-              />
-            ) : (
-              <div className="empty-state">
-                <span aria-hidden>◷</span>
-                <h2>{t("noActiveTask")}</h2>
-                <button className="button" onClick={() => setTab("allTasks")}>
-                  {t("nearby")}
-                </button>
-              </div>
-            )}
-          </div>
-        ) : !available ? (
-          <div className="empty-state">
-            <span aria-hidden>☾</span>
-            <h2>{t("offShift")}</h2>
-            <p>{t("offShiftHint")}</p>
-            <p className="text-sm text-muted">{t("shiftHint")}</p>
-          </div>
-        ) : !geo.coords ? (
-          <div className="empty-state">
-            <p role="status">{t(geo.error || "findingLocation")}</p>
-            <button className="button secondary" onClick={geo.retry}>
-              {t("retry")}
-            </button>
-          </div>
-        ) : actualTab === "mapTab" ? (
-          <div className="stage-scroll">
-            <LocationMap
-              lat={geo.coords.lat}
-              lng={geo.coords.lng}
-              radius={5000}
-              title={t("nearby")}
-              points={tasks.map((task) => ({
-                ...task,
-                label: t(task.category),
-                urgency: task.urgency_level,
-              }))}
-            />
-            <button
-              className="button secondary mt-3 w-full"
-              onClick={() => setTab("allTasks")}
-            >
-              {t("allTasks")}
-            </button>
-          </div>
-        ) : (
-          <div className="stage-scroll">
-            <p className="text-sm text-muted mb-3">{t("nearbyHint")}</p>
-            {tasks.length ? (
-              <ul className="task-list">
-                {tasks.map((task) => (
-                  <li key={task.id}>
-                    <PriorityCard {...task} />
-                    <div className="flex items-center justify-between gap-3 p-3">
-                      <span className="text-sm">
-                        {t("approx")} {(task.distanceMeters / 1000).toFixed(1)}{" "}
-                        {t("km")}
-                      </span>
-                      <button
-                        className="button"
-                        disabled={!!accepting}
-                        onClick={async () => {
-                          setAccepting(task.id);
-                          setError("");
-                          try {
-                            await post("/api/volunteer/accept", {
-                              id: task.id,
-                              ...geo.coords,
-                            });
-                            await feed.refresh();
-                            setSelected(task.id);
-                            setTab("activity");
-                          } catch (e) {
-                            setError((e as Error).message);
-                          } finally {
-                            setAccepting("");
-                          }
-                        }}
-                      >
-                        {t(accepting === task.id ? "accepting" : "accept")}
-                      </button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <div className="empty-state">
-                <h2>{t("noTasks")}</h2>
-                <p>{t("autoRefresh")}</p>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-      <nav className="bottom-tabs" aria-label={t("volunteer")}>
-        {[
-          ["allTasks", "⌕"],
-          ["activity", "◷"],
-          ["mapTab", "⌖"],
-        ].map(([k, icon]) => (
-          <button
-            key={k}
-            aria-current={actualTab === k ? "page" : undefined}
-            onClick={() => setTab(k)}
-          >
-            <span aria-hidden>{icon}</span>
-            {t(k)}
-          </button>
+      <div className="mt-6 space-y-6">
+        {active.map((r) => (
+          <RequestPanel
+            key={r.id}
+            request={r}
+            coords={geo.coords}
+            refresh={feed.refresh}
+          />
         ))}
-      </nav>
+      </div>
+      {!active.length && geo.coords && (
+        <div className="mt-6">
+          <LocationMap
+            lat={geo.coords.lat}
+            lng={geo.coords.lng}
+            radius={5000}
+            title={t("nearby")}
+            points={tasks.map((task) => ({
+              ...task,
+              label: t(task.category),
+              urgency: task.urgency_level,
+            }))}
+          />
+        </div>
+      )}
+      {!active.length && geo.coords && (
+        <section className="mt-6">
+          {tasks.length ? (
+            <ul className="grid gap-4 md:grid-cols-2">
+              {tasks.map((task, i) => (
+                <li
+                  id={"request-" + task.id}
+                  key={task.id}
+                  className="panel scroll-mt-4"
+                >
+                  <p className="text-sm font-semibold text-muted">
+                    #{i + 1} · {t("approx")}{" "}
+                    {(task.distanceMeters / 1000).toFixed(1)} {t("km")}
+                  </p>
+                  <h2 className="mt-3">{t(task.category)}</h2>
+                  <p className="hint">
+                    {t(
+                      task.source === "fallback"
+                        ? "unassessed"
+                        : task.urgency_level,
+                    )}
+                  </p>
+                  <button
+                    className="button mt-4 w-full"
+                    disabled={!!accepting}
+                    onClick={async () => {
+                      setAccepting(task.id);
+                      setError("");
+                      try {
+                        await post("/api/volunteer/accept", {
+                          id: task.id,
+                          ...geo.coords,
+                        });
+                        setTasks((items) =>
+                          items.filter((x) => x.id !== task.id),
+                        );
+                        await feed.refresh();
+                      } catch (e) {
+                        setError((e as Error).message);
+                      } finally {
+                        setAccepting("");
+                      }
+                    }}
+                  >
+                    {t(accepting === task.id ? "accepting" : "accept")}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="panel">
+              <h2>{t("noTasks")}</h2>
+              <p className="hint">{t("autoRefresh")}</p>
+            </div>
+          )}
+        </section>
+      )}
     </main>
   );
 }
