@@ -10,7 +10,8 @@ export async function transcribeWithDeepgram(
   if (!key) throw new Error("Missing speech key");
   const url = new URL("https://api.deepgram.com/v1/listen");
   url.searchParams.set("model", process.env.DEEPGRAM_MODEL || "nova-3");
-  url.searchParams.set("language", language);
+  if (language === "auto") url.searchParams.set("detect_language", "true");
+  else url.searchParams.set("language", language);
   url.searchParams.set("smart_format", "true");
   const response = await fetch(url, {
     method: "POST",

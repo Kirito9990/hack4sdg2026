@@ -1,48 +1,89 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
-import { api } from "@/app/components/providers";
+import {cachedPoint,rememberPoint,rememberChoice,locationChoice} from "./location-client";
+import type {User} from "./types";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { api, useApp } from "@/app/components/providers";
 import type { RequestView } from "@/lib/types";
 export function useLocation(enabled: boolean) {
-  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(
-      null,
-    ),
+  type Point = { lat: number; lng: number };
+  const {user,setUser}=useApp();
+  const userId=user?.id;
+  const [coords, setCoords] = useState<Point | null>(null),
     [error, setError] = useState(""),
-    [attempt, setAttempt] = useState(0);
-  useEffect(() => {
-    if (!enabled) return;
-    let active = true;
-    if (!navigator.geolocation) {
-      queueMicrotask(() => {
-        if (active) setError("locationError");
-      });
-      return () => {
-        active = false;
-      };
-    }
-    navigator.geolocation.getCurrentPosition(
-      (p) => {
-        if (active) {
-          setCoords({ lat: p.coords.latitude, lng: p.coords.longitude });
-          setError("");
-        }
-      },
-      () => {
-        if (active) setError("locationError");
-      },
-      { enableHighAccuracy: true, timeout: 12000, maximumAge: 20000 },
-    );
-    return () => {
-      active = false;
-    };
-  }, [enabled, attempt]);
-  return {
-    coords,
-    error,
-    retry: () => {
-      setError("");
-      setAttempt((a) => a + 1);
+    [locating, setLocating] = useState(false);
+  const attempt = useRef(0),
+    pending = useRef<((point: Point | null) => void) | null>(null);
+  useEffect(
+    () => () => {
+      attempt.current++;
+      pending.current?.(null);
     },
-  };
+    [],
+  );
+  const locate = useCallback(async () => {
+    if (!enabled) return null;
+    pending.current?.(null);
+    const token = ++attempt.current;
+    setError("");
+    setLocating(true);
+    const result = await new Promise<Point | null>((resolve) => {
+      let settled = false;
+      const finish = (point: Point | null) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(deadline);
+        if (pending.current === finish) pending.current = null;
+        resolve(point);
+      };
+      const deadline = setTimeout(() => {
+        if (token === attempt.current) setError("locationUnavailable");
+        finish(null);
+      }, 15000);
+      pending.current = finish;
+      if (!navigator.geolocation || !window.isSecureContext) {
+        setError("locationUnsupported");
+        finish(null);
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(
+        (p) => {
+          if (token === attempt.current)
+            finish({ lat: p.coords.latitude, lng: p.coords.longitude });
+        },
+        (e) => {
+          if (token === attempt.current) {
+            setError(e.code === 1 ? "locationDenied" : "locationUnavailable");
+            if(e.code===1){rememberChoice("blocked");if(userId)void api<{user:User}>("/api/account/location",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({allowed:false})}).then(b=>setUser(b.user)).catch(()=>{});}
+            finish(null);
+          }
+        },
+        { enableHighAccuracy: false, timeout: 12000, maximumAge: 30000 },
+      );
+    });
+    if (token !== attempt.current) return result;
+    if (result) {
+      setCoords(result);rememberChoice("allowed");
+      if(userId){rememberPoint(userId,result);try{const b=await api<{user:User}>("/api/account/location",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({allowed:true})});setUser(b.user);}catch{}}
+    }
+    setLocating(false);
+    return result;
+  }, [enabled,userId,setUser]);
+  useEffect(()=>{
+    if(!enabled||!userId)return;
+    if(!user?.privacy.allowLocation){if(locationChoice()==="blocked")queueMicrotask(()=>setError("locationDenied"));return;}
+    let live=true;
+    const cached=cachedPoint(userId);if(cached)queueMicrotask(()=>{if(live)setCoords(cached);});
+    else if(navigator.permissions)void navigator.permissions.query({name:"geolocation"}).then(p=>{if(live&&p.state==="granted")void locate();}).catch(()=>{});
+    return()=>{live=false;};
+  },[enabled,userId,user?.privacy.allowLocation,locate]);
+  const pick = useCallback((point: Point) => {
+    attempt.current++;
+    setCoords(point);
+    setError("");
+    setLocating(false);
+    pending.current?.(point);
+  }, []);
+  return { coords, error, locating, locate, retry: () => void locate(), pick };
 }
 export function useRequests(enabled: boolean) {
   const [requests, setRequests] = useState<RequestView[]>([]),
@@ -77,5 +118,14 @@ export function useRequests(enabled: boolean) {
       clearInterval(id);
     };
   }, [enabled]);
-  return { requests, error, refresh };
+  return {
+    requests,
+    error,
+    refresh,
+    add: (request: RequestView) =>
+      setRequests((items) => [
+        request,
+        ...items.filter((r) => r.id !== request.id),
+      ]),
+  };
 }

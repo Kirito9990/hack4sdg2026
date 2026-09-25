@@ -9,3 +9,7 @@ coverage
 deployment/*.env
 deployment/*.zip
 deployment/*.tar*
+
+.carecall-data
+*.sqlite
+*.sqlite-*

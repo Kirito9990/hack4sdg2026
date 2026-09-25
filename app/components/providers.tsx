@@ -60,6 +60,13 @@ export function Providers({ children }: { children: React.ReactNode }) {
     window.addEventListener("focus", focus);
     return () => window.removeEventListener("focus", focus);
   }, [refresh, setLocale]);
+  useEffect(()=>{
+    if(!user?.id||!navigator.permissions)return;
+    let live=true,permission:PermissionStatus|undefined;
+    const changed=()=>{if(permission?.state==='denied'){try{localStorage.setItem('carecall_location_choice','blocked');sessionStorage.removeItem('carecall_position_'+user.id);}catch{}void api<{user:User}>('/api/account/location',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({allowed:false})}).then(b=>{if(live)setUser(b.user);}).catch(()=>{});}};
+    void navigator.permissions.query({name:'geolocation'}).then(p=>{if(!live)return;permission=p;p.addEventListener('change',changed);if(p.state==='denied'&&user.privacy.allowLocation)changed();}).catch(()=>{});
+    return()=>{live=false;permission?.removeEventListener('change',changed);};
+  },[user?.id,user?.privacy.allowLocation]);
   const t = useCallback((key: string) => translate(locale, key), [locale]);
   const value = useMemo(
     () => ({

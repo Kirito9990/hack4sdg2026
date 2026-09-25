@@ -18,6 +18,9 @@ export default function LocationMap({
   radius = 0,
   title,
   route,
+  compact = false,
+  onPick,
+  showPosition = true,
 }: {
   lat: number;
   lng: number;
@@ -25,6 +28,9 @@ export default function LocationMap({
   radius?: number;
   title?: string;
   route?: number[][];
+  compact?: boolean;
+  onPick?: (point: { lat: number; lng: number }) => void;
+  showPosition?: boolean;
 }) {
   const { t } = useApp(),
     container = useRef<HTMLDivElement>(null);
@@ -36,6 +42,10 @@ export default function LocationMap({
     } | null>(null),
     [error, setError] = useState(false),
     [attempt, setAttempt] = useState(0);
+  const pickRef = useRef(onPick);
+  useEffect(() => {
+    pickRef.current = onPick;
+  }, [onPick]);
   const pointsKey = JSON.stringify(points),
     routeKey = JSON.stringify(route ?? []);
   useEffect(() => {
@@ -63,16 +73,20 @@ export default function LocationMap({
             if (!cancelled) setError(true);
           })
           .addTo(map);
-        api
-          .circleMarker([lat, lng], {
-            radius: 9,
-            color: "#fff",
-            weight: 3,
-            fillColor: "#2563eb",
-            fillOpacity: 1,
-          })
-          .addTo(map)
-          .bindTooltip(t("location"));
+        map.on("click", (e: Leaflet.LeafletMouseEvent) =>
+          pickRef.current?.({ lat: e.latlng.lat, lng: e.latlng.lng }),
+        );
+        if (showPosition)
+          api
+            .circleMarker([lat, lng], {
+              radius: 9,
+              color: "#fff",
+              weight: 3,
+              fillColor: "#2563eb",
+              fillOpacity: 1,
+            })
+            .addTo(map)
+            .bindTooltip(t("location"));
         if (radius > 0) {
           const area = api
             .circle([lat, lng], {
@@ -102,7 +116,7 @@ export default function LocationMap({
       map?.stop();
       map?.remove();
     };
-  }, [lat, lng, radius, attempt, t]);
+  }, [lat, lng, radius, attempt, t, showPosition]);
   useEffect(() => {
     if (!context) return;
     const { api, map, markers } = context;
@@ -175,7 +189,10 @@ export default function LocationMap({
   }, [context, routeKey]);
   return (
     <section
-      className="overflow-hidden rounded-3xl border border-line bg-surface"
+      className={
+        "location-map overflow-hidden rounded-3xl border border-line bg-surface " +
+        (compact ? "compact-map" : "")
+      }
       aria-label={title || t("location")}
     >
       <div className="flex flex-wrap items-center justify-between gap-2 px-5 py-3">
@@ -190,10 +207,14 @@ export default function LocationMap({
       </div>
       <div
         ref={container}
-        className="relative z-0 h-80 w-full"
+        className={"relative z-0 w-full " + (compact ? "h-32" : "h-80")}
         aria-label={title || t("location")}
       />
-      <p className="px-5 py-3 text-sm">{t("mapLegend")}</p>
+      {!compact && (
+        <p className="px-5 py-3 text-sm">
+          {t(onPick ? "pickLocationHint" : "mapLegend")}
+        </p>
+      )}
       {error && (
         <div role="status" className="px-5 pb-3 text-sm text-danger">
           {t("mapError")}{" "}

@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import AccountMenu from "./account-menu";
 import { useApp } from "./providers";
 import type { Locale } from "@/lib/types";
 export function PhoneIcon() {
@@ -21,7 +22,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
     emergency = process.env.NEXT_PUBLIC_EMERGENCY_NUMBER || "999";
   return (
     <>
-      <header className="border-b border-line bg-surface">
+      <header className="compact-header border-b border-line bg-surface">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
           <Link
             href={user ? "/" + user.role : "/login"}
@@ -43,18 +44,12 @@ export default function Shell({ children }: { children: React.ReactNode }) {
               <option value="zh-Hans">简体中文</option>
               <option value="en">English</option>
             </select>
-            <Link
-              href="/account"
-              className="inline-flex min-h-12 items-center gap-2 rounded-xl bg-foreground px-4 font-semibold text-white"
-            >
-              <span aria-hidden>◉</span>
-              {t("account")}
-            </Link>
+            <AccountMenu />
           </nav>
         </div>
       </header>
       <div className="flex-1">{children}</div>
-      <footer className="border-t border-line bg-surface">
+      <footer className="compact-footer border-t border-line bg-surface">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-5">
           <p className="text-sm text-muted">{t("emergency")}</p>
           <a href={"tel:" + emergency} className="call-button bg-danger">

@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { store } from "@/lib/db";
+import { store, persist } from "@/lib/db";
 import {
   COOKIE,
   currentUser,
@@ -33,13 +33,20 @@ export async function PATCH(request: Request) {
     )
   )
     return fail("invalidInput");
+  if(body.address!==undefined && (typeof body.address!=="string" || body.address.length>450 || body.address.split(/\r?\n/).length>3))return fail("invalidAddress");
+  for(const key of ["showName","shareAddress","allowLocation"])if(body.privacy[key]!==undefined && typeof body.privacy[key]!=="boolean")return fail("invalidInput");
+  if(body.address!==undefined)user.address=body.address.trim();
   user.name = body.name.trim();
   user.phone = phone;
   user.privacy = {
     allowCalls: body.privacy.allowCalls,
     allowAI: body.privacy.allowAI,
     allowChat: body.privacy.allowChat,
+    showName: body.privacy.showName ?? user.privacy.showName ?? false,
+    shareAddress: body.privacy.shareAddress ?? user.privacy.shareAddress ?? false,
+    allowLocation: body.privacy.allowLocation ?? user.privacy.allowLocation ?? false,
   };
+  persist();
   return json({ user });
 }
 export async function DELETE(request: Request) {
@@ -58,10 +65,12 @@ export async function DELETE(request: Request) {
     .filter((r) => r.volunteerId === user.id)
     .forEach((r) => {
       r.status = "CLOSED";
+      r.closedAt=new Date().toISOString();
       r.volunteerId = undefined;
     });
   data.sessions = data.sessions.filter((s) => s.userId !== user.id);
   data.users = data.users.filter((u) => u.id !== user.id);
+  persist();
   (await cookies()).delete(COOKIE);
   return json({ ok: true });
 }

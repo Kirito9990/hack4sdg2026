@@ -5,7 +5,7 @@ export const COOKIE = "carecall_session";
 export async function currentUser() {
   const token = (await cookies()).get(COOKIE)?.value;
   const data = store(),
-    session = data.sessions.find((s) => s.id === token);
+    session = data.sessions.find((s) => s.id === token && Date.parse(s.createdAt)+30*86400000>Date.now());
   return session ? data.users.find((u) => u.id === session.userId) : undefined;
 }
 export function json(value: unknown, status = 200) {
@@ -54,5 +54,5 @@ export function normalizePhone(value: string) {
   return /^\d{8}$/.test(cleaned) ? "+852" + cleaned : cleaned;
 }
 export function validPhone(value: string) {
-  return /^\+[1-9]\d{7,14}$/.test(value);
+  return /^\+[1-9]\d{7,14}$/.test(value) && !/^\+8520{8}$/.test(value);
 }

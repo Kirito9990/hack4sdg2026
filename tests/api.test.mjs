@@ -1,8 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import sharp from "sharp";
-import { readFile } from "node:fs/promises";
-import ts from "typescript";
 const base = process.env.CARECALL_TEST_URL || "http://127.0.0.1:47293";
 assert(
   ["localhost", "127.0.0.1"].includes(new URL(base).hostname),
@@ -13,7 +11,7 @@ async function client(role, name) {
   const response = await fetch(base + "/api/auth", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name, phone: "61234567", role }),
+    body: JSON.stringify({ name, phone: "61234567", role, privacyAccepted: true }),
   });
   assert.equal(response.status, 200);
   assert.match(response.headers.get("set-cookie"), /HttpOnly/i);
@@ -61,6 +59,27 @@ test("session, matching, media and privacy integration", async (t) => {
       other = await client("resident", "Other Resident"),
       a = await client("volunteer", "Volunteer A"),
       b = await client("volunteer", "Volunteer B");
+    assert.equal(
+      (await a.call("/api/volunteer/tasks?lat=22.3193&lng=114.1694")).body.tasks
+        .length,
+      0,
+    );
+    assert.equal(
+      (
+        await resident.call(
+          "/api/volunteer/shift",
+          { available: true },
+          "PATCH",
+        )
+      ).status,
+      403,
+    );
+    for (const c of [a, b])
+      assert.equal(
+        (await c.call("/api/volunteer/shift", { available: true }, "PATCH"))
+          .status,
+        200,
+      );
     let created;
     await t.test(
       "server owns identity and broadcasts no contact or exact coordinates",
@@ -100,6 +119,21 @@ test("session, matching, media and privacy integration", async (t) => {
         );
       },
     );
+    await t.test("off-shift volunteers cannot accept requests", async () => {
+      await a.call("/api/volunteer/shift", { available: false }, "PATCH");
+      assert.equal(
+        (
+          await a.call("/api/volunteer/accept", {
+            id: created.body.id,
+            lat: 22.3193,
+            lng: 114.1694,
+          })
+        ).status,
+        403,
+      );
+      assert.equal((await a.call("/api/auth")).body.user.available, false);
+      await a.call("/api/volunteer/shift", { available: true }, "PATCH");
+    });
     let winner, loser;
     await t.test(
       "only one concurrent acceptance succeeds and resident sees the match",
@@ -211,7 +245,66 @@ test("session, matching, media and privacy integration", async (t) => {
         );
       },
     );
-    await t.test("closing a request revokes conversation access", async () => {
+    await t.test(
+      "photos are decoded, private, and available to the matched partner",
+      async () => {
+        await resident.call(
+          "/api/account",
+          {
+            name: resident.user.name,
+            phone: resident.user.phone,
+            privacy: { allowCalls: false, allowChat: true, allowAI: false },
+          },
+          "PATCH",
+        );
+        const data = await sharp({
+          create: {
+            width: 1200,
+            height: 800,
+            channels: 3,
+            background: "#227755",
+          },
+        })
+          .jpeg()
+          .toBuffer();
+        const f = new FormData();
+        f.set("id", created.body.id);
+        f.set("image", new Blob([data], { type: "image/jpeg" }), "photo.jpg");
+        assert.equal((await loser.call("/api/request/chat", f)).status, 404);
+        const sent = await resident.call("/api/request/chat", f);
+        assert.equal(sent.status, 201);
+        assert(
+          sent.body.message.imageData.startsWith("data:image/jpeg;base64,"),
+        );
+        const meta = await sharp(
+          Buffer.from(sent.body.message.imageData.split(",")[1], "base64"),
+        ).metadata();
+        assert(meta.width <= 960);
+        assert.equal(meta.exif, undefined);
+        const received = await winner.call(
+          "/api/request/chat?id=" + created.body.id,
+        );
+        assert(received.body.messages.some((m) => m.imageData));
+        f.set("image", new Blob(["fake"], { type: "image/jpeg" }), "bad.jpg");
+        assert.equal((await resident.call("/api/request/chat", f)).status, 400);
+        assert.equal((await winner.call("/api/volunteer/shift",{available:false},"PATCH")).status,409);
+        assert.equal(
+          (
+            await winner.call("/api/request/chat", {
+              id: created.body.id,
+              text: "Still helping off shift",
+            })
+          ).status,
+          201,
+        );
+      },
+    );
+    await t.test("completion makes conversation read-only", async () => {
+      assert.equal(
+        (await winner.call("/api/request/close", { id: created.body.id }))
+          .status,
+        403,
+      );
       assert.equal(
         (await resident.call("/api/request/close", { id: created.body.id }))
           .status,
@@ -219,7 +312,7 @@ test("session, matching, media and privacy integration", async (t) => {
       );
       assert.equal(
         (await winner.call("/api/request/chat?id=" + created.body.id)).status,
-        403,
+        200,
       );
       assert.equal(
         (await winner.call("/api/request/status?id=" + created.body.id)).body
@@ -227,6 +320,13 @@ test("session, matching, media and privacy integration", async (t) => {
         "CLOSED",
       );
     });
+    const closed = await winner.call(
+      "/api/request/status?id=" + created.body.id,
+    );
+    assert.equal(closed.body.closedReason, "completed");
+    assert(closed.body.closedAt);
+    assert.equal(closed.body.chatReadable,true);assert.equal(closed.body.chatAvailable,false);assert.equal((await winner.call("/api/request/chat",{id:created.body.id,text:"too late"})).status,403);assert.equal((await winner.call("/api/volunteer/shift",{available:false},"PATCH")).status,200);
+    assert.equal(closed.body.imageData, undefined);
     await t.test(
       "real image preprocessing and separate audio/image validation",
       async () => {
@@ -247,6 +347,11 @@ test("session, matching, media and privacy integration", async (t) => {
         assert.equal(r.body.imageStatus, "prepared");
         assert.equal(r.body.imageWidth, 1600);
         assert.equal(r.body.imageHeight, 800);
+        assert(r.body.imageData.startsWith("data:image/jpeg;base64,"));
+        assert.equal(
+          (await other.call("/api/request/status?id=" + r.body.id)).status,
+          404,
+        );
         const fake = form();
         fake.set(
           "image",
@@ -298,38 +403,4 @@ test("session, matching, media and privacy integration", async (t) => {
   } finally {
     for (const c of clients) await c.call("/api/account", undefined, "DELETE");
   }
-});
-test("expired and closed chat content is purged from memory", async () => {
-  const source = await readFile(
-    new URL("../lib/db.ts", import.meta.url),
-    "utf8",
-  );
-  const js = ts.transpileModule(source, {
-    compilerOptions: {
-      module: ts.ModuleKind.ESNext,
-      target: ts.ScriptTarget.ES2022,
-    },
-  }).outputText;
-  const db = await import(
-    "data:text/javascript;base64," + Buffer.from(js).toString("base64")
-  );
-  const data = db.store();
-  data.requests.push(
-    {
-      id: "expired",
-      status: "ACCEPTED",
-      chatExpiresAt: new Date(Date.now() - 1000).toISOString(),
-    },
-    {
-      id: "closed",
-      status: "CLOSED",
-      chatExpiresAt: new Date(Date.now() + 100000).toISOString(),
-    },
-  );
-  data.messages.push(
-    { requestId: "expired", text: "private" },
-    { requestId: "closed", text: "private" },
-  );
-  assert.equal(db.store().messages.length, 0);
-  delete globalThis.__carecallV2;
 });

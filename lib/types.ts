@@ -9,12 +9,18 @@ export type Privacy = {
   allowCalls: boolean;
   allowAI: boolean;
   allowChat: boolean;
+  showName?: boolean;
+  shareAddress?: boolean;
+  allowLocation?: boolean;
 };
 export type User = {
   id: string;
   name: string;
   phone: string;
   role: UserRole;
+  available?: boolean;
+  address?: string;
+  privacyAcceptedAt?: string;
   privacy: Privacy;
   createdAt: string;
 };
@@ -35,6 +41,9 @@ export type HelpRequest = TriageFields & {
   createdAt: string;
   acceptedAt?: string;
   chatExpiresAt?: string;
+  closedAt?: string;
+  closedReason?: "completed" | "cancelled";
+  imageData?: string;
   transcript?: string;
   source: "openrouter" | "gemini" | "fallback";
   audioStatus: "none" | "transcribed" | "provided" | "unavailable";
@@ -47,12 +56,15 @@ export type ChatMessage = {
   requestId: string;
   senderId: string;
   text: string;
+  imageData?: string;
   createdAt: string;
 };
 export type RequestView = HelpRequest & {
   residentName: string;
   volunteerName?: string;
   chatAvailable: boolean;
+  chatReadable: boolean;
+  residentAddress?: string;
   callPhone: string | null;
   testCall: boolean;
   distanceMeters?: number;

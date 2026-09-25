@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { store } from "@/lib/db";
+import { store, persist } from "@/lib/db";
 import {
   COOKIE,
   currentUser,
@@ -30,6 +30,7 @@ export async function POST(request: Request) {
   if (!validPhone(phone)) return fail("invalidPhone");
   if (!["resident", "volunteer"].includes(body.role))
     return fail("invalidRole");
+  if(body.privacyAccepted!==true)return fail("privacyRequired");
   const data = store();
   const user = {
     id: crypto.randomUUID(),
@@ -40,7 +41,11 @@ export async function POST(request: Request) {
       allowCalls: body.allowCalls === true,
       allowChat: true,
       allowAI: false,
+      showName: false,
+      shareAddress: false,
+      allowLocation: body.allowLocation===true,
     },
+    privacyAcceptedAt: new Date().toISOString(),
     createdAt: new Date().toISOString(),
   };
   data.users.push(user);
@@ -50,12 +55,13 @@ export async function POST(request: Request) {
     createdAt: new Date().toISOString(),
   };
   data.sessions.push(session);
+  persist();
   (await cookies()).set(COOKIE, session.id, {
     httpOnly: true,
     sameSite: "strict",
     secure: new URL(publicOrigin() || request.url).protocol === "https:",
     path: "/",
-    maxAge: 604800,
+    maxAge: 30 * 86400,
   });
   return json({ user });
 }
@@ -65,6 +71,7 @@ export async function DELETE(request: Request) {
     token = jar.get(COOKIE)?.value,
     data = store();
   data.sessions = data.sessions.filter((s) => s.id !== token);
+  persist();
   jar.delete(COOKIE);
   return json({ ok: true });
 }

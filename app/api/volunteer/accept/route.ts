@@ -1,4 +1,4 @@
-import { getRequest, haversineMeters, store, view } from "@/lib/db";
+import { getRequest, haversineMeters, store, persist, view } from "@/lib/db";
 import { currentUser, fail, json, sameOrigin, validCoords } from "@/lib/server";
 export const runtime = "nodejs";
 export async function POST(request: Request) {
@@ -13,6 +13,7 @@ export async function POST(request: Request) {
     return fail("notFound", 404);
   if (found.status === "ACCEPTED" && found.volunteerId === user.id)
     return json(view(found, user));
+  if (!user.available) return fail("offShiftHint", 403);
   if (found.status !== "PENDING") return fail("alreadyAccepted", 409);
   if (
     store().requests.some(
@@ -26,6 +27,7 @@ export async function POST(request: Request) {
   found.volunteerId = user.id;
   found.status = "ACCEPTED";
   found.acceptedAt = new Date().toISOString();
-  found.chatExpiresAt = new Date(Date.now() + 86400000).toISOString();
+  delete found.chatExpiresAt;
+  persist();
   return json(view(found, user));
 }

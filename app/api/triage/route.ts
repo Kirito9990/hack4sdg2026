@@ -1,8 +1,9 @@
 import sharp from "sharp";
+import { chatImage } from "@/lib/chat-image";
 import { triageRequestWithGemini } from "@/lib/ai";
 import { triageTextWithOpenRouter } from "@/lib/openrouter";
 import { audioContentType, transcribeWithDeepgram } from "@/lib/speech";
-import { redact, store, view } from "@/lib/db";
+import { redact, store, persist, view } from "@/lib/db";
 import { currentUser, fail, json, sameOrigin, validCoords } from "@/lib/server";
 import type { HelpRequest, TriageFields } from "@/lib/types";
 export const runtime = "nodejs";
@@ -31,7 +32,7 @@ export async function POST(request: Request) {
     String(form.get("language")),
   )
     ? String(form.get("language"))
-    : "en";
+    : "auto";
   const audio = upload(form.get("audio")),
     image = upload(form.get("image"));
   let transcript = String(form.get("text") || "").trim();
@@ -51,6 +52,7 @@ export async function POST(request: Request) {
     ].includes(audioContentType(audio.type))
   )
     return fail("invalidAudio");
+  let imageData: string | undefined;
   let imageBuffer: Buffer | undefined,
     imageWidth: number | undefined,
     imageHeight: number | undefined;
@@ -79,6 +81,7 @@ export async function POST(request: Request) {
       imageBuffer = output.data;
       imageWidth = output.info.width;
       imageHeight = output.info.height;
+      imageData = await chatImage(image);
     } catch {
       return fail("invalidImage");
     }
@@ -153,7 +156,9 @@ export async function POST(request: Request) {
     imageStatus,
     imageWidth,
     imageHeight,
+    imageData,
   };
   store().requests.push(saved);
+  persist();
   return json(view(saved, user), 201);
 }

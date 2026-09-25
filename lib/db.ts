@@ -1,3 +1,5 @@
+import {loadSnapshot,writeSnapshot} from "./persistence.mjs";
+import {historyVisible} from "./retention";
 import type { ChatMessage, HelpRequest, Session, User } from "@/lib/types";
 type Store = {
   users: User[];
@@ -5,28 +7,15 @@ type Store = {
   requests: HelpRequest[];
   messages: ChatMessage[];
 };
-const globalStore = globalThis as typeof globalThis & { __carecallV2?: Store };
-export function store(): Store {
-  const data = (globalStore.__carecallV2 ??= {
-    users: [],
-    sessions: [],
-    requests: [],
-    messages: [],
-  });
-  const active = new Set(
-    data.requests
-      .filter(
-        (r) =>
-          r.status === "ACCEPTED" &&
-          Date.parse(r.chatExpiresAt || "") > Date.now(),
-      )
-      .map((r) => r.id),
-  );
-  data.messages = data.messages.filter((m) => active.has(m.requestId));
-  data.sessions = data.sessions.filter(
-    (s) => Date.parse(s.createdAt) + 7 * 86400000 > Date.now(),
-  );
-  return data;
+const globalStore=globalThis as typeof globalThis & {__carecallV3?:Store};
+export function store():Store {
+ const data=globalStore.__carecallV3 ??= (loadSnapshot() as Store|null)||{users:[],sessions:[],requests:[],messages:[]};
+ return data;
+}
+export function persist(){writeSnapshot(store());}
+export function chatReadable(r:HelpRequest){
+ const data=store();
+ return !!r.volunteerId && historyVisible(r) && !!data.users.find(u=>u.id===r.residentId)?.privacy.allowChat && !!data.users.find(u=>u.id===r.volunteerId)?.privacy.allowChat;
 }
 export function haversineMeters(
   lat1: number,
@@ -52,7 +41,6 @@ export function chatOpen(r: HelpRequest) {
   const data = store();
   return (
     r.status === "ACCEPTED" &&
-    Date.parse(r.chatExpiresAt || "") > Date.now() &&
     !!data.users.find((u) => u.id === r.residentId)?.privacy.allowChat &&
     !!data.users.find((u) => u.id === r.volunteerId)?.privacy.allowChat
   );
@@ -65,6 +53,7 @@ export function redact(text: string, people: User[] = store().users) {
       .join("[contact hidden]")
       .split(person.name)
       .join("[name hidden]");
+  for(const person of people)for(const line of (person.address||"").split(/\r?\n/).filter(Boolean))result=result.split(line).join("[address hidden]");
   return result
     .replace(/\+?\d[\d\s().-]{5,}\d/g, "[contact hidden]")
     .slice(0, 2000);
@@ -75,7 +64,7 @@ export function view(r: HelpRequest, user: User) {
     volunteer = data.users.find((u) => u.id === r.volunteerId);
   const other = user.id === r.residentId ? volunteer : resident;
   const active =
-    r.status === "ACCEPTED" && Date.parse(r.chatExpiresAt || "") > Date.now();
+    r.status === "ACCEPTED";
   const testPhone = process.env.CARECALL_TEST_CALL_PHONE?.trim();
   const callPhone =
     active && other?.privacy.allowCalls
@@ -85,8 +74,10 @@ export function view(r: HelpRequest, user: User) {
       : null;
   return {
     ...r,
-    residentName: resident?.name || "",
-    volunteerName: volunteer?.name,
+    residentName: resident && (resident.id===user.id || resident.privacy.showName !== false) ? resident.name : "",
+    volunteerName: volunteer && (volunteer.id===user.id || volunteer.privacy.showName !== false) ? volunteer.name : "",
+    residentAddress: resident && (resident.id===user.id || (active && resident.privacy.shareAddress)) ? resident.address : undefined,
+    chatReadable: chatReadable(r),
     chatAvailable: chatOpen(r),
     callPhone,
     testCall: !!(callPhone && testPhone && user.role === "volunteer"),

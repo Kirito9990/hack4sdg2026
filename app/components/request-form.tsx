@@ -1,63 +1,53 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import {locationChoice} from "@/lib/location-client";
 import Image from "next/image";
 import { api, useApp } from "./providers";
-type Recognition = {
-  lang: string;
-  continuous: boolean;
-  interimResults: boolean;
-  onresult:
-    | ((e: {
-        resultIndex: number;
-        results: ArrayLike<{ isFinal: boolean; 0: { transcript: string } }>;
-      }) => void)
-    | null;
-  onerror: (() => void) | null;
-  onend: (() => void) | null;
-  start: () => void;
-  stop: () => void;
-  abort: () => void;
-};
-type SpeechWindow = Window & {
-  SpeechRecognition?: new () => Recognition;
-  webkitSpeechRecognition?: new () => Recognition;
-};
+import type { RequestView } from "@/lib/types";
+function Microphone() {
+  return (
+    <svg
+      aria-hidden
+      viewBox="0 0 24 24"
+      width="25"
+      height="25"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+    >
+      <rect x="9" y="2" width="6" height="12" rx="3" />
+      <path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3m-4 0h8" />
+    </svg>
+  );
+}
 export default function RequestForm({
   coords,
   onSent,
+  onLocate,
+  location,
 }: {
   coords: { lat: number; lng: number } | null;
-  onSent: () => Promise<void>;
+  onSent: (r: RequestView) => Promise<void>;
+  onLocate: () => Promise<{ lat: number; lng: number } | null>;
+  location: React.ReactNode;
 }) {
-  const { t, locale } = useApp(),
-    [text, setText] = useState(""),
-    [audio, setAudio] = useState<Blob | null>(null),
-    [audioUrl, setAudioUrl] = useState(""),
+  const { t, locale } = useApp();
+  const [text, setText] = useState(""),
     [photo, setPhoto] = useState<File | null>(null),
     [photoUrl, setPhotoUrl] = useState(""),
+    [audio, setAudio] = useState<Blob | null>(null),
+    [audioUrl, setAudioUrl] = useState(""),
     [recording, setRecording] = useState(false),
     [starting, setStarting] = useState(false),
-    [dictating, setDictating] = useState(false),
-    [speechConsent, setSpeechConsent] = useState(false),
-    [language, setLanguage] = useState("zh-HK"),
     [busy, setBusy] = useState(false),
-    [imageBusy, setImageBusy] = useState(false),
     [error, setError] = useState("");
-  const recorder = useRef<MediaRecorder | null>(null),
+  const file = useRef<HTMLInputElement>(null),
+    recorder = useRef<MediaRecorder | null>(null),
     stream = useRef<MediaStream | null>(null),
-    recognition = useRef<Recognition | null>(null),
+    timer = useRef<ReturnType<typeof setTimeout> | null>(null),
     generation = useRef(0),
-    imageGeneration = useRef(0),
-    timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => {
-    if (!audio) return;
-    const url = URL.createObjectURL(audio);
-    const id = setTimeout(() => setAudioUrl(url), 0);
-    return () => {
-      clearTimeout(id);
-      URL.revokeObjectURL(url);
-    };
-  }, [audio]);
+    requestLock = useRef(false),
+    recLock = useRef(false);
   useEffect(() => {
     if (!photo) return;
     const url = URL.createObjectURL(photo);
@@ -67,60 +57,74 @@ export default function RequestForm({
       URL.revokeObjectURL(url);
     };
   }, [photo]);
+  useEffect(() => {
+    if (!audio) return;
+    const url = URL.createObjectURL(audio);
+    const id = setTimeout(() => setAudioUrl(url), 0);
+    return () => {
+      clearTimeout(id);
+      URL.revokeObjectURL(url);
+    };
+  }, [audio]);
   useEffect(
     () => () => {
       generation.current++;
-      imageGeneration.current++;
-      recognition.current?.abort();
       if (timer.current) clearTimeout(timer.current);
       if (recorder.current?.state === "recording") recorder.current.stop();
-      stream.current?.getTracks().forEach((track) => track.stop());
+      stream.current?.getTracks().forEach((t) => t.stop());
     },
     [],
   );
-  function stop() {
-    if (recorder.current?.state === "recording") recorder.current.stop();
-    if (timer.current) clearTimeout(timer.current);
-    setRecording(false);
-  }
-  async function record() {
-    if (recording) {
-      stop();
+  async function toggleRecording() {
+    if (recorder.current?.state === "recording") {
+      recorder.current.stop();
       return;
     }
+    if (recLock.current) return;
+    recLock.current = true;
     const token = ++generation.current;
     setStarting(true);
     setError("");
     try {
+      if (
+        !navigator.mediaDevices?.getUserMedia ||
+        typeof MediaRecorder === "undefined"
+      )
+        throw Error();
       const media = await navigator.mediaDevices.getUserMedia({ audio: true });
       if (token !== generation.current) {
-        media.getTracks().forEach((track) => track.stop());
+        media.getTracks().forEach((t) => t.stop());
         return;
       }
       stream.current = media;
       const mime = ["audio/webm;codecs=opus", "audio/mp4", "audio/ogg"].find(
-        (type) => MediaRecorder.isTypeSupported(type),
+        (x) => MediaRecorder.isTypeSupported(x),
       );
       const r = new MediaRecorder(media, mime ? { mimeType: mime } : undefined),
         chunks: Blob[] = [];
+      recorder.current = r;
       r.ondataavailable = (e) => {
         if (e.data.size) chunks.push(e.data);
       };
       r.onstop = () => {
-        media.getTracks().forEach((track) => track.stop());
-        if (token === generation.current) {
-          const blob = new Blob(chunks, { type: r.mimeType });
-          if (blob.size > 8 * 1024 * 1024) setError("fileTooLarge");
-          else setAudio(blob);
-          setRecording(false);
-        }
+        media.getTracks().forEach((t) => t.stop());
+        if (timer.current) clearTimeout(timer.current);
+        recLock.current = false;
+        if (token !== generation.current) return;
+        setRecording(false);
+        const blob = new Blob(chunks, { type: r.mimeType });
+        if (!blob.size) setError("micError");
+        else if (blob.size > 8 * 1024 * 1024) setError("fileTooLarge");
+        else setAudio(blob);
       };
       r.onerror = () => {
-        media.getTracks().forEach((track) => track.stop());
-        setRecording(false);
-        setError("micError");
+        media.getTracks().forEach((t) => t.stop());
+        recLock.current = false;
+        if (token === generation.current) {
+          setRecording(false);
+          setError("micError");
+        }
       };
-      recorder.current = r;
       r.start();
       setAudio(null);
       setRecording(true);
@@ -128,255 +132,170 @@ export default function RequestForm({
         if (r.state === "recording") r.stop();
       }, 60000);
     } catch {
-      stream.current?.getTracks().forEach((track) => track.stop());
+      stream.current?.getTracks().forEach((t) => t.stop());
+      recLock.current = false;
       setError("micError");
     } finally {
       setStarting(false);
     }
   }
-  function dictate() {
-    if (dictating) {
-      recognition.current?.stop();
-      return;
-    }
-    const Speech =
-      (window as SpeechWindow).SpeechRecognition ||
-      (window as SpeechWindow).webkitSpeechRecognition;
-    if (!Speech) {
-      setError("speechUnavailable");
-      return;
-    }
-    const speech = new Speech();
-    speech.lang = language === "en" ? "en-HK" : language;
-    speech.continuous = true;
-    speech.interimResults = false;
-    speech.onresult = (e) => {
-      let words = "";
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        if (e.results[i].isFinal) words += e.results[i][0].transcript + " ";
-      }
-      if (words)
-        setText((value) => (value + " " + words).trim().slice(0, 4000));
-    };
-    speech.onerror = () => {
-      setError("speechUnavailable");
-      setDictating(false);
-    };
-    speech.onend = () => setDictating(false);
-    recognition.current = speech;
-    try {
-      speech.start();
-      setDictating(true);
-      setError("");
-    } catch {
-      setError("speechUnavailable");
-    }
-  }
-  async function preparePhoto(file: File | undefined) {
-    const token = ++imageGeneration.current;
-    if (!file) {
-      setPhoto(null);
-      return;
-    }
-    setError("");
-    setImageBusy(true);
-    try {
-      if (file.size > 8 * 1024 * 1024) throw new Error("fileTooLarge");
-      if (!["image/jpeg", "image/png", "image/webp"].includes(file.type))
-        throw new Error("invalidImage");
-      const bitmap = await createImageBitmap(file);
-      if (bitmap.width * bitmap.height > 25000000) {
-        bitmap.close();
-        throw new Error("invalidImage");
-      }
-      const scale = Math.min(1, 1600 / Math.max(bitmap.width, bitmap.height)),
-        canvas = document.createElement("canvas");
-      canvas.width = Math.round(bitmap.width * scale);
-      canvas.height = Math.round(bitmap.height * scale);
-      canvas
-        .getContext("2d")!
-        .drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-      bitmap.close();
-      const blob = await new Promise<Blob>((resolve, reject) =>
-        canvas.toBlob(
-          (b) => (b ? resolve(b) : reject(new Error("invalidImage"))),
-          "image/jpeg",
-          0.82,
-        ),
-      );
-      if (token === imageGeneration.current)
-        setPhoto(new File([blob], "request-photo.jpg", { type: "image/jpeg" }));
-    } catch (e) {
-      if (token === imageGeneration.current) {
-        setPhoto(null);
-        setError(
-          (e as Error).message === "fileTooLarge"
-            ? "fileTooLarge"
-            : "invalidImage",
-        );
-      }
-    } finally {
-      if (token === imageGeneration.current) setImageBusy(false);
-    }
-  }
   return (
     <form
-      className="space-y-5"
+      className="simple-request"
       onSubmit={async (e) => {
         e.preventDefault();
-        setError("");
-        if (!coords) {
-          setError("locationError");
+        if (requestLock.current) return;
+        if (recording || starting) {
+          setError("stopRecordingFirst");
           return;
         }
-        if (!text.trim() && !audio && !photo) {
+        if (!text.trim() && !photo && !audio) {
           setError("emptyRequest");
           return;
         }
+        requestLock.current = true;
         setBusy(true);
+        setError("");
         try {
+          const point = coords || (locationChoice()==="blocked" ? null : await onLocate());
+          if (!point) {
+            setError("selectLocationToSend");
+            return;
+          }
           const body = new FormData();
-          body.set("lat", String(coords.lat));
-          body.set("lng", String(coords.lng));
+          body.set("lat", String(point.lat));
+          body.set("lng", String(point.lng));
           body.set("text", text);
           body.set("locale", locale);
-          body.set("language", language);
-          if (audio) body.set("audio", audio, "voice-note");
           if (photo) body.set("image", photo);
-          await api("/api/triage", { method: "POST", body });
+          if (audio) body.set("audio", audio, "voice-note");
+          const saved = await api<RequestView>("/api/triage", {
+            method: "POST",
+            body,
+          });
+          await onSent(saved);
           setText("");
-          setAudio(null);
           setPhoto(null);
-          await onSent();
+          setAudio(null);
         } catch (e) {
           setError((e as Error).message);
         } finally {
+          requestLock.current = false;
           setBusy(false);
         }
       }}
     >
-      <label className="field">
-        {t("description")}
-        <textarea
-          rows={4}
-          maxLength={4000}
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-        />
-      </label>
-      <label className="field">
-        {t("speechLanguage")}
-        <select
-          disabled={recording || dictating}
-          value={language}
-          onChange={(e) => setLanguage(e.target.value)}
-        >
-          <option value="zh-HK">{t("cantonese")}</option>
-          <option value="zh-CN">{t("mandarin")}</option>
-          <option value="en">{t("english")}</option>
-        </select>
-      </label>
-      <div className="panel space-y-3">
-        <button
-          type="button"
-          className={"button w-full " + (recording ? "bg-danger" : "secondary")}
-          disabled={busy || dictating || starting}
-          onClick={() => void record()}
-        >
-          <span aria-hidden className="text-xl">
-            ●
-          </span>
-          {t(starting ? "loading" : recording ? "stop" : "record")}
-        </button>
-        <p className="text-sm text-muted">{t("recordLimit")}</p>
-        {recording && <p role="status">{t("recording")}</p>}
-        {audio && (
-          <>
-            <p role="status">{t("recordReady")}</p>
-            <audio controls src={audioUrl} className="w-full" />
-            <button
-              type="button"
-              className="min-h-11 underline"
-              onClick={() => setAudio(null)}
-            >
-              {t("removeAudio")}
-            </button>
-          </>
-        )}
-        <details>
-          <summary className="cursor-pointer py-2 font-semibold">
-            {t("dictate")}
-          </summary>
-          <p className="hint text-sm">{t("speechConsent")}</p>
-          <label className="my-3 flex items-start gap-3">
-            <input
-              type="checkbox"
-              checked={speechConsent}
-              onChange={(e) => {
-                setSpeechConsent(e.target.checked);
-                if (!e.target.checked) recognition.current?.abort();
-              }}
-              className="mt-1 h-5 w-5"
-            />
-            {t("speechAgree")}
-          </label>
-          <button
-            type="button"
-            className="button secondary"
-            disabled={!speechConsent || recording || starting || busy}
-            onClick={dictate}
-          >
-            {t(dictating ? "stopDictation" : "dictate")}
-          </button>
-        </details>
-      </div>
-      <label className="button secondary w-full cursor-pointer focus-within:ring-2 focus-within:ring-foreground">
-        {t("addPhoto")}
-        <input
-          type="file"
-          className="sr-only"
-          accept="image/jpeg,image/png,image/webp"
-          disabled={busy}
-          onChange={(e) => void preparePhoto(e.target.files?.[0])}
-        />
-      </label>
-      {imageBusy && <p role="status">{t("loading")}</p>}
-      {photo && (
-        <div className="panel">
-          <Image
-            unoptimized
-            width={640}
-            height={480}
-            src={
-              photoUrl ||
-              "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
-            }
-            alt={t("photoPreview")}
-            className="max-h-64 w-full rounded-xl object-contain"
+      <div className="simple-request-content">
+        <label className="field">
+          <span className="sr-only">{t("description")}</span>
+          <textarea
+            rows={3}
+            maxLength={4000}
+            placeholder={t("describeTitle")}
+            aria-label={t("description")}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            disabled={busy}
           />
-          <p className="hint text-sm">{t("imagePrepared")}</p>
-          <button
-            type="button"
-            className="min-h-11 underline"
-            onClick={() => {
-              imageGeneration.current++;
-              setPhoto(null);
+        </label>
+        <div className="request-input-tools">
+          <input
+            ref={file}
+            hidden
+            className="sr-only"
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            aria-label={t("addPhoto")}
+            disabled={busy}
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              e.target.value = "";
+              if (!f) return;
+              if (f.size > 8 * 1024 * 1024) {
+                setError("fileTooLarge");
+                return;
+              }
+              if (!["image/jpeg", "image/png", "image/webp"].includes(f.type)) {
+                setError("invalidImage");
+                return;
+              }
+              setPhotoUrl("");
+              setPhoto(f);
+              setError("");
             }}
+          />
+          <button
+            className="attachment-plus"
+            type="button"
+            onClick={() => file.current?.click()}
+            disabled={busy}
+            aria-label={t("addPhoto")}
+            title={t("addPhoto")}
           >
-            {t("removePhoto")}
+            ＋
+          </button>
+          <button
+            className={"voice-control " + (recording ? "is-recording" : "")}
+            type="button"
+            disabled={busy || starting}
+            onClick={() => void toggleRecording()}
+            aria-label={t(recording ? "tapStop" : "tapSpeak")}
+            aria-pressed={recording}
+          >
+            <Microphone />
+            <span>
+              {t(starting ? "loading" : recording ? "tapStop" : "tapSpeak")}
+            </span>
           </button>
         </div>
-      )}
+        {recording && (
+          <p role="status" className="text-sm">
+            {t("recording")} · {t("recordLimit")}
+          </p>
+        )}
+        {photo && (
+          <div className="selected-media">
+            {photoUrl && (
+              <Image
+                unoptimized
+                src={photoUrl}
+                width={100}
+                height={70}
+                alt={t("photoPreview")}
+              />
+            )}
+            <span>{t("photoTab")}</span>
+            <button
+              type="button"
+              onClick={() => setPhoto(null)}
+              aria-label={t("removePhoto")}
+            >
+              ×
+            </button>
+          </div>
+        )}
+        {audio && (
+          <div className="selected-media">
+            <audio controls src={audioUrl} />
+            <button
+              type="button"
+              onClick={() => setAudio(null)}
+              aria-label={t("removeAudio")}
+            >
+              ×
+            </button>
+          </div>
+        )}
+        {location}
+      </div>
       {error && (
-        <p className="error" role="alert">
+        <p className="error text-sm" role="alert">
           {t(error)}
         </p>
       )}
       <button
         className="button w-full"
-        disabled={
-          busy || recording || starting || dictating || imageBusy || !coords
-        }
+        disabled={busy || recording || starting}
       >
         {t(busy ? "sending" : "sendRequest")}
       </button>

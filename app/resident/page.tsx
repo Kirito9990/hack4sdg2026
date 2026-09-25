@@ -1,77 +1,124 @@
 "use client";
+import { useState } from "react";
 import { useApp } from "@/app/components/providers";
 import { useRoleProfile } from "@/lib/profile";
 import { useLocation, useRequests } from "@/lib/client-hooks";
 import RequestForm from "@/app/components/request-form";
 import RequestPanel from "@/app/components/request-panel";
-import LocationMap from "@/app/components/location-map";
+import HistoryList from "@/app/components/history-list";
+import LocationPicker from "@/app/components/location-picker";
 export default function Resident() {
   const { t } = useApp(),
     { ready, profile } = useRoleProfile("resident"),
     geo = useLocation(!!profile),
     feed = useRequests(!!profile);
-  if (!ready || !profile)
-    return (
-      <main className="page">
-        <p>{t("loading")}</p>
-      </main>
-    );
+  const [tab, setTab] = useState("activity"),
+    [selected, setSelected] = useState("");
+  const request =
+    feed.requests.find((r) => r.id === selected) ||
+    feed.requests.find((r) => r.status !== "CLOSED") ||
+    feed.requests[0];
+  const actualTab =
+    tab === "activity" && !feed.requests.length ? "newHelp" : tab;
+  if (!ready || !profile) return <main className="page">{t("loading")}</main>;
   return (
-    <main className="page max-w-6xl">
-      <h1>{t("requestHelp")}</h1>
-      <p className="hint">{t("requestIntro")}</p>
-      <div className="mt-6 grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
-        <div className="space-y-6">
-          {feed.error && (
-            <p className="error" role="alert">
-              {t(feed.error)}
-            </p>
-          )}
-          {feed.requests
-            .filter((r) => r.status !== "CLOSED")
-            .map((r) => (
-              <RequestPanel key={r.id} request={r} refresh={feed.refresh} />
-            ))}
-          <section className="panel">
-            <RequestForm coords={geo.coords} onSent={feed.refresh} />
-          </section>
-          {feed.requests.some((r) => r.status === "CLOSED") && (
-            <details>
-              <summary className="py-3 font-semibold">{t("history")}</summary>
-              <div className="space-y-4">
-                {feed.requests
-                  .filter((r) => r.status === "CLOSED")
-                  .map((r) => (
-                    <RequestPanel
-                      key={r.id}
-                      request={r}
-                      refresh={feed.refresh}
-                    />
-                  ))}
-              </div>
-            </details>
-          )}
+    <main className="mobile-app">
+      <div className="workspace-heading">
+        <div>
+          <p className="eyebrow">{t("resident")}</p>
+          <h1>
+            {t(
+              actualTab === "newHelp"
+                ? "requestHelp"
+                : actualTab === "history"
+                  ? "history"
+                  : "activity",
+            )}
+          </h1>
         </div>
-        <aside className="space-y-4">
-          {geo.coords ? (
-            <LocationMap
-              lat={geo.coords.lat}
-              lng={geo.coords.lng}
-              title={t("requestLocation")}
-            />
-          ) : (
-            <p role="status">{t(geo.error || "findingLocation")}</p>
-          )}
-          {geo.error && (
-            <button className="button secondary" onClick={geo.retry}>
-              {t("retry")}
-            </button>
-          )}
-          <p className="panel text-sm leading-6 text-muted">
-            {t("locationPrivacy")}
-          </p>
-        </aside>
       </div>
+      {feed.error && (
+        <p className="error" role="alert">
+          {t(feed.error)}
+        </p>
+      )}
+      <div className="app-stage">
+        <div
+          className="form-surface"
+          style={{ display: actualTab === "newHelp" ? "flex" : "none" }}
+        >
+          <RequestForm
+            coords={geo.coords}
+            onLocate={geo.locate}
+            location={
+              <LocationPicker
+                coords={geo.coords}
+                locating={geo.locating}
+                error={geo.error}
+                onLocate={geo.retry}
+                onPick={geo.pick}
+                compact
+              />
+            }
+            onSent={async (saved) => {
+              feed.add(saved);
+              setSelected(saved.id);
+              setTab("activity");
+              await feed.refresh();
+            }}
+          />
+        </div>
+        {actualTab === "history" ? (
+          <HistoryList requests={feed.requests.filter(r=>r.status==='CLOSED')} onOpen={id=>{setSelected(id);setTab('activity');}}/>
+        ) : actualTab === "activity" ? (
+          <div className="activity-stage">
+            {feed.requests.length > 1 && (
+              <select
+                className="request-picker"
+                aria-label={t("chooseRequest")}
+                value={request?.id || ""}
+                onChange={(e) => setSelected(e.target.value)}
+              >
+                {feed.requests.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {t(
+                      r.status === "CLOSED"
+                        ? "closed"
+                        : r.status === "ACCEPTED"
+                          ? "accepted"
+                          : "pending",
+                    )}{" "}
+                    · {t(r.category)} · {r.id.slice(0, 6)}
+                  </option>
+                ))}
+              </select>
+            )}
+            {request && (
+              <RequestPanel
+                key={request.id}
+                request={request}
+                refresh={feed.refresh}
+              />
+            )}
+          </div>
+        ) : null}
+      </div>
+      <nav className="bottom-tabs" aria-label={t("home")}>
+        {[
+          ["newHelp", "＋"],
+          ["activity", "◷"],
+          ["history", "◴"],
+        ].map(([k, icon]) => (
+          <button
+            key={k}
+            aria-current={actualTab === k ? "page" : undefined}
+            onClick={() => setTab(k)}
+          >
+            <span aria-hidden>{icon}</span>
+            {t(k)}
+          </button>
+        ))}
+      </nav>
     </main>
   );
 }
