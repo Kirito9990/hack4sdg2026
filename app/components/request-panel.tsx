@@ -4,6 +4,7 @@ import Image from "next/image";
 import { api, post, useApp } from "./providers";
 import CallControl from "./call-control";
 import RequestNavigation from "./request-navigation";
+import LocationMap from "./location-map";
 import PriorityCard from "./priority-card";
 import ResidentVolunteerMap from "./resident-volunteer-map";
 import RequestProgress, { ProgressLink } from "./request-progress";
@@ -251,6 +252,7 @@ export default function RequestPanel({
     [busy, setBusy] = useState(false);
   const accepted = r.status === "ACCEPTED",
     closed = r.status === "CLOSED",
+    pending = r.status === "PENDING",
     resident = user?.role === "resident";
   async function finish() {
     if (!confirm(t(accepted ? "finishConfirm" : "closeConfirm"))) return;
@@ -267,41 +269,82 @@ export default function RequestPanel({
   }
   return (
     <article className="request-workspace" id={"request-" + r.id}>
-      {!accepted && <div
-        role="status"
-        className={
-          "status-banner " +
-          (closed
-            ? "status-complete"
-            : "status-waiting")
-        }
-      >
-        <span className="status-symbol" aria-hidden>
-          {closed ? "✓" : "↗"}
-        </span>
-        <div>
-          <h2>
-            {t(
-              closed
-                ? r.closedReason === "completed"
-                  ? "completedTitle"
-                  : "closed"
-                : "requestSent",
+      {pending ? (
+        <details className="pending-card">
+          <summary className="pending-card-summary" aria-label={t("pendingSummaryToggle")}>
+            <span className="status-symbol" aria-hidden>↗</span>
+            <span className="pending-card-heading">
+              <h2>{t("requestSent")}</h2>
+              <small>{t("waitingHint")}</small>
+            </span>
+            <span className="pending-card-caret" aria-hidden>⌄</span>
+          </summary>
+          <div className="pending-card-body">
+            <PriorityCard {...r} summary={undefined} />
+            {(r.transcript || r.summary) && (
+              <p className="whitespace-pre-wrap break-words text-sm">
+                {r.transcript ||
+                  (r.summary === "mediaRequest"
+                    ? t("mediaRequest")
+                    : r.summary)}
+              </p>
             )}
-          </h2>
-          <p>
-            {t(
-              closed
-                ? r.closedReason === "completed"
-                  ? resident
-                    ? "completedHint"
-                    : "residentConfirmed"
-                  : "closed"
-                : "waitingHint",
+            {r.imageData && (
+              <Photo src={r.imageData} label={t("requestPhoto")} />
             )}
-          </p>
+            {r.imageHidden && <p className="text-sm text-muted">{t("historyPhotoHidden")}</p>}
+            {r.residentAddress && <div><strong>{t("defaultAddress")}</strong><p className="whitespace-pre-line">{r.residentAddress}</p></div>}
+          </div>
+        </details>
+      ) : (
+        !accepted && <div
+          role="status"
+          className={
+            "status-banner " +
+            (closed
+              ? "status-complete"
+              : "status-waiting")
+          }
+        >
+          <span className="status-symbol" aria-hidden>
+            {closed ? "✓" : "↗"}
+          </span>
+          <div>
+            <h2>
+              {t(
+                closed
+                  ? r.closedReason === "completed"
+                    ? "completedTitle"
+                    : "closed"
+                  : "requestSent",
+              )}
+            </h2>
+            <p>
+              {t(
+                closed
+                  ? r.closedReason === "completed"
+                    ? resident
+                      ? "completedHint"
+                      : "residentConfirmed"
+                    : "closed"
+                  : "waitingHint",
+              )}
+            </p>
+          </div>
         </div>
-      </div>}
+      )}
+      {pending && r.lat !== undefined && r.lng !== undefined && (
+        <LocationMap
+          lat={r.lat}
+          lng={r.lng}
+          title={t("requestLocation")}
+          points={[{ id: r.id, lat: r.lat, lng: r.lng, label: t(r.category) }]}
+          radius={5000}
+          heightClassName="h-[50vh]"
+          allowFullscreen
+          legend={t("pendingMapLegend")}
+        />
+      )}
       {(accepted || (closed && r.chatReadable)) && (
         <div className="segmented" role="tablist" aria-label={t("yourTask")}>
           {["conversation", "progressTab", ...(accepted ? ["mapTab"] : [])].map(
@@ -319,34 +362,36 @@ export default function RequestPanel({
         </div>
       )}
       {accepted && tab !== "progressTab" && <ProgressLink onOpen={() => setTab("progressTab")} />}
-      <div className="request-stage">
-        {r.chatReadable && tab === "conversation" ? (
-          <Conversation key={r.id} request={r} />
-        ) : accepted && tab === "mapTab" && r.lat !== undefined && r.lng !== undefined ? (
-          resident ? <ResidentVolunteerMap request={r} /> : <RequestNavigation key={r.id} request={{ ...r, lat: r.lat, lng: r.lng }} />
-        ) : (
-          <div className="stage-scroll request-details">
-            {(accepted || closed) && <RequestProgress request={r} />}
-            <div className="request-summary">
-            <h3>{t("taskSummary")}</h3>
-            <PriorityCard {...r} summary={undefined} />
-            {(r.transcript || r.summary) && (
-              <p className="whitespace-pre-wrap break-words">
-                {r.transcript ||
-                  (r.summary === "mediaRequest"
-                    ? t("mediaRequest")
-                    : r.summary)}
-              </p>
-            )}
-            {r.imageData && (
-              <Photo src={r.imageData} label={t("requestPhoto")} />
-            )}
-            {r.imageHidden && <p className="text-sm text-muted">{t("historyPhotoHidden")}</p>}
-            {r.residentAddress && <div><strong>{t("defaultAddress")}</strong><p className="whitespace-pre-line">{r.residentAddress}</p></div>}
+      {!pending && (
+        <div className="request-stage">
+          {r.chatReadable && tab === "conversation" ? (
+            <Conversation key={r.id} request={r} />
+          ) : accepted && tab === "mapTab" && r.lat !== undefined && r.lng !== undefined ? (
+            resident ? <ResidentVolunteerMap request={r} /> : <RequestNavigation key={r.id} request={{ ...r, lat: r.lat, lng: r.lng }} />
+          ) : (
+            <div className="stage-scroll request-details">
+              {(accepted || closed) && <RequestProgress request={r} />}
+              <div className="request-summary">
+              <h3>{t("taskSummary")}</h3>
+              <PriorityCard {...r} summary={undefined} />
+              {(r.transcript || r.summary) && (
+                <p className="whitespace-pre-wrap break-words">
+                  {r.transcript ||
+                    (r.summary === "mediaRequest"
+                      ? t("mediaRequest")
+                      : r.summary)}
+                </p>
+              )}
+              {r.imageData && (
+                <Photo src={r.imageData} label={t("requestPhoto")} />
+              )}
+              {r.imageHidden && <p className="text-sm text-muted">{t("historyPhotoHidden")}</p>}
+              {r.residentAddress && <div><strong>{t("defaultAddress")}</strong><p className="whitespace-pre-line">{r.residentAddress}</p></div>}
+              </div>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
       {error && (
         <p role="alert" className="error">
           {t(error)}

@@ -305,6 +305,52 @@ body {
   background: #e2f4e8;
   border-color: #a3d4b1;
 }
+.pending-card {
+  flex-shrink: 0;
+  border-radius: 16px;
+  background: #e0f1f9;
+  border: 1px solid #b3d5e8;
+  overflow: hidden;
+}
+.pending-card-summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  cursor: pointer;
+  list-style: none;
+}
+.pending-card-summary::-webkit-details-marker {
+  display: none;
+}
+.pending-card-heading {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+.pending-card-heading h2 {
+  font-size: 15px;
+  font-weight: 750;
+}
+.pending-card-heading small {
+  font-size: 12px;
+  line-height: 1.4;
+}
+.pending-card-caret {
+  font-size: 16px;
+  flex-shrink: 0;
+  transition: transform 0.15s ease;
+}
+.pending-card[open] .pending-card-caret {
+  transform: rotate(180deg);
+}
+.pending-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 0 12px 12px;
+}
 .priority-card {
   border-radius: 14px;
   padding: 10px 13px;
@@ -1072,6 +1118,35 @@ body {
 }
 .compact-map > div:first-child {
   display: none;
+}
+.map-fullscreen-toggle {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 900;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: #fffdf8;
+  border: 1px solid var(--line);
+  color: #25241f;
+  box-shadow: 0 4px 14px #17181211;
+}
+.location-map-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 1090;
+  border-radius: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+}
+.location-map-fullscreen .map-fullscreen-toggle {
+  top: max(12px, env(safe-area-inset-top));
+  right: max(12px, env(safe-area-inset-right));
 }
 .manual-coordinates {
   font-size: 12px;
