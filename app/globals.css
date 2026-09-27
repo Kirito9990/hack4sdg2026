@@ -355,21 +355,55 @@ body {
   gap: 18px;
   flex: 1;
 }
-.progress-steps {
+.active-task .workspace-heading { position: absolute; width: 1px; height: 1px; min-height: 0; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.progress-link {
   display: flex;
-  gap: 8px;
-  font-size: 12px;
-  color: var(--muted);
-  counter-reset: step;
+  align-items: center;
+  gap: 12px;
+  min-height: 36px;
+  padding: 0 12px;
+  flex-shrink: 0;
+  color: #476349;
+  background: #e9eee3;
+  border-radius: 12px;
+  font-size: 13px;
+  text-align: left;
 }
-.progress-steps li {
-  flex: 1;
-  border-top: 3px solid #e4eae7;
-  padding-top: 8px;
-}
-.progress-steps li.done {
-  border-color: #2d926e;
-  color: #16634a;
+.progress-chevron { margin-left: auto; font-size: 20px; }
+.activity-connection { position: relative; width: 66px; height: 16px; flex-shrink: 0; }
+.activity-connection > i { position: absolute; top: 4px; width: 8px; height: 8px; border: 2px solid #637d5b; border-radius: 50%; background: #e9eee3; }
+.activity-connection > i:first-child { left: 0; }
+.activity-connection > i:last-child { right: 0; }
+.activity-connection > span { position: absolute; left: 10px; right: 10px; top: 7px; height: 2px; background: #c4d0ba; overflow: hidden; }
+.activity-connection > span::after { content: ""; display: block; width: 28%; height: 100%; background: #526c47; animation: assistance-flow 2.8s ease-in-out infinite; }
+@keyframes assistance-flow { from { transform: translateX(-110%); } to { transform: translateX(370%); } }
+.journey-progress { padding: 4px 0 8px; }
+.journey-connection { display: flex; align-items: flex-start; gap: 14px; max-width: 330px; margin: 8px auto 18px; }
+.journey-connection > .activity-connection { flex: 1; margin-top: 18px; }
+.journey-endpoint { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 60px; }
+.journey-endpoint > span { display: grid; place-items: center; width: 52px; height: 52px; border-radius: 50%; background: #f3efe4; color: #66563d; font-size: 28px; }
+.journey-endpoint small { font-size: 12px; color: var(--muted); }
+.journey-progress h2 { font-size: 22px; font-weight: 700; text-align: center; }
+.journey-hint { max-width: 330px; margin: 8px auto 22px; text-align: center; font-size: 13px; line-height: 1.6; color: var(--muted); }
+.journey-timeline { display: flex; flex-direction: column; gap: 0; font-size: 13px; }
+.journey-timeline li { position: relative; display: flex; align-items: center; gap: 10px; min-height: 42px; color: var(--muted); }
+.journey-timeline li:not(:last-child)::after { content: ""; position: absolute; width: 1px; background: var(--line); left: 10px; top: 31px; bottom: -11px; }
+.journey-step-dot { display: grid; place-items: center; width: 21px; height: 21px; border: 1px solid var(--line); border-radius: 50%; flex-shrink: 0; font-size: 11px; }
+.journey-timeline .done { color: #476349; }
+.journey-timeline .done .journey-step-dot { background: #e9eee3; border-color: #c4d0ba; }
+.journey-timeline [aria-current="step"] { font-weight: 700; }
+.journey-timeline time, .journey-timeline small { margin-left: auto; font-size: 12px; font-weight: 400; color: var(--muted); }
+.request-summary { border-top: 1px solid var(--line); padding-top: 16px; display: flex; flex-direction: column; gap: 12px; font-size: 14px; }
+.request-summary:first-child { border-top: 0; padding-top: 0; }
+.request-summary h3 { font-weight: 700; font-size: 14px; }
+.acceptance-notice-region { position: fixed; z-index: 1100; top: max(12px, env(safe-area-inset-top)); left: 16px; right: 16px; pointer-events: none; }
+.acceptance-notice { display: flex; align-items: center; gap: 10px; max-width: 440px; margin: auto; padding: 6px 8px 6px 14px; border-radius: 16px; background: #fcfaf3; color: #343a2d; border: 1px solid #d1d9c7; box-shadow: 0 8px 28px #342a2426; font-size: 14px; pointer-events: auto; animation: acceptance-enter .25s ease-out; }
+.acceptance-check { color: #476349; }
+.acceptance-notice p { flex: 1; }
+.acceptance-notice button { width: 44px; height: 44px; flex-shrink: 0; font-size: 22px; }
+@keyframes acceptance-enter { from { opacity: 0; transform: translateY(-12px); } to { opacity: 1; transform: translateY(0); } }
+@media (prefers-reduced-motion: reduce) {
+  .activity-connection > span::after, .acceptance-notice { animation: none; }
 }
 .conversation {
   border: 1px solid var(--line);
@@ -1110,9 +1144,11 @@ body {
   background: #e9e3d7;
 }
 .compact-header .account-link {
-  padding: 8px 10px;
+  padding: 10px;
   font-size: 12px;
-  min-height: 42px;
+  min-height: 44px;
+  width: 44px;
+  justify-content: center;
 }
 .login-heading {
   margin: 20px 0 10px;

@@ -8,6 +8,7 @@ import HistoryList from "@/app/components/history-list";
 import RequestPanel from "@/app/components/request-panel";
 import PriorityCard from "@/app/components/priority-card";
 import VolunteerLocationSharing from "@/app/components/volunteer-location-sharing";
+import AcceptanceNotice from "@/app/components/acceptance-notice";
 import type { RequestCategory, UrgencyLevel, User } from "@/lib/types";
 type Task = {
   id: string;
@@ -63,14 +64,15 @@ export default function Volunteer() {
   }, [geo.coords, profile, available]);
   if (!ready || !profile) return <main className="page">{t("loading")}</main>;
   return (
-    <main className="mobile-app">
+    <main className={"mobile-app" + (actualTab === "activity" && active ? " active-task" : "")}>
+      <AcceptanceNotice requests={feed.requests} />
       <div className="workspace-heading">
         <div>
           <p className="eyebrow">{t("volunteer")}</p>
           <h1>
             {t(
               actualTab === "activity"
-                ? "yourTask"
+                ? "currentTask"
                 : actualTab === "history"
                   ? "history"
                   : "nearby",
@@ -138,7 +140,7 @@ export default function Volunteer() {
               >
                 {feed.requests.map((r) => (
                   <option key={r.id} value={r.id}>
-                    {t(r.status === "CLOSED" ? "closed" : "yourTask")} ·{" "}
+                    {t(r.status === "CLOSED" ? "closed" : "currentTask")} ·{" "}
                     {t(r.category)} · {r.id.slice(0, 6)}
                   </option>
                 ))}

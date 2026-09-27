@@ -73,7 +73,7 @@ test("request usability: denied GPS, manual map, clickable photos, recording, ac
   await v.getByRole("switch").click();
   await v.getByRole("button",{name:"Use my location",exact:true}).click();
   await v.getByRole("button",{name:"Accept request",exact:true}).click();
-  await p.getByRole("heading",{name:"A volunteer has accepted",exact:true}).waitFor();
+  await p.getByRole("button",{name:"View request progress",exact:true}).waitFor();
   // Call targets are inspected only. Do not click tel links in tests.
   await p.getByRole("button",{name:"Account centre",exact:true}).click();await p.getByRole("link",{name:"Privacy settings",exact:true}).click();
   await p.getByRole("checkbox",{name:"Allow my matched partner to call me",exact:true}).check();await p.getByRole("button",{name:"Save changes",exact:true}).click();

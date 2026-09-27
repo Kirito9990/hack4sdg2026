@@ -1,5 +1,16 @@
 import type { Locale } from "@/lib/types";
 export const messages = {
+  progressTab: ["Progress", "進度", "进度"],
+  viewProgress: ["View request progress", "查看求助進度", "查看请求进度"],
+  helpInProgress: ["Help in progress", "協助進行中", "协助进行中"],
+  progressHelpingHint: ["Stay in touch here. The resident confirms when help is complete.", "在這裡保持聯絡，協助完成後由居民確認。", "在这里保持联系，协助完成后由居民确认。"],
+  progressRequested: ["Requested", "已發出求助", "已发出请求"],
+  progressMatched: ["Connected", "已配對", "已匹配"],
+  progressWaiting: ["Pending", "待確認", "待确认"],
+  taskSummary: ["Request summary", "求助摘要", "请求摘要"],
+  currentTask: ["Current request", "目前求助", "当前请求"],
+  youAcceptedToast: ["You accepted this request", "你已接受這項求助", "你已接受这项请求"],
+  dismissNotice: ["Dismiss notification", "關閉通知", "关闭通知"],
   historyDetails: ["Completed request", "已完成求助", "已完成请求"],
   historySummary: ["Summary", "摘要", "摘要"],
   backToHistory: ["Back to history", "返回歷史記錄", "返回历史记录"],

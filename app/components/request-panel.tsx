@@ -6,6 +6,7 @@ import CallControl from "./call-control";
 import RequestNavigation from "./request-navigation";
 import PriorityCard from "./priority-card";
 import ResidentVolunteerMap from "./resident-volunteer-map";
+import RequestProgress, { ProgressLink } from "./request-progress";
 import type { ChatMessage, RequestView } from "@/lib/types";
 
 function Photo({ src, label }: { src: string; label: string }) {
@@ -77,7 +78,6 @@ export function Conversation({ request: r }: { request: RequestView }) {
           <strong className="block truncate">
             {(user?.role === "resident" ? r.volunteerName : r.residentName) || t(user?.role === "resident" ? "volunteer" : "resident")}
           </strong>
-          <span className="text-xs text-muted">{t("chat")}</span>
         </div>
         {r.status === "ACCEPTED" && <CallControl request={r}/>}
       </header>
@@ -267,19 +267,17 @@ export default function RequestPanel({
   }
   return (
     <article className="request-workspace" id={"request-" + r.id}>
-      {(!accepted || resident) && <div
+      {!accepted && <div
         role="status"
         className={
           "status-banner " +
           (closed
             ? "status-complete"
-            : accepted
-              ? "status-matched"
-              : "status-waiting")
+            : "status-waiting")
         }
       >
         <span className="status-symbol" aria-hidden>
-          {closed ? "✓" : accepted ? "✓" : "↗"}
+          {closed ? "✓" : "↗"}
         </span>
         <div>
           <h2>
@@ -288,9 +286,7 @@ export default function RequestPanel({
                 ? r.closedReason === "completed"
                   ? "completedTitle"
                   : "closed"
-                : accepted
-                  ? "matchedTitle"
-                  : "requestSent",
+                : "requestSent",
             )}
           </h2>
           <p>
@@ -301,18 +297,14 @@ export default function RequestPanel({
                     ? "completedHint"
                     : "residentConfirmed"
                   : "closed"
-                : accepted
-                  ? resident
-                    ? "accepted"
-                    : "yourTask"
-                  : "waitingHint",
+                : "waitingHint",
             )}
           </p>
         </div>
       </div>}
       {(accepted || (closed && r.chatReadable)) && (
         <div className="segmented" role="tablist" aria-label={t("yourTask")}>
-          {["conversation", "detailsTab", ...(accepted ? ["mapTab"] : [])].map(
+          {["conversation", "progressTab", ...(accepted ? ["mapTab"] : [])].map(
             (k) => (
               <button
                 key={k}
@@ -326,6 +318,7 @@ export default function RequestPanel({
           )}
         </div>
       )}
+      {accepted && tab !== "progressTab" && <ProgressLink onOpen={() => setTab("progressTab")} />}
       <div className="request-stage">
         {r.chatReadable && tab === "conversation" ? (
           <Conversation key={r.id} request={r} />
@@ -333,15 +326,10 @@ export default function RequestPanel({
           resident ? <ResidentVolunteerMap request={r} /> : <RequestNavigation key={r.id} request={{ ...r, lat: r.lat, lng: r.lng }} />
         ) : (
           <div className="stage-scroll request-details">
-            <PriorityCard {...r} />
-            {r.residentAddress && <div><strong>{t("defaultAddress")}</strong><p className="whitespace-pre-line">{r.residentAddress}</p></div>}
-            {!closed && (
-              <ol className="progress-steps">
-                <li className="done">{t("requestSent")}</li>
-                <li className={accepted ? "done" : ""}>{t("accepted")}</li>
-                <li>{t("completedTitle")}</li>
-              </ol>
-            )}
+            {(accepted || closed) && <RequestProgress request={r} />}
+            <div className="request-summary">
+            <h3>{t("taskSummary")}</h3>
+            <PriorityCard {...r} summary={undefined} />
             {(r.transcript || r.summary) && (
               <p className="whitespace-pre-wrap break-words">
                 {r.transcript ||
@@ -354,34 +342,8 @@ export default function RequestPanel({
               <Photo src={r.imageData} label={t("requestPhoto")} />
             )}
             {r.imageHidden && <p className="text-sm text-muted">{t("historyPhotoHidden")}</p>}
-            {!closed && (
-              <details>
-                <summary>{t("processed")}</summary>
-                <p className="hint text-sm">
-                  {t(r.source === "fallback" ? "fallback" : "processed")}
-                </p>
-                {r.audioStatus !== "none" && (
-                  <p>
-                    {t(
-                      r.audioStatus === "transcribed"
-                        ? "transcribed"
-                        : r.audioStatus === "provided"
-                          ? "audioProvided"
-                          : "audioUnavailable",
-                    )}
-                  </p>
-                )}
-                {r.imageStatus !== "none" && (
-                  <p>
-                    {t(
-                      r.imageStatus === "analyzed"
-                        ? "imageAnalyzed"
-                        : "imagePrepared",
-                    )}
-                  </p>
-                )}
-              </details>
-            )}
+            {r.residentAddress && <div><strong>{t("defaultAddress")}</strong><p className="whitespace-pre-line">{r.residentAddress}</p></div>}
+            </div>
           </div>
         )}
       </div>

@@ -7,6 +7,7 @@ import RequestForm from "@/app/components/request-form";
 import RequestPanel from "@/app/components/request-panel";
 import HistoryList from "@/app/components/history-list";
 import LocationPicker from "@/app/components/location-picker";
+import AcceptanceNotice from "@/app/components/acceptance-notice";
 export default function Resident() {
   const { t } = useApp(),
     { ready, profile } = useRoleProfile("resident"),
@@ -22,7 +23,8 @@ export default function Resident() {
     tab === "activity" && !feed.requests.length ? "newHelp" : tab;
   if (!ready || !profile) return <main className="page">{t("loading")}</main>;
   return (
-    <main className="mobile-app">
+    <main className={"mobile-app" + (actualTab === "activity" && request?.status === "ACCEPTED" ? " active-task" : "")}>
+      <AcceptanceNotice requests={feed.requests} />
       <div className="workspace-heading">
         <div>
           <p className="eyebrow">{t("resident")}</p>
@@ -85,7 +87,7 @@ export default function Resident() {
                       r.status === "CLOSED"
                         ? "closed"
                         : r.status === "ACCEPTED"
-                          ? "accepted"
+                          ? "helpInProgress"
                           : "pending",
                     )}{" "}
                     · {t(r.category)} · {r.id.slice(0, 6)}
