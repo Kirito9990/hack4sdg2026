@@ -146,7 +146,6 @@ export default function Volunteer() {
               <RequestPanel
                 key={request.id}
                 request={request}
-                coords={geo.coords}
                 refresh={feed.refresh}
               />
             ) : (

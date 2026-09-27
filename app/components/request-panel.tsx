@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { api, post, useApp } from "./providers";
 import CallControl from "./call-control";
-import LocationMap from "./location-map";
+import RequestNavigation from "./request-navigation";
 import PriorityCard from "./priority-card";
 import type { ChatMessage, RequestView } from "@/lib/types";
 
@@ -255,23 +255,15 @@ function Conversation({ request: r }: { request: RequestView }) {
 }
 export default function RequestPanel({
   request: r,
-  coords,
   refresh,
 }: {
   request: RequestView;
-  coords?: { lat: number; lng: number } | null;
   refresh: () => Promise<void>;
 }) {
   const { t, user } = useApp();
   const [tab, setTab] = useState("conversation"),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
-  const [route, setRoute] = useState<{
-      coordinates: number[][];
-      distance: number;
-      duration: number;
-    } | null>(null),
-    [routing, setRouting] = useState(false);
   const accepted = r.status === "ACCEPTED",
     closed = r.status === "CLOSED",
     resident = user?.role === "resident";
@@ -333,7 +325,7 @@ export default function RequestPanel({
           </p>
         </div>
       </div>
-      <PriorityCard {...r} />
+      {!(accepted && !resident && tab === "mapTab") && <PriorityCard {...r} />}
       {(accepted || (closed && r.chatReadable)) && (
         <div className="segmented" role="tablist" aria-label={t("yourTask")}>
           {["conversation", "detailsTab", ...(!resident && accepted ? ["mapTab"] : [])].map(
@@ -353,69 +345,8 @@ export default function RequestPanel({
       <div className="request-stage">
         {r.chatReadable && tab === "conversation" ? (
           <Conversation key={r.id} request={r} />
-        ) : accepted && tab === "mapTab" ? (
-          <div className="stage-scroll">
-            {coords ? (
-              <>
-                <LocationMap
-                  lat={coords.lat}
-                  lng={coords.lng}
-                  title={t("requestLocation")}
-                  points={[
-                    {
-                      id: r.id,
-                      lat: r.lat,
-                      lng: r.lng,
-                      label: t(r.category),
-                      accepted: true,
-                    },
-                  ]}
-                  route={route?.coordinates}
-                />
-                <p className="text-xs text-muted my-2">{t("routePrivacy")}</p>
-                <button
-                  className="button w-full"
-                  disabled={routing}
-                  onClick={async () => {
-                    if (route) {
-                      setRoute(null);
-                      return;
-                    }
-                    setRouting(true);
-                    try {
-                      setRoute(
-                        await post("/api/request/route", {
-                          id: r.id,
-                          ...coords,
-                        }),
-                      );
-                    } catch (e) {
-                      setError((e as Error).message);
-                    } finally {
-                      setRouting(false);
-                    }
-                  }}
-                >
-                  {t(
-                    routing
-                      ? "routeLoading"
-                      : route
-                        ? "hideRoute"
-                        : "showRoute",
-                  )}
-                </button>
-                {route && (
-                  <p className="text-sm mt-2">
-                    {(route.distance / 1000).toFixed(1)} {t("km")} ·{" "}
-                    {Math.ceil(route.duration / 60)} {t("minutes")} ·{" "}
-                    {t("routeInfo")}
-                  </p>
-                )}
-              </>
-            ) : (
-              <p>{t("locationError")}</p>
-            )}
-          </div>
+        ) : !resident && accepted && tab === "mapTab" ? (
+          <RequestNavigation key={r.id} request={r} />
         ) : (
           <div className="stage-scroll request-details">
             {r.residentAddress && <div><strong>{t("defaultAddress")}</strong><p className="whitespace-pre-line">{r.residentAddress}</p></div>}

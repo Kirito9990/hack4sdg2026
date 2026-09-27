@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import type * as Leaflet from "leaflet";
 import { useApp } from "./providers";
+import type { LivePosition } from "@/lib/use-live-location";
 import "leaflet/dist/leaflet.css";
 export type MapPoint = {
   id: string;
@@ -21,6 +22,11 @@ export default function LocationMap({
   compact = false,
   onPick,
   showPosition = true,
+  livePosition,
+  positionStale = false,
+  followPosition = false,
+  onExplore,
+  legend,
 }: {
   lat: number;
   lng: number;
@@ -31,21 +37,31 @@ export default function LocationMap({
   compact?: boolean;
   onPick?: (point: { lat: number; lng: number }) => void;
   showPosition?: boolean;
+  livePosition?: LivePosition | null;
+  positionStale?: boolean;
+  followPosition?: boolean;
+  onExplore?: () => void;
+  legend?: string;
 }) {
   const { t } = useApp(),
     container = useRef<HTMLDivElement>(null);
+  const activeMap = useRef<Leaflet.Map | null>(null);
   const [context, setContext] = useState<{
       api: typeof Leaflet;
       map: Leaflet.Map;
       markers: Leaflet.LayerGroup;
       lines: Leaflet.LayerGroup;
+      position: Leaflet.CircleMarker;
+      accuracy: Leaflet.Circle;
     } | null>(null),
     [error, setError] = useState(false),
     [attempt, setAttempt] = useState(0);
   const pickRef = useRef(onPick);
+  const exploreRef = useRef(onExplore);
   useEffect(() => {
     pickRef.current = onPick;
-  }, [onPick]);
+    exploreRef.current = onExplore;
+  }, [onPick, onExplore]);
   const pointsKey = JSON.stringify(points),
     routeKey = JSON.stringify(route ?? []);
   useEffect(() => {
@@ -63,6 +79,7 @@ export default function LocationMap({
             markerZoomAnimation: false,
           })
           .setView([lat, lng], 16);
+        activeMap.current = map;
         api
           .tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
             maxZoom: 19,
@@ -76,6 +93,7 @@ export default function LocationMap({
         map.on("click", (e: Leaflet.LeafletMouseEvent) =>
           pickRef.current?.({ lat: e.latlng.lat, lng: e.latlng.lng }),
         );
+        map.on("dragstart", () => exploreRef.current?.());
         if (showPosition)
           api
             .circleMarker([lat, lng], {
@@ -103,22 +121,31 @@ export default function LocationMap({
         }
         const markers = api.layerGroup().addTo(map),
           lines = api.layerGroup().addTo(map);
+        const accuracy = api.circle([lat, lng], {
+          radius: 0, color: "#2563eb", weight: 1, fillOpacity: 0.08,
+          interactive: false, className: "live-location-accuracy",
+        });
+        const position = api.circleMarker([lat, lng], {
+          radius: 9, color: "#fff", weight: 3, fillColor: "#2563eb", fillOpacity: 1,
+          className: "live-location-marker",
+        });
         observer = new ResizeObserver(() => map?.invalidateSize());
         observer.observe(container.current);
-        setContext({ api, map, markers, lines });
+        setContext({ api, map, markers, lines, position, accuracy });
       })
       .catch(() => {
         if (!cancelled) setError(true);
       });
     return () => {
       cancelled = true;
+      if (activeMap.current === map) activeMap.current = null;
       observer?.disconnect();
       map?.stop();
       map?.remove();
     };
   }, [lat, lng, radius, attempt, t, showPosition]);
   useEffect(() => {
-    if (!context) return;
+    if (!context || context.map !== activeMap.current) return;
     const { api, map, markers } = context;
     markers.clearLayers();
     const items = JSON.parse(pointsKey) as MapPoint[];
@@ -167,7 +194,7 @@ export default function LocationMap({
     };
   }, [context, pointsKey, lat, lng, radius, t]);
   useEffect(() => {
-    if (!context) return;
+    if (!context || context.map !== activeMap.current) return;
     context.lines.clearLayers();
     const coords = JSON.parse(routeKey) as number[][];
     if (coords.length) {
@@ -187,6 +214,21 @@ export default function LocationMap({
       context.lines.clearLayers();
     };
   }, [context, routeKey]);
+  useEffect(() => {
+    if (!context || context.map !== activeMap.current) return;
+    const { map, position, accuracy } = context;
+    if (!livePosition) {
+      position.remove();
+      accuracy.remove();
+      return;
+    }
+    const point: [number, number] = [livePosition.lat, livePosition.lng];
+    const color = positionStale ? "#78716c" : "#2563eb";
+    accuracy.setLatLng(point).setRadius(livePosition.accuracy).setStyle({ color }).addTo(map);
+    position.setLatLng(point).setStyle({ fillColor: color }).addTo(map);
+    position.bindTooltip(t(positionStale ? "lastKnownLocation" : "yourLiveLocation"));
+    if (followPosition && !positionStale) map.panTo(point, { animate: false });
+  }, [context, livePosition, positionStale, followPosition, t]);
   return (
     <section
       className={
@@ -212,7 +254,7 @@ export default function LocationMap({
       />
       {!compact && (
         <p className="px-5 py-3 text-sm">
-          {t(onPick ? "pickLocationHint" : "mapLegend")}
+          {legend || t(onPick ? "pickLocationHint" : "mapLegend")}
         </p>
       )}
       {error && (
