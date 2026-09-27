@@ -1,4 +1,4 @@
-import { chatOpen, chatReadable, getRequest, member, store, persist } from "@/lib/db";
+import { chatOpen, chatReadable, getRequest, member, store, persist, redact } from "@/lib/db";
 import { currentUser, fail, json, sameOrigin } from "@/lib/server";
 import { chatImage } from "@/lib/chat-image";
 export const runtime = "nodejs";
@@ -9,7 +9,10 @@ export async function GET(request: Request) {
   if (!found || !member(found, user)) return fail("notFound", 404);
   if (!chatReadable(found)) return fail("chatUnavailable", 403);
   return json({
-    messages: store().messages.filter((m) => m.requestId === found.id),
+    messages: store().messages.filter((m) => m.requestId === found.id).map(m => found.status === "CLOSED" ? {
+      id: m.id, requestId: m.requestId, senderId: m.senderId, createdAt: m.createdAt,
+      text: redact(m.text, store().users.filter(u => u.id === found.residentId || u.id === found.volunteerId)), imageHidden: !!m.imageData,
+    } : m),
   });
 }
 export async function POST(request: Request) {

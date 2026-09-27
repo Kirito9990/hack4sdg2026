@@ -1,11 +1,11 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import Link from "next/link";
 import { api, post, useApp } from "./providers";
 import CallControl from "./call-control";
 import RequestNavigation from "./request-navigation";
 import PriorityCard from "./priority-card";
+import ResidentVolunteerMap from "./resident-volunteer-map";
 import type { ChatMessage, RequestView } from "@/lib/types";
 
 function Photo({ src, label }: { src: string; label: string }) {
@@ -22,14 +22,17 @@ function Photo({ src, label }: { src: string; label: string }) {
     </a>
   );
 }
-function Conversation({ request: r }: { request: RequestView }) {
+export function Conversation({ request: r }: { request: RequestView }) {
   const { t, user, locale } = useApp();
   const [messages, setMessages] = useState<ChatMessage[]>([]),
     [text, setText] = useState(""),
     [photo, setPhoto] = useState<File | null>(null),
     [preview, setPreview] = useState(""),
     [error, setError] = useState(""),
-    [busy, setBusy] = useState(false);
+    [busy, setBusy] = useState(false),
+    [loadedFor, setLoadedFor] = useState("");
+  const version = r.id + ":" + r.status;
+  const visibleMessages = loadedFor === version ? messages : [];
   const box = useRef<HTMLDivElement>(null),
     input = useRef<HTMLInputElement>(null);
   useEffect(() => {
@@ -49,7 +52,7 @@ function Conversation({ request: r }: { request: RequestView }) {
         const b = await api<{ messages: ChatMessage[] }>(
           "/api/request/chat?id=" + encodeURIComponent(r.id),
         );
-        if (live) setMessages(b.messages);
+        if (live) { setMessages(b.messages); setLoadedFor(version); }
       } catch (e) {
         if (live) {
           setError((e as Error).message);
@@ -63,7 +66,7 @@ function Conversation({ request: r }: { request: RequestView }) {
       live = false;
       clearInterval(id);
     };
-  }, [r.id, r.chatReadable]);
+  }, [r.id, r.chatReadable, version]);
   useEffect(() => {
     if (box.current) box.current.scrollTop = box.current.scrollHeight;
   }, [messages.length]);
@@ -76,7 +79,7 @@ function Conversation({ request: r }: { request: RequestView }) {
           </strong>
           <span className="text-xs text-muted">{t("chat")}</span>
         </div>
-        <CallControl request={r}/>
+        {r.status === "ACCEPTED" && <CallControl request={r}/>}
       </header>
       <div
         className="conversation-log"
@@ -85,7 +88,6 @@ function Conversation({ request: r }: { request: RequestView }) {
         aria-live="polite"
         aria-label={t("chat")}
       >
-        <p className="chat-system">{t("attachmentNotice")}</p>
         {r.imageData && (
           <div className="bubble received">
             <p className="mb-2 text-xs">{t("requestPhoto")}</p>
@@ -94,8 +96,8 @@ function Conversation({ request: r }: { request: RequestView }) {
         )}
         {!r.chatReadable ? (
           <p className="chat-system">{t("chatUnavailable")}</p>
-        ) : messages.length ? (
-          messages.map((m) => (
+        ) : visibleMessages.length ? (
+          visibleMessages.map((m) => (
             <div
               key={m.id}
               className={
@@ -105,6 +107,7 @@ function Conversation({ request: r }: { request: RequestView }) {
               {m.imageData && (
                 <Photo src={m.imageData} label={t("photoMessage")} />
               )}
+              {m.imageHidden && <p className="text-sm text-muted">{t("historyPhotoHidden")}</p>}
               {m.text && (
                 <p className="whitespace-pre-wrap break-words">{m.text}</p>
               )}
@@ -232,24 +235,6 @@ function Conversation({ request: r }: { request: RequestView }) {
         </form>
       )}
       {!r.chatAvailable && r.chatReadable && <p className="readonly-chat" role="status">{t("chatReadOnly")}</p>}
-      <details className="chat-privacy">
-        <summary>{t("contactPrivacy")}</summary>
-        {r.chatExpiresAt && (
-          <p>
-            {t("expires")}: {new Date(r.chatExpiresAt).toLocaleString(locale)}
-          </p>
-        )}
-        <p>{t("dialer")}</p>
-        {!r.callPhone && <p>{t("callsDisabled")}</p>}
-        {r.testCall && (
-          <p>
-            {t("testCall")}: {r.callPhone}
-          </p>
-        )}
-        <Link href="/account" className="underline">
-          {t("privacy")}
-        </Link>
-      </details>
     </section>
   );
 }
@@ -282,7 +267,7 @@ export default function RequestPanel({
   }
   return (
     <article className="request-workspace" id={"request-" + r.id}>
-      <div
+      {(!accepted || resident) && <div
         role="status"
         className={
           "status-banner " +
@@ -324,11 +309,10 @@ export default function RequestPanel({
             )}
           </p>
         </div>
-      </div>
-      {!(accepted && !resident && tab === "mapTab") && <PriorityCard {...r} />}
+      </div>}
       {(accepted || (closed && r.chatReadable)) && (
         <div className="segmented" role="tablist" aria-label={t("yourTask")}>
-          {["conversation", "detailsTab", ...(!resident && accepted ? ["mapTab"] : [])].map(
+          {["conversation", "detailsTab", ...(accepted ? ["mapTab"] : [])].map(
             (k) => (
               <button
                 key={k}
@@ -345,10 +329,11 @@ export default function RequestPanel({
       <div className="request-stage">
         {r.chatReadable && tab === "conversation" ? (
           <Conversation key={r.id} request={r} />
-        ) : !resident && accepted && tab === "mapTab" ? (
-          <RequestNavigation key={r.id} request={r} />
+        ) : accepted && tab === "mapTab" && r.lat !== undefined && r.lng !== undefined ? (
+          resident ? <ResidentVolunteerMap request={r} /> : <RequestNavigation key={r.id} request={{ ...r, lat: r.lat, lng: r.lng }} />
         ) : (
           <div className="stage-scroll request-details">
+            <PriorityCard {...r} />
             {r.residentAddress && <div><strong>{t("defaultAddress")}</strong><p className="whitespace-pre-line">{r.residentAddress}</p></div>}
             {!closed && (
               <ol className="progress-steps">
@@ -368,6 +353,7 @@ export default function RequestPanel({
             {r.imageData && (
               <Photo src={r.imageData} label={t("requestPhoto")} />
             )}
+            {r.imageHidden && <p className="text-sm text-muted">{t("historyPhotoHidden")}</p>}
             {!closed && (
               <details>
                 <summary>{t("processed")}</summary>
@@ -423,11 +409,7 @@ export default function RequestPanel({
           >
             {t(busy ? "saving" : accepted ? "finishHelp" : "cancelRequest")}
           </button>
-        ) : (
-          <p className="text-center text-xs text-muted">
-            {t("awaitCompletion")}
-          </p>
-        ))}
+        ) : null)}
     </article>
   );
 }

@@ -11,6 +11,7 @@ export type Privacy = {
   allowChat: boolean;
   showName?: boolean;
   shareAddress?: boolean;
+  shareLocation?: boolean;
   allowLocation?: boolean;
 };
 export type User = {
@@ -57,9 +58,16 @@ export type ChatMessage = {
   senderId: string;
   text: string;
   imageData?: string;
+  imageHidden?: boolean;
   createdAt: string;
 };
-export type RequestView = HelpRequest & {
+export type SharedLocation = { lat: number; lng: number; accuracy: number; updatedAt: number };
+export type RequestView = Omit<HelpRequest, "lat" | "lng"> & {
+  lat?: number;
+  lng?: number;
+  imageHidden?: boolean;
+  volunteerLocationSharing?: boolean;
+  volunteerLocation?: SharedLocation;
   residentName: string;
   volunteerName?: string;
   chatAvailable: boolean;

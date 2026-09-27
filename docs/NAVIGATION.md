@@ -24,7 +24,15 @@ Verified store listings: [Google Play](https://play.google.com/store/apps/detail
 
 The volunteer explicitly starts location updates. `watchPosition` updates the same Leaflet marker and accuracy circle without rebuilding the map on each fix. Panning turns off following; the volunteer can restore it. A stale reading (over 30 seconds), errors and background state cannot display as a fresh location. Returning to the foreground requires a fresh fix. Pending permission is bounded by a 15-second UI deadline, and directions remain accessible after denial or failure.
 
-Watches stop when the page is hidden, the map tab is left, the task finishes, permission is denied, or the volunteer stops updates. Resuming the visible page restarts only an already enabled session. Positions stay in component memory, not local storage or the CareCall server. Basemap tiles still come from OpenStreetMap as before. The old driving endpoint is retained for compatibility but is no longer called by the volunteer navigation UI.
+The map's own watch stops when the page is hidden, the map tab is left, the task finishes, permission is denied, or the volunteer stops updates. Resuming the visible page restarts only an already enabled session. That map watch keeps positions in component memory. Basemap tiles still come from OpenStreetMap as before. The old driving endpoint is retained for compatibility but is no longer called by the volunteer navigation UI.
+
+## Optional sharing with the matched resident
+
+Volunteers have a separate **Share my live location with my matched resident** privacy setting, off by default. Enabling it requests device location permission and saves the preference. While the volunteer's main page is visible with an accepted task, a foreground watch uploads a recent point at most every ten seconds. The resident's Map tab shows that point and accuracy/time information. This works separately from the volunteer's local map watch.
+
+Only the assigned volunteer can publish, and only their matched resident can read a point through the authenticated request view. The server holds one point in memory, expires it after sixty seconds, and never includes it in SQLite snapshots, public task lists or history. Disabling sharing/device location, completing the request, or deleting the account clears it. Leaving/backgrounding the page queues removal after outstanding uploads; if a device/network cannot deliver cleanup, the server expiry still limits retention. Turning the setting back on requires a new point. No background or external-map journey tracking is promised.
+
+History opens its own summary/read-only chat inside the History tab. Closed-request APIs omit names/contact fields, exact request coordinates and photos, and mask known profile names/addresses and phone patterns in text. Chat visibility still depends on both participants' chat consent and the seven-day window. Original records stay in the existing database until deletion; arbitrary personal information in free text cannot be fully detected automatically.
 
 ## Validation
 

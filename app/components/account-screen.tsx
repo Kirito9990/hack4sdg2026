@@ -66,7 +66,7 @@ function AccountForm({ user, tab }: { user: User; tab: string }) {
             </>
           ) : tab === "privacy" ? (
             <>
-              {(["allowCalls", "allowChat", "showName", "shareAddress", "allowLocation", "allowAI"] as const).map((key) => (
+              {(["allowCalls", "allowChat", "showName", ...(user.role === "resident" ? ["shareAddress" as const] : ["shareLocation" as const]), "allowLocation", "allowAI"] as const).map((key) => (
                 <div key={key} className="privacy-option">
                   <label className="flex items-start gap-3">
                     <input
@@ -76,27 +76,16 @@ function AccountForm({ user, tab }: { user: User; tab: string }) {
                       checked={!!privacy[key]}
                       onChange={async e=>{
                         const checked=e.target.checked;
-                        if(key==='allowLocation'&&checked){setBusy(true);const result=await requestLocation();setBusy(false);if(!result.point){setMessage(result.error);return;}rememberPoint(user.id,result.point);}
+                        if((key==='allowLocation'||key==='shareLocation')&&checked){setBusy(true);const result=await requestLocation();setBusy(false);if(!result.point){setMessage(result.error);return;}rememberPoint(user.id,result.point);}
                         
-                        setPrivacy(p=>({...p,[key]:checked}));
+                        setPrivacy(p=>({...p,[key]:checked,...(key==='shareLocation'&&checked?{allowLocation:true}:{}),...(key==='allowLocation'&&!checked?{shareLocation:false}:{})}));
                       }}
                     />
                     <strong>{t(key)}</strong>
                   </label>
-                  <details>
-                    <summary>{t("detailsTab")}</summary>
-                    <p>
-                      {t(
-                        key === "showName" ? "namePrivacy" : key === "shareAddress" ? "addressPrivacy" : key === "allowLocation" ? "locationPreferenceInfo" : key === "allowCalls"
-                          ? "callPrivacy"
-                          : key === "allowAI"
-                            ? "aiPrivacy"
-                            : "privacyInfo",
-                      )}
-                    </p>
-                  </details>
                 </div>
               ))}
+              <PrivacyNotice />
             </>
           ) : (
             <>

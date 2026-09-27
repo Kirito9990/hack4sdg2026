@@ -5,8 +5,8 @@ import { useEffect, useState } from "react";
 export type LivePosition = { lat: number; lng: number; accuracy: number; timestamp: number };
 
 // This location stays in memory, only for the visible navigation panel.
-export function useLiveLocation() {
-  const [enabled, setEnabled] = useState(false);
+export function useLiveLocation(startEnabled = false) {
+  const [enabled, setEnabled] = useState(startEnabled);
   const [position, setPosition] = useState<LivePosition | null>(null);
   const [error, setError] = useState("");
   const [visible, setVisible] = useState(true);

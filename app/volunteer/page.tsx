@@ -7,6 +7,7 @@ import LocationPicker from "@/app/components/location-picker";
 import HistoryList from "@/app/components/history-list";
 import RequestPanel from "@/app/components/request-panel";
 import PriorityCard from "@/app/components/priority-card";
+import VolunteerLocationSharing from "@/app/components/volunteer-location-sharing";
 import type { RequestCategory, UrgencyLevel, User } from "@/lib/types";
 type Task = {
   id: string;
@@ -106,12 +107,13 @@ export default function Volunteer() {
           {t(available ? "onShift" : "offShift")}
         </button>
       </div>
+      {active && user?.privacy.shareLocation && <VolunteerLocationSharing key={active.id} requestId={active.id} />}
       {(error || feed.error) && (
         <p role="alert" className="error">
           {t(error || feed.error)}
         </p>
       )}
-      {actualTab !== "activity" &&
+      {actualTab === "allTasks" &&
         feed.requests[0]?.closedReason === "completed" && (
           <button
             className="status-banner status-complete text-left"
@@ -125,7 +127,7 @@ export default function Volunteer() {
           </button>
         )}
       <div className="app-stage">
-        {actualTab === "history" ? <HistoryList requests={feed.requests.filter(r=>r.status==="CLOSED")} onOpen={id=>{setSelected(id);setTab("activity");}}/> : actualTab === "activity" ? (
+        {actualTab === "history" ? <HistoryList requests={feed.requests.filter(r=>r.status==="CLOSED")}/> : actualTab === "activity" ? (
           <div className="activity-stage">
             {feed.requests.length > 1 && (
               <select

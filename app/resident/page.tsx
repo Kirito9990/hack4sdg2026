@@ -69,7 +69,7 @@ export default function Resident() {
           />
         </div>
         {actualTab === "history" ? (
-          <HistoryList requests={feed.requests.filter(r=>r.status==='CLOSED')} onOpen={id=>{setSelected(id);setTab('activity');}}/>
+          <HistoryList requests={feed.requests.filter(r=>r.status==='CLOSED')}/>
         ) : actualTab === "activity" ? (
           <div className="activity-stage">
             {feed.requests.length > 1 && (

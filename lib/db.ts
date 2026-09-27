@@ -1,5 +1,6 @@
 import {loadSnapshot,writeSnapshot} from "./persistence.mjs";
 import {historyVisible} from "./retention";
+import { sharedLocation } from "./volunteer-location";
 import type { ChatMessage, HelpRequest, Session, User } from "@/lib/types";
 type Store = {
   users: User[];
@@ -65,6 +66,9 @@ export function view(r: HelpRequest, user: User) {
   const other = user.id === r.residentId ? volunteer : resident;
   const active =
     r.status === "ACCEPTED";
+  const closed = r.status === "CLOSED";
+  const { lat, lng, transcript, summary, imageData, ...record } = r;
+  const people = [resident, volunteer].filter((person): person is User => !!person);
   const testPhone = process.env.CARECALL_TEST_CALL_PHONE?.trim();
   const callPhone =
     active && other?.privacy.allowCalls
@@ -73,10 +77,13 @@ export function view(r: HelpRequest, user: User) {
         : other.phone
       : null;
   return {
-    ...r,
-    residentName: resident && (resident.id===user.id || resident.privacy.showName !== false) ? resident.name : "",
-    volunteerName: volunteer && (volunteer.id===user.id || volunteer.privacy.showName !== false) ? volunteer.name : "",
-    residentAddress: resident && (resident.id===user.id || (active && resident.privacy.shareAddress)) ? resident.address : undefined,
+    ...record,
+    ...(closed ? { summary: redact(summary, people), transcript: transcript ? redact(transcript, people) : undefined, imageHidden: !!imageData } : { lat, lng, transcript, summary, imageData }),
+    residentName: !closed && resident && (resident.id===user.id || resident.privacy.showName !== false) ? resident.name : "",
+    volunteerName: !closed && volunteer && (volunteer.id===user.id || volunteer.privacy.showName !== false) ? volunteer.name : "",
+    residentAddress: !closed && resident && (resident.id===user.id || (active && resident.privacy.shareAddress)) ? resident.address : undefined,
+    volunteerLocationSharing: active && volunteer?.privacy.shareLocation === true,
+    volunteerLocation: active && user.id === r.residentId && volunteer?.privacy.shareLocation ? sharedLocation(r.id, volunteer.id) : undefined,
     chatReadable: chatReadable(r),
     chatAvailable: chatOpen(r),
     callPhone,

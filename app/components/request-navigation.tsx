@@ -7,7 +7,7 @@ import type { RequestView } from "@/lib/types";
 import LocationMap from "./location-map";
 import { useApp } from "./providers";
 
-export default function RequestNavigation({ request }: { request: RequestView }) {
+export default function RequestNavigation({ request }: { request: RequestView & { lat: number; lng: number } }) {
   const { t, locale } = useApp();
   const [follow, setFollow] = useState(true);
   const geo = useLiveLocation();

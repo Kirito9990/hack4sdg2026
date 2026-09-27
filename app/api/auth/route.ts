@@ -43,6 +43,7 @@ export async function POST(request: Request) {
       allowAI: false,
       showName: false,
       shareAddress: false,
+      shareLocation: false,
       allowLocation: body.allowLocation===true,
     },
     privacyAcceptedAt: new Date().toISOString(),

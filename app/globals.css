@@ -696,11 +696,17 @@ body {
   padding: 12px 0;
   border-bottom: 1px solid var(--line);
 }
-.privacy-option details {
-  font-size: 13px;
-  margin: 10px 0 0 32px;
-  color: var(--muted);
-}
+.privacy-option { padding: 6px 0 16px; }
+.history-detail { display: flex; flex: 1; min-height: 0; flex-direction: column; gap: 10px; }
+.history-back { align-self: flex-start; min-height: 44px; font-weight: 600; }
+.history-heading h2 { font-size: 20px; font-weight: 700; }
+.history-heading p { font-size: 13px; color: var(--muted); }
+.history-summary { padding: 18px; border: 1px solid var(--line); border-radius: 16px; background: #fffdf8; }
+.history-summary > * + * { margin-top: 16px; }
+.history-summary dt { font-size: 12px; color: var(--muted); }
+.history-summary dd { margin-bottom: 10px; }
+.sharing-status { font-size: 12px; color: var(--muted); margin: -4px 0; }
+.resident-volunteer-map > * + * { margin-top: 12px; }
 .login-workspace {
   max-width: 520px;
   padding-bottom: 12px;
@@ -901,11 +907,6 @@ body {
 }
 .chat-composer {
   min-height: 62px;
-}
-.chat-privacy {
-  flex-shrink: 0;
-  max-height: 100px;
-  overflow: auto;
 }
 .phone-action:disabled {
   background: #e9e3d7;

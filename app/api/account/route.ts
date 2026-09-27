@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { store, persist } from "@/lib/db";
+import { clearVolunteerLocations, clearSharedLocation } from "@/lib/volunteer-location";
 import {
   COOKIE,
   currentUser,
@@ -34,7 +35,7 @@ export async function PATCH(request: Request) {
   )
     return fail("invalidInput");
   if(body.address!==undefined && (typeof body.address!=="string" || body.address.length>450 || body.address.split(/\r?\n/).length>3))return fail("invalidAddress");
-  for(const key of ["showName","shareAddress","allowLocation"])if(body.privacy[key]!==undefined && typeof body.privacy[key]!=="boolean")return fail("invalidInput");
+  for(const key of ["showName","shareAddress","allowLocation","shareLocation"])if(body.privacy[key]!==undefined && typeof body.privacy[key]!=="boolean")return fail("invalidInput");
   if(body.address!==undefined)user.address=body.address.trim();
   user.name = body.name.trim();
   user.phone = phone;
@@ -43,9 +44,11 @@ export async function PATCH(request: Request) {
     allowAI: body.privacy.allowAI,
     allowChat: body.privacy.allowChat,
     showName: body.privacy.showName ?? user.privacy.showName ?? false,
-    shareAddress: body.privacy.shareAddress ?? user.privacy.shareAddress ?? false,
+    shareAddress: user.role === "resident" && (body.privacy.shareAddress ?? user.privacy.shareAddress ?? false),
+    shareLocation: user.role === "volunteer" && (body.privacy.allowLocation ?? user.privacy.allowLocation ?? false) && (body.privacy.shareLocation ?? user.privacy.shareLocation ?? false),
     allowLocation: body.privacy.allowLocation ?? user.privacy.allowLocation ?? false,
   };
+  if (!user.privacy.shareLocation) clearVolunteerLocations(user.id);
   persist();
   return json({ user });
 }
@@ -59,6 +62,7 @@ export async function DELETE(request: Request) {
         .filter((r) => r.residentId === user.id || r.volunteerId === user.id)
         .map((r) => r.id),
     );
+  for (const id of own) clearSharedLocation(id);
   data.messages = data.messages.filter((m) => !own.has(m.requestId));
   data.requests = data.requests.filter((r) => r.residentId !== user.id);
   data.requests

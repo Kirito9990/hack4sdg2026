@@ -1,5 +1,6 @@
 import { getRequest, member, persist, view } from "@/lib/db";
 import { currentUser, fail, json, sameOrigin } from "@/lib/server";
+import { clearSharedLocation } from "@/lib/volunteer-location";
 export const runtime = "nodejs";
 export async function POST(request: Request) {
   if (!sameOrigin(request)) return fail("forbidden", 403);
@@ -13,6 +14,7 @@ export async function POST(request: Request) {
   found.closedReason = found.status === "ACCEPTED" ? "completed" : "cancelled";
   found.closedAt = new Date().toISOString();
   found.status = "CLOSED";
+  clearSharedLocation(found.id);
   found.chatExpiresAt = new Date(Date.now()+7*86400000).toISOString();
   persist();
   return json(view(found, user));
