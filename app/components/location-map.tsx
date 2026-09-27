@@ -12,6 +12,20 @@ export type MapPoint = {
   urgency?: "HIGH" | "MEDIUM" | "LOW";
   accepted?: boolean;
 };
+function ExpandIcon() {
+  return (
+    <svg aria-hidden viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2">
+      <path d="M9 4H4v5M15 4h5v5M4 15v5h5M20 15v5h-5" />
+    </svg>
+  );
+}
+function CollapseIcon() {
+  return (
+    <svg aria-hidden viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2">
+      <path d="M6 6l12 12M18 6L6 18" />
+    </svg>
+  );
+}
 export default function LocationMap({
   lat,
   lng,
@@ -27,6 +41,8 @@ export default function LocationMap({
   followPosition = false,
   onExplore,
   legend,
+  heightClassName,
+  allowFullscreen = false,
 }: {
   lat: number;
   lng: number;
@@ -42,10 +58,28 @@ export default function LocationMap({
   followPosition?: boolean;
   onExplore?: () => void;
   legend?: string;
+  /** Overrides the default map viewport height (e.g. "h-[50vh]"). Ignored while fullscreen. */
+  heightClassName?: string;
+  /** Shows a corner button that opens the map in a fullscreen modal. */
+  allowFullscreen?: boolean;
 }) {
   const { t } = useApp(),
     container = useRef<HTMLDivElement>(null);
   const activeMap = useRef<Leaflet.Map | null>(null);
+  const [fullscreen, setFullscreen] = useState(false);
+  useEffect(() => {
+    if (!fullscreen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setFullscreen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [fullscreen]);
   const [context, setContext] = useState<{
       api: typeof Leaflet;
       map: Leaflet.Map;
@@ -233,7 +267,8 @@ export default function LocationMap({
     <section
       className={
         "location-map overflow-hidden rounded-3xl border border-line bg-surface " +
-        (compact ? "compact-map" : "")
+        (compact ? "compact-map " : "") +
+        (fullscreen ? "location-map-fullscreen" : "")
       }
       aria-label={title || t("location")}
     >
@@ -247,11 +282,27 @@ export default function LocationMap({
           {t("recenter")}
         </button>
       </div>
-      <div
-        ref={container}
-        className={"relative z-0 w-full " + (compact ? "h-32" : "h-80")}
-        aria-label={title || t("location")}
-      />
+      <div className="relative flex-1 min-h-0">
+        <div
+          ref={container}
+          className={
+            "relative z-0 w-full " +
+            (fullscreen ? "h-full" : compact ? "h-32" : heightClassName || "h-80")
+          }
+          aria-label={title || t("location")}
+        />
+        {allowFullscreen && (
+          <button
+            type="button"
+            className="map-fullscreen-toggle"
+            onClick={() => setFullscreen((v) => !v)}
+            aria-label={t(fullscreen ? "closeMap" : "expandMap")}
+            title={t(fullscreen ? "closeMap" : "expandMap")}
+          >
+            {fullscreen ? <CollapseIcon /> : <ExpandIcon />}
+          </button>
+        )}
+      </div>
       {!compact && (
         <p className="px-5 py-3 text-sm">
           {legend || t(onPick ? "pickLocationHint" : "mapLegend")}
