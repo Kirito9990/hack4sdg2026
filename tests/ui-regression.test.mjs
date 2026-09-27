@@ -41,7 +41,7 @@ test("request usability: denied GPS, manual map, clickable photos, recording, ac
   await p.getByText("Your draft is kept. Choose a location on the map, then send again.",{exact:true}).waitFor();
   assert.equal(await text.inputValue(),"Please bring water to my building.");
   await p.getByText("Location access is blocked.",{exact:false}).waitFor();
-  assert.equal(await p.evaluate(()=>window.geoCalls),1);
+  assert.equal(await p.evaluate(()=>window.geoCalls),2); // Send retries current permission instead of trusting an old denial.
   // A deliberate map click is a real fallback; no default coordinates are silently submitted.
   await p.locator(".leaflet-container:visible").click({position:{x:160,y:70}});
   await p.getByText("Location ready",{exact:true}).waitFor();

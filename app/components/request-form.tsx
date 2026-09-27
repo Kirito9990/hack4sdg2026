@@ -1,6 +1,5 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import {locationChoice} from "@/lib/location-client";
 import Image from "next/image";
 import { api, useApp } from "./providers";
 import type { RequestView } from "@/lib/types";
@@ -157,7 +156,7 @@ export default function RequestForm({
         setBusy(true);
         setError("");
         try {
-          const point = coords || (locationChoice()==="blocked" ? null : await onLocate());
+          const point = coords || await onLocate();
           if (!point) {
             setError("selectLocationToSend");
             return;

@@ -1,5 +1,5 @@
 "use client";
-import {cachedPoint,rememberPoint,rememberChoice,locationChoice} from "./location-client";
+import {cachedPoint,rememberPoint} from "./location-client";
 import type {User} from "./types";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api, useApp } from "@/app/components/providers";
@@ -47,13 +47,12 @@ export function useLocation(enabled: boolean) {
       }
       navigator.geolocation.getCurrentPosition(
         (p) => {
-          if (token === attempt.current)
+          if (!settled && token === attempt.current)
             finish({ lat: p.coords.latitude, lng: p.coords.longitude });
         },
         (e) => {
-          if (token === attempt.current) {
+          if (!settled && token === attempt.current) {
             setError(e.code === 1 ? "locationDenied" : "locationUnavailable");
-            if(e.code===1){rememberChoice("blocked");if(userId)void api<{user:User}>("/api/account/location",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({allowed:false})}).then(b=>setUser(b.user)).catch(()=>{});}
             finish(null);
           }
         },
@@ -62,7 +61,7 @@ export function useLocation(enabled: boolean) {
     });
     if (token !== attempt.current) return result;
     if (result) {
-      setCoords(result);rememberChoice("allowed");
+      setCoords(result);
       if(userId){rememberPoint(userId,result);try{const b=await api<{user:User}>("/api/account/location",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({allowed:true})});setUser(b.user);}catch{}}
     }
     setLocating(false);
@@ -70,7 +69,9 @@ export function useLocation(enabled: boolean) {
   }, [enabled,userId,setUser]);
   useEffect(()=>{
     if(!enabled||!userId)return;
-    if(!user?.privacy.allowLocation){if(locationChoice()==="blocked")queueMicrotask(()=>setError("locationDenied"));return;}
+    // Account opt-out and a previous browser denial are not a current browser
+    // permission result. Only a fresh geolocation failure shows "blocked".
+    if(!user?.privacy.allowLocation)return;
     let live=true;
     const cached=cachedPoint(userId);if(cached)queueMicrotask(()=>{if(live)setCoords(cached);});
     else if(navigator.permissions)void navigator.permissions.query({name:"geolocation"}).then(p=>{if(live&&p.state==="granted")void locate();}).catch(()=>{});

@@ -63,7 +63,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
   useEffect(()=>{
     if(!user?.id||!navigator.permissions)return;
     let live=true,permission:PermissionStatus|undefined;
-    const changed=()=>{if(permission?.state==='denied'){try{localStorage.setItem('carecall_location_choice','blocked');sessionStorage.removeItem('carecall_position_'+user.id);}catch{}void api<{user:User}>('/api/account/location',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({allowed:false})}).then(b=>{if(live)setUser(b.user);}).catch(()=>{});}};
+    // Browser permission is separate from the account's saved preference.
+    // A query result must not undo a successful GPS request or user opt-in.
+    const changed=()=>{if(permission?.state==='denied'){try{sessionStorage.removeItem('carecall_position_'+user.id);}catch{}}};
     void navigator.permissions.query({name:'geolocation'}).then(p=>{if(!live)return;permission=p;p.addEventListener('change',changed);if(p.state==='denied'&&user.privacy.allowLocation)changed();}).catch(()=>{});
     return()=>{live=false;permission?.removeEventListener('change',changed);};
   },[user?.id,user?.privacy.allowLocation]);

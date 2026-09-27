@@ -3,7 +3,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api, useApp } from "@/app/components/providers";
-import {requestLocation,rememberChoice,rememberPoint} from "@/lib/location-client";
+import {requestLocation,rememberPoint} from "@/lib/location-client";
 import PrivacyNotice from "./privacy-notice";
 import type { User } from "@/lib/types";
 function AccountForm({ user, tab }: { user: User; tab: string }) {
@@ -30,7 +30,6 @@ function AccountForm({ user, tab }: { user: User; tab: string }) {
               body: JSON.stringify({ name, phone, privacy, address }),
             });
             setUser(b.user);
-            rememberChoice(b.user.privacy.allowLocation?"allowed":"blocked");
             if(!b.user.privacy.allowLocation)try{sessionStorage.removeItem("carecall_position_"+user.id);}catch{}
             setMessage("saved");
           } catch (e) {

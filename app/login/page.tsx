@@ -3,7 +3,7 @@ import {useState} from "react";
 import {useRouter} from "next/navigation";
 import {post,useApp} from "@/app/components/providers";
 import PrivacyNotice from "@/app/components/privacy-notice";
-import {locationChoice,requestLocation,rememberPoint} from "@/lib/location-client";
+import {requestLocation,rememberPoint} from "@/lib/location-client";
 import type {User,UserRole} from "@/lib/types";
 export default function Login(){
  const {t,setUser}=useApp(),router=useRouter();
@@ -12,7 +12,7 @@ export default function Login(){
  <form className="login-form stage-scroll" onSubmit={async e=>{e.preventDefault();if(busy)return;if(!agreed){setError("privacyRequired");return;}setBusy(true);setError("");
  try{
   setPhase("findingLocation");
-  const location=locationChoice()==="blocked"?{point:null,choice:"blocked"}:await requestLocation();
+  const location=await requestLocation();
   setPhase("saving");
   const b=await post<{user:User}>("/api/auth",{name,phone,role,privacyAccepted:true,allowLocation:location.choice==="allowed"});
   if(location.point)rememberPoint(b.user.id,location.point);setUser(b.user);router.push("/"+role);

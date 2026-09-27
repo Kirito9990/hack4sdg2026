@@ -92,9 +92,9 @@ export const messages = {
     "点击地图设置位置。初始地图中心为香港，并非已检测到你的位置。",
   ],
   locationDenied: [
-    "Location access is blocked. Allow it in your browser site settings, or tap the map to choose a location.",
-    "定位權限已被封鎖。請在瀏覽器網站設定中允許，或點選地圖選擇位置。",
-    "定位权限已被阻止。请在浏览器网站设置中允许，或点击地图选择位置。",
+    "Location access is blocked. Check your device’s Location Services and this website’s location permission, then try again.",
+    "定位權限已被封鎖。請檢查裝置的「定位服務」及此網站的定位權限，然後重試。",
+    "定位权限已被阻止。请检查设备的“定位服务”及此网站的定位权限，然后重试。",
   ],
   locationUnavailable: [
     "Your device could not locate you. Try again or choose a point on the map.",
