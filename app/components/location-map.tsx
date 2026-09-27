@@ -80,6 +80,14 @@ export default function LocationMap({
       window.removeEventListener("keydown", onKeyDown);
     };
   }, [fullscreen]);
+  useEffect(() => {
+    // The fullscreen class swap resizes the container without a transition, but Leaflet
+    // still needs a nudge once that layout settles before it recalculates tile bounds.
+    const timer = setTimeout(() => {
+      activeMap.current?.invalidateSize();
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [fullscreen]);
   const [context, setContext] = useState<{
       api: typeof Leaflet;
       map: Leaflet.Map;
@@ -282,13 +290,21 @@ export default function LocationMap({
           {t("recenter")}
         </button>
       </div>
-      <div className="relative flex-1 min-h-0">
+      <div
+        className={
+          "relative " +
+          (fullscreen ? "flex-1 min-h-0" : compact ? "h-32" : heightClassName || "h-80")
+        }
+      >
+        {/*
+          Leaflet adds classes (leaflet-container, leaflet-touch, ...) to this node imperatively
+          after init. Its className must stay a constant string so React never overwrites those
+          classes on re-render (e.g. when `fullscreen` toggles); all dynamic sizing lives on the
+          wrapper above instead.
+        */}
         <div
           ref={container}
-          className={
-            "relative z-0 w-full " +
-            (fullscreen ? "h-full" : compact ? "h-32" : heightClassName || "h-80")
-          }
+          className="absolute inset-0 z-0 h-full w-full"
           aria-label={title || t("location")}
         />
         {allowFullscreen && (
