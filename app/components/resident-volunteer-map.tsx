@@ -15,6 +15,7 @@ export default function ResidentVolunteerMap({ request: r }: { request: RequestV
     <LocationMap lat={r.lat} lng={r.lng} showPosition={false} title={t("volunteerLocation")}
       points={[{ id: r.id, lat: r.lat, lng: r.lng, label: t("destination"), accepted: true },
         ...(fresh ? [{ id: r.id + "-volunteer", lat: point.lat, lng: point.lng, label: t("volunteer"), accepted: false }] : [])]}
+      allowFullscreen
       legend={t("volunteerMapLegend")} />
     {fresh && <p className="text-sm text-muted">{t("lastLocationUpdate")} {new Date(point.updatedAt).toLocaleTimeString(locale)} · ±{Math.ceil(point.accuracy)} {t("metres")}</p>}
   </div>;

@@ -807,9 +807,6 @@ body {
 .navigation-content > * + * {
   margin-top: 12px;
 }
-.navigation-panel .leaflet-container {
-  height: clamp(150px, calc(100dvh - 570px), 300px);
-}
 .navigation-launch {
   flex-shrink: 0;
   padding: 10px 2px 0;

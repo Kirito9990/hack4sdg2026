@@ -18,6 +18,7 @@ export default function RequestNavigation({ request }: { request: RequestView & 
         title={t("requestLocation")}
         points={[{ id: request.id, lat: request.lat, lng: request.lng, label: t("destination"), accepted: true }]}
         livePosition={geo.position} positionStale={geo.stale} followPosition={follow} onExplore={() => setFollow(false)}
+        heightClassName="h-[42vh]"
         legend={t("navigationMapLegend")} />
       {request.residentAddress && <div className="navigation-address"><strong>{t("arrivalAddress")}</strong><p className="whitespace-pre-line break-words">{request.residentAddress}</p></div>}
       <p className="text-sm">{t("entranceHint")}</p>
