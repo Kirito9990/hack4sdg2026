@@ -29,7 +29,7 @@ The local test override is in ignored `.env.local`, not the committed example.
 
 This version has a Next.js API backend and local SQLite persistence (Node >=22.13). A single server process owns the store. Users, 30-day sessions, privacy preferences, optional three-line addresses, requests and conversations survive server restarts on the same persistent disk. Signing out or losing the cookie does not offer account recovery: signup creates a new account. Phone ownership is not verified.
 
-Set CARECALL_DB_PATH to an absolute writable database path. The default is .carecall-data/carecall.sqlite under the server working directory; database files are Git-ignored. Keep one process per database. The prototype stores an atomic JSON snapshot in SQLite with a revision check; it is not a multi-instance database design. Production requires verified authentication, a normalized database such as PostgreSQL and transactions across instances.
+Set CARECALL_DB_PATH to an absolute writable database path. The default is .carecall-data/carecall.sqlite under the server working directory; database files are Git-ignored. Keep one process per database. Accounts and privacy settings are rows in `carecall_users` and `carecall_privacy` (name, phone, role, shift availability, address, privacy acceptance time, and the six consent flags). Sessions, requests and conversations stay in the atomic JSON snapshot, written in the same transaction. Existing snapshot-only files keep working until the next save, which copies accounts into those tables. This is still one process per file, not a multi-instance database. Production requires verified authentication and a shared database such as PostgreSQL.
 
 Render free services use ephemeral filesystems: this local implementation alone does not make cloud data durable across redeploys/restarts. Configure a paid persistent disk with CARECALL_DB_PATH, or migrate to managed PostgreSQL before relying on archived history. No hosting resources were purchased or changed.
 
@@ -136,7 +136,7 @@ The teammate built the Next.js resident/volunteer foundation, voice/photo submis
 | Account | Browser localStorage profile and server in-memory session creation | HttpOnly cookie session, profile editor, optional three-line resident address, vertical account drawer, sign-out and deletion |
 | Privacy and API access | Status/accept routes do not enforce participant session checks | Required privacy checkbox with linked notice; per-account name/address/phone/chat/location/AI controls; server role and participant checks, same-origin writes and reduced public-list details |
 | Media handling | Existing external speech/image model calls | Re-encoded photos with EXIF removed, file/size validation, bounded chat images and explicit external-processing consent; simple recording UI leaves recognition to backend providers |
-| Storage | In-memory users/sessions/requests; restart clears data | Local single-process SQLite snapshots preserve accounts, preferences, sessions, requests and chat on a persistent disk |
+| Storage | In-memory users/sessions/requests; restart clears data | Local single-process SQLite: account and privacy rows, plus a snapshot for sessions, requests and chat |
 | Deployment and verification | Baseline tracked tree has no Render YAML or Dockerfile; README describes local development | Render configuration, standalone build preparation, Docker support, health endpoint and API/mobile/persistence regression tests |
 
 ### Important remaining limits

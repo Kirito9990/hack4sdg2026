@@ -21,7 +21,7 @@ Read this file before changing CareCall. Append one entry after each run; preser
 - Render: https://carecall-djzc.onrender.com ; dashboard service srv-dar78s0u01pc738fn950.
 - Actual Render service auto-deploys pushes to codex/CareCall even though render.yaml says autoDeployTrigger: off (manually created service).
 - HTTPS is managed by Render. Local unpushed edits do not update production.
-- Current LOCAL code uses single-process SQLite snapshots. Use CARECALL_DB_PATH on a durable disk. Default .carecall-data is ignored; never share or commit it. Render free disk is ephemeral. Online reverted version remains in-memory. No verified phone authentication or account recovery.
+- Current LOCAL code uses single-process SQLite. Accounts and privacy settings are rows in carecall_users and carecall_privacy; sessions, requests and conversations remain in the JSON snapshot. The local file is .carecall-data/carecall.sqlite and is git-ignored. Use CARECALL_DB_PATH on a durable disk. Render free disk is ephemeral, so this local file does not make the public website durable. No verified phone authentication or account recovery.
 - Calls are native tel links, not browser VoIP.
 - Local app uses port 47291. Test servers must use separate ports and synthetic users.
 
@@ -158,3 +158,13 @@ Additional user corrections this run: simplify login; phone examples belong in p
 - User authorized publishing the local progress improvements and requested a clearer person icon for Account centre. Replaced the small circular glyph/text button with a 24px SVG head-and-shoulders outline in a 44px button. The localized accessible name and tooltip remain, and the existing account drawer behavior is unchanged.
 - Production build/TypeScript, ESLint and diff checks passed. Re-ran the progress/notification, history/chat/sharing, navigation lifecycle and request/call/account-drawer browser suites: all four passed on an isolated local database. Reviewed the 360×740 conversation screenshot with the new icon in local-artifacts/progress-deploy-20260927. Synthetic test accounts were deleted.
 - Confirmed local and remote codex/CareCall both start at bd02b5aea63c9b1a4402da80a492e1df11171c1b. Only this branch is authorized for the commit and explicit push; no fetch/pull, other branch writes or other repository writes. Existing GitHub-to-Render deployment will be verified after publishing. Private configuration, databases and screenshots remain excluded.
+
+### 2026-10-01 — withdrew the user-table push
+
+- User asked to undo the push of the account and privacy tables. Remote codex/CareCall was force-updated from e2eec7b back to 1162ac5. Local branch was reset to the same commit. Render will auto-deploy 1162ac5. The table commits remain recoverable as 86cd3d3 and e2eec7b. This note is local and not pushed.
+
+### 2026-10-01 — local SQLite database restored, not pushed
+
+- User asked for a free database that can store accounts, with later work staying local until a successful test, and only then a push to codex/CareCall. Restored the user and privacy tables locally from 86cd3d3 onto 1162ac5. Created .carecall-data/carecall.sqlite on this machine with carecall_users and carecall_privacy empty. Persistence tests passed 2/2. No cloud database account, no commit, and no push.
+- 2026-10-01 local server check on port 47294 with an isolated test database: signup, session reload, and privacy update returned 200. After stopping and starting the server, the same cookie loaded the name, phone, address, and privacy flags from SQLite. The synthetic database was deleted. Volunteer shareLocation is not a table column, so that flag is not restored.
+- User asked to push this tested local change to codex/CareCall. Render auto-deploys that branch. The public site's free disk remains ephemeral.
