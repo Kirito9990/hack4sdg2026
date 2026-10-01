@@ -15,7 +15,7 @@ export default function Login(){
   const location=await requestLocation();
   setPhase("saving");
   const b=await post<{user:User}>("/api/auth",{name,phone,role,privacyAccepted:true,allowLocation:location.choice==="allowed"});
-  if(location.point)rememberPoint(b.user.id,location.point);setUser(b.user);router.push("/"+role);
+  if(location.point)rememberPoint(b.user.id,location.point);setUser(b.user);router.push("/"+b.user.role);
  }catch(e){setError((e as Error).message);}finally{setBusy(false);}}}>
  <label className="field">{t("name")}<input required autoComplete="name" minLength={2} maxLength={80} value={name} onChange={e=>setName(e.target.value)}/></label>
  <label className="field">{t("phone")}<input required type="tel" autoComplete="tel" placeholder="0000 0000" maxLength={24} value={phone} onChange={e=>setPhone(e.target.value)}/></label>

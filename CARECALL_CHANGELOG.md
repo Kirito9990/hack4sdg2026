@@ -168,3 +168,17 @@ Additional user corrections this run: simplify login; phone examples belong in p
 - User asked for a free database that can store accounts, with later work staying local until a successful test, and only then a push to codex/CareCall. Restored the user and privacy tables locally from 86cd3d3 onto 1162ac5. Created .carecall-data/carecall.sqlite on this machine with carecall_users and carecall_privacy empty. Persistence tests passed 2/2. No cloud database account, no commit, and no push.
 - 2026-10-01 local server check on port 47294 with an isolated test database: signup, session reload, and privacy update returned 200. After stopping and starting the server, the same cookie loaded the name, phone, address, and privacy flags from SQLite. The synthetic database was deleted. Volunteer shareLocation is not a table column, so that flag is not restored.
 - User asked to push this tested local change to codex/CareCall. Render auto-deploys that branch. The public site's free disk remains ephemeral.
+
+### 2026-10-01 — production save check
+
+- User reported the website still could not store data after the push. Live checks against https://carecall-djzc.onrender.com returned 200 for health, signup, session read, address/privacy update, and account deletion. The synthetic account was deleted. Saving works while that server process stays up. Render free disk still drops the SQLite file on sleep, restart, or redeploy, and login always creates a new account instead of reopening one by phone. No further push.
+
+### 2026-10-01 — returning login keeps the saved account
+
+- Same phone number and role now opens the existing account instead of creating a blank one. Name, address and privacy settings stay as saved. A different role with that phone remains a separate account. Added the missing shareLocation column so that flag survives a restart.
+- Local check on port 47296: signed out, signed in again under another typed name, and still received the original id, name, address and privacy flags. After a server restart the same login returned that account. Typecheck passed. The synthetic database was deleted. Not pushed. Render's free disk can still erase the file when the public site sleeps or redeploys.
+
+### 2026-10-01 — withdrew the account-table push, then continued locally
+
+- User asked to withdraw the previous push before continuing the returning-login work. Published revert dfb0794 on codex/CareCall, restoring the remote tree to 29d3307. Render will auto-deploy that revert. The account tables and returning login stayed local as cherry-pick fb24a24 plus the login changes.
+- User then asked to push this local work to codex/CareCall. Render will auto-deploy it. The public site's free disk remains ephemeral.

@@ -20,8 +20,8 @@ test("shared volunteer points expire and revocation removes all their points", t
 
 test("history redaction and live location enforce roles, consent, membership and completion", async () => {
   const clients = [];
-  async function client(role, name) {
-    const r = await fetch(base + "/api/auth", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, phone: "61234567", role, privacyAccepted: true }) });
+  async function client(role, name, phone = "61234567") {
+    const r = await fetch(base + "/api/auth", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, phone, role, privacyAccepted: true }) });
     const { user } = await r.json(), cookie = r.headers.get("set-cookie").split(";")[0];
     const c = { user, async call(path, body, method = body === undefined ? "GET" : "POST", origin = base) {
       const response = await fetch(base + path, { method, headers: { Cookie: cookie, Origin: origin, ...(body instanceof FormData ? {} : { "Content-Type": "application/json" }) }, body: body === undefined ? undefined : body instanceof FormData ? body : JSON.stringify(body) });
@@ -34,7 +34,7 @@ test("history redaction and live location enforce roles, consent, membership and
     assert.equal(response.status, 200); c.user = response.body.user;
   }
   try {
-    const resident = await client("resident", "Private Resident"), volunteer = await client("volunteer", "Private Helper"), stranger = await client("volunteer", "Other Helper");
+    const resident = await client("resident", "Private Resident"), volunteer = await client("volunteer", "Private Helper"), stranger = await client("volunteer", "Other Helper", "60001005");
     await privacy(resident, { shareAddress: true, showName: true, allowCalls: true, shareLocation: true });
     assert.equal(resident.user.privacy.shareLocation, false);
     await privacy(volunteer, { shareAddress: true });

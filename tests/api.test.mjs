@@ -7,11 +7,11 @@ assert(
   "Tests must target a local server",
 );
 const clients = [];
-async function client(role, name) {
+async function client(role, name, phone = "61234567") {
   const response = await fetch(base + "/api/auth", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name, phone: "61234567", role, privacyAccepted: true }),
+    body: JSON.stringify({ name, phone, role, privacyAccepted: true }),
   });
   assert.equal(response.status, 200);
   assert.match(response.headers.get("set-cookie"), /HttpOnly/i);
@@ -56,9 +56,9 @@ test("session, matching, media and privacy integration", async (t) => {
     const anonymous = await fetch(base + "/api/request/status");
     assert.equal(anonymous.status, 401);
     const resident = await client("resident", "Resident Test"),
-      other = await client("resident", "Other Resident"),
-      a = await client("volunteer", "Volunteer A"),
-      b = await client("volunteer", "Volunteer B");
+      other = await client("resident", "Other Resident", "60001002"),
+      a = await client("volunteer", "Volunteer A", "60001003"),
+      b = await client("volunteer", "Volunteer B", "60001004");
     assert.equal(
       (await a.call("/api/volunteer/tasks?lat=22.3193&lng=114.1694")).body.tasks
         .length,

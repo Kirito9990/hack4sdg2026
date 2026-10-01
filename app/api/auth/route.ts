@@ -32,24 +32,29 @@ export async function POST(request: Request) {
     return fail("invalidRole");
   if(body.privacyAccepted!==true)return fail("privacyRequired");
   const data = store();
-  const user = {
-    id: crypto.randomUUID(),
-    name: body.name.trim(),
-    phone,
-    role: body.role,
-    privacy: {
-      allowCalls: body.allowCalls === true,
-      allowChat: true,
-      allowAI: false,
-      showName: false,
-      shareAddress: false,
-      shareLocation: false,
-      allowLocation: body.allowLocation===true,
-    },
-    privacyAcceptedAt: new Date().toISOString(),
-    createdAt: new Date().toISOString(),
-  };
-  data.users.push(user);
+  let user = data.users
+    .filter((item) => item.phone === phone && item.role === body.role)
+    .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)))[0];
+  if (!user) {
+    user = {
+      id: crypto.randomUUID(),
+      name: body.name.trim(),
+      phone,
+      role: body.role,
+      privacy: {
+        allowCalls: body.allowCalls === true,
+        allowChat: true,
+        allowAI: false,
+        showName: false,
+        shareAddress: false,
+        shareLocation: false,
+        allowLocation: body.allowLocation === true,
+      },
+      privacyAcceptedAt: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+    };
+    data.users.push(user);
+  }
   const session = {
     id: crypto.randomUUID(),
     userId: user.id,
