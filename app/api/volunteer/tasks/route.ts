@@ -32,6 +32,10 @@ export async function GET(request: Request) {
       urgency_level: r.urgency_level,
       category: r.category,
       source: r.source,
+      summary: r.summary,
+      requirements: r.requirements || [],
+      tools: r.tools || [],
+      resources: r.resources || [],
       distanceMeters: Math.round(distance / 500) * 500,
       createdAt: r.createdAt,
     }));

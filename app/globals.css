@@ -372,6 +372,11 @@ body {
   border-color: #a9d2b9;
   color: #22633c;
 }
+.priority-unassessed {
+  background: #fffdf8;
+  border-color: #d7d0c2;
+  color: #4a453c;
+}
 .priority-pill {
   border-radius: 20px;
   background: #ffffffb3;
@@ -383,6 +388,23 @@ body {
   font-size: 16px;
 }
 .priority-card p {
+  font-size: 13px;
+}
+.request-needs {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+.need-label {
+  font-size: 12px;
+  font-weight: 700;
+}
+.request-needs ul {
+  margin: 2px 0 0;
+  padding-left: 1.1rem;
+}
+.request-needs li {
   font-size: 13px;
 }
 .request-stage {
@@ -749,7 +771,10 @@ body {
     padding: 7px 10px;
   }
   .priority-card > p:first-of-type:not(:last-child) {
-    display: none;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
   .workspace-heading h1 {
     font-size: 21px;
@@ -1004,7 +1029,7 @@ body {
     padding: 9px 10px;
   }
   .priority-card > p:first-of-type:not(:last-child) {
-    -webkit-line-clamp: 1;
+    -webkit-line-clamp: 3;
   }
 }
 

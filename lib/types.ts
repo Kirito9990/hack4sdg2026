@@ -31,6 +31,9 @@ export type TriageFields = {
   category: RequestCategory;
   summary: string;
   dispatch_action: DispatchAction;
+  requirements?: string[];
+  tools?: string[];
+  resources?: string[];
 };
 export type HelpRequest = TriageFields & {
   id: string;

@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useApp } from "./providers";
 import { Conversation } from "./request-panel";
+import { RequestNeeds } from "./priority-card";
 import type { RequestView } from "@/lib/types";
 
 export default function HistoryList({ requests }: { requests: RequestView[] }) {
@@ -20,7 +21,8 @@ export default function HistoryList({ requests }: { requests: RequestView[] }) {
         {r.closedAt && <><dt>{t("historyFinished")}</dt><dd>{new Date(r.closedAt).toLocaleString(locale)}</dd></>}
       </dl>
       <p className="whitespace-pre-wrap break-words">{r.summary === "mediaRequest" ? t("mediaRequest") : r.summary}</p>
-      {r.transcript && r.transcript !== r.summary && <p className="whitespace-pre-wrap break-words">{r.transcript}</p>}
+      <RequestNeeds requirements={r.requirements} tools={r.tools} resources={r.resources} />
+      {r.transcript && r.transcript !== r.summary && <p className="whitespace-pre-wrap break-words"><span className="font-semibold">{t("whatTheySaid")} </span>{r.transcript}</p>}
       {r.imageHidden && <p>{t("historyPhotoHidden")}</p>}
       <p className="text-sm text-muted">{t("historyPrivacy")}</p>
       <p className="text-sm text-muted">{t("historySevenDays")}</p>

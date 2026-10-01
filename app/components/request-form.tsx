@@ -30,7 +30,7 @@ export default function RequestForm({
   onLocate: () => Promise<{ lat: number; lng: number } | null>;
   location: React.ReactNode;
 }) {
-  const { t, locale } = useApp();
+  const { t, locale, user } = useApp();
   const [text, setText] = useState(""),
     [photo, setPhoto] = useState<File | null>(null),
     [photoUrl, setPhotoUrl] = useState(""),
@@ -38,8 +38,11 @@ export default function RequestForm({
     [audioUrl, setAudioUrl] = useState(""),
     [recording, setRecording] = useState(false),
     [starting, setStarting] = useState(false),
+    [transcribing, setTranscribing] = useState(false),
+    [transcriptNote, setTranscriptNote] = useState(false),
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
+  const lastTranscript = useRef("");
   const file = useRef<HTMLInputElement>(null),
     recorder = useRef<MediaRecorder | null>(null),
     stream = useRef<MediaStream | null>(null),
@@ -114,7 +117,10 @@ export default function RequestForm({
         const blob = new Blob(chunks, { type: r.mimeType });
         if (!blob.size) setError("micError");
         else if (blob.size > 8 * 1024 * 1024) setError("fileTooLarge");
-        else setAudio(blob);
+        else {
+          setAudio(blob);
+          void applyTranscript(blob);
+        }
       };
       r.onerror = () => {
         media.getTracks().forEach((t) => t.stop());
@@ -138,14 +144,48 @@ export default function RequestForm({
       setStarting(false);
     }
   }
+  async function applyTranscript(blob: Blob) {
+    if (!user?.privacy.allowAI) {
+      setTranscriptNote(false);
+      setError("speechNeedsConsent");
+      return;
+    }
+    setTranscribing(true);
+    setError("");
+    setTranscriptNote(false);
+    try {
+      const body = new FormData();
+      body.set("audio", blob, "voice-note");
+      body.set("language", "auto");
+      const result = await api<{ transcript: string }>("/api/speech", {
+        method: "POST",
+        body,
+      });
+      const spoken = result.transcript.trim();
+      if (!spoken) throw new Error("audioUnavailable");
+      setText((current) => {
+        const previous = lastTranscript.current;
+        if (!current.trim() || current === previous) return spoken;
+        if (previous && current.endsWith(previous))
+          return (current.slice(0, -previous.length) + spoken).trim();
+        return (current.trim() + "\n" + spoken).slice(0, 4000);
+      });
+      lastTranscript.current = spoken;
+      setTranscriptNote(true);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setTranscribing(false);
+    }
+  }
   return (
     <form
       className="simple-request"
       onSubmit={async (e) => {
         e.preventDefault();
         if (requestLock.current) return;
-        if (recording || starting) {
-          setError("stopRecordingFirst");
+        if (recording || starting || transcribing) {
+          setError(transcribing ? "transcribing" : "stopRecordingFirst");
           return;
         }
         if (!text.trim() && !photo && !audio) {
@@ -176,6 +216,8 @@ export default function RequestForm({
           setText("");
           setPhoto(null);
           setAudio(null);
+          setTranscriptNote(false);
+          lastTranscript.current = "";
         } catch (e) {
           setError((e as Error).message);
         } finally {
@@ -194,7 +236,7 @@ export default function RequestForm({
             aria-label={t("description")}
             value={text}
             onChange={(e) => setText(e.target.value)}
-            disabled={busy}
+            disabled={busy || transcribing}
           />
         </label>
         <div className="request-input-tools">
@@ -236,7 +278,7 @@ export default function RequestForm({
           <button
             className={"voice-control " + (recording ? "is-recording" : "")}
             type="button"
-            disabled={busy || starting}
+            disabled={busy || starting || transcribing}
             onClick={() => void toggleRecording()}
             aria-label={t(recording ? "tapStop" : "tapSpeak")}
             aria-pressed={recording}
@@ -250,6 +292,16 @@ export default function RequestForm({
         {recording && (
           <p role="status" className="text-sm">
             {t("recording")} · {t("recordLimit")}
+          </p>
+        )}
+        {transcribing && (
+          <p role="status" className="text-sm">
+            {t("transcribing")}
+          </p>
+        )}
+        {transcriptNote && !transcribing && (
+          <p role="status" className="text-sm">
+            {t("transcriptReady")}
           </p>
         )}
         {photo && (
@@ -275,10 +327,12 @@ export default function RequestForm({
         )}
         {audio && (
           <div className="selected-media">
-            <audio controls src={audioUrl} />
+            {audioUrl && <audio controls src={audioUrl} />}
             <button
               type="button"
-              onClick={() => setAudio(null)}
+              onClick={() => {
+                setAudio(null);
+              }}
               aria-label={t("removeAudio")}
             >
               ×
@@ -294,9 +348,9 @@ export default function RequestForm({
       )}
       <button
         className="button w-full"
-        disabled={busy || recording || starting}
+        disabled={busy || recording || starting || transcribing}
       >
-        {t(busy ? "sending" : "sendRequest")}
+        {t(busy ? "sending" : transcribing ? "transcribing" : "sendRequest")}
       </button>
     </form>
   );

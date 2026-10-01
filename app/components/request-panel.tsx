@@ -280,13 +280,11 @@ export default function RequestPanel({
             <span className="pending-card-caret" aria-hidden>⌄</span>
           </summary>
           <div className="pending-card-body">
-            <PriorityCard {...r} summary={undefined} />
-            {(r.transcript || r.summary) && (
+            <PriorityCard {...r} />
+            {r.transcript && r.transcript !== r.summary && (
               <p className="whitespace-pre-wrap break-words text-sm">
-                {r.transcript ||
-                  (r.summary === "mediaRequest"
-                    ? t("mediaRequest")
-                    : r.summary)}
+                <span className="font-semibold">{t("whatTheySaid")} </span>
+                {r.transcript}
               </p>
             )}
             {r.imageData && (
@@ -373,13 +371,11 @@ export default function RequestPanel({
               {(accepted || closed) && <RequestProgress request={r} />}
               <div className="request-summary">
               <h3>{t("taskSummary")}</h3>
-              <PriorityCard {...r} summary={undefined} />
-              {(r.transcript || r.summary) && (
+              <PriorityCard {...r} />
+              {r.transcript && r.transcript !== r.summary && (
                 <p className="whitespace-pre-wrap break-words">
-                  {r.transcript ||
-                    (r.summary === "mediaRequest"
-                      ? t("mediaRequest")
-                      : r.summary)}
+                  <span className="font-semibold">{t("whatTheySaid")} </span>
+                  {r.transcript}
                 </p>
               )}
               {r.imageData && (
