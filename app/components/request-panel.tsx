@@ -6,7 +6,6 @@ import CallControl from "./call-control";
 import RequestNavigation from "./request-navigation";
 import LocationMap from "./location-map";
 import PriorityCard from "./priority-card";
-import ExtractedContent from "./extracted-content";
 import ResidentVolunteerMap from "./resident-volunteer-map";
 import RequestProgress, { ProgressLink } from "./request-progress";
 import type { ChatMessage, RequestView } from "@/lib/types";
@@ -290,7 +289,6 @@ export default function RequestPanel({
                     : r.summary)}
               </p>
             )}
-            <ExtractedContent request={r} />
             {r.imageData && (
               <Photo src={r.imageData} label={t("requestPhoto")} />
             )}
@@ -384,7 +382,6 @@ export default function RequestPanel({
                       : r.summary)}
                 </p>
               )}
-              <ExtractedContent request={r} />
               {r.imageData && (
                 <Photo src={r.imageData} label={t("requestPhoto")} />
               )}

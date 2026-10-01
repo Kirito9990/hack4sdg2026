@@ -67,7 +67,7 @@ export function view(r: HelpRequest, user: User) {
   const active =
     r.status === "ACCEPTED";
   const closed = r.status === "CLOSED";
-  const { lat, lng, transcript, speechTranscript, summary, imageData, ...record } = r;
+  const { lat, lng, transcript, summary, imageData, ...record } = r;
   const people = [resident, volunteer].filter((person): person is User => !!person);
   const testPhone = process.env.CARECALL_TEST_CALL_PHONE?.trim();
   const callPhone =
@@ -79,7 +79,6 @@ export function view(r: HelpRequest, user: User) {
   return {
     ...record,
     ...(closed ? { summary: redact(summary, people), transcript: transcript ? redact(transcript, people) : undefined, imageHidden: !!imageData } : { lat, lng, transcript, summary, imageData }),
-    speechTranscript: speechTranscript ? redact(speechTranscript, people) : undefined,
     residentName: !closed && resident && (resident.id===user.id || resident.privacy.showName !== false) ? resident.name : "",
     volunteerName: !closed && volunteer && (volunteer.id===user.id || volunteer.privacy.showName !== false) ? volunteer.name : "",
     residentAddress: !closed && resident && (resident.id===user.id || (active && resident.privacy.shareAddress)) ? resident.address : undefined,

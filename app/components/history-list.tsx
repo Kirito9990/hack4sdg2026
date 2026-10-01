@@ -2,7 +2,6 @@
 import { useState } from "react";
 import { useApp } from "./providers";
 import { Conversation } from "./request-panel";
-import ExtractedContent from "./extracted-content";
 import type { RequestView } from "@/lib/types";
 
 export default function HistoryList({ requests }: { requests: RequestView[] }) {
@@ -22,7 +21,6 @@ export default function HistoryList({ requests }: { requests: RequestView[] }) {
       </dl>
       <p className="whitespace-pre-wrap break-words">{r.summary === "mediaRequest" ? t("mediaRequest") : r.summary}</p>
       {r.transcript && r.transcript !== r.summary && <p className="whitespace-pre-wrap break-words">{r.transcript}</p>}
-      <ExtractedContent request={r} />
       {r.imageHidden && <p>{t("historyPhotoHidden")}</p>}
       <p className="text-sm text-muted">{t("historyPrivacy")}</p>
       <p className="text-sm text-muted">{t("historySevenDays")}</p>

@@ -148,7 +148,7 @@ export default function RequestForm({
           setError("stopRecordingFirst");
           return;
         }
-        if (!text.trim() && !audio?.size) {
+        if (!text.trim() && !photo && !audio) {
           setError("emptyRequest");
           return;
         }

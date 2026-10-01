@@ -1,7 +1,7 @@
 import sharp from "sharp";
 import { chatImage } from "@/lib/chat-image";
 import { triageRequestWithGemini } from "@/lib/ai";
-import { triageRequestWithOpenRouter } from "@/lib/openrouter";
+import { triageTextWithOpenRouter } from "@/lib/openrouter";
 import { audioContentType, transcribeWithDeepgram } from "@/lib/speech";
 import { redact, store, persist, view } from "@/lib/db";
 import { currentUser, fail, json, sameOrigin, validCoords } from "@/lib/server";
@@ -35,9 +35,9 @@ export async function POST(request: Request) {
     : "auto";
   const audio = upload(form.get("audio")),
     image = upload(form.get("image"));
-  const typedText = String(form.get("text") || "").trim();
-  if (typedText.length > 4000) return fail("invalidInput");
-  if (!typedText && !audio) return fail("emptyRequest");
+  let transcript = String(form.get("text") || "").trim();
+  if (transcript.length > 4000) return fail("invalidInput");
+  if (!transcript && !audio && !image) return fail("emptyRequest");
   if ([audio, image].some((f) => f && f.size > 8 * 1024 * 1024))
     return fail("fileTooLarge", 413);
   if (
@@ -53,7 +53,8 @@ export async function POST(request: Request) {
   )
     return fail("invalidAudio");
   let imageData: string | undefined;
-  let imageWidth: number | undefined,
+  let imageBuffer: Buffer | undefined,
+    imageWidth: number | undefined,
     imageHeight: number | undefined;
   if (image) {
     try {
@@ -77,6 +78,7 @@ export async function POST(request: Request) {
         })
         .jpeg({ quality: 82 })
         .toBuffer({ resolveWithObject: true });
+      imageBuffer = output.data;
       imageWidth = output.info.width;
       imageHeight = output.info.height;
       imageData = await chatImage(image);
@@ -88,49 +90,46 @@ export async function POST(request: Request) {
     ? Buffer.from(await audio.arrayBuffer())
     : undefined;
   let audioStatus: HelpRequest["audioStatus"] = audio ? "unavailable" : "none";
-  let speechTranscript: string | undefined;
+  if (audio && transcript) audioStatus = "provided";
   if (
     audioBuffer &&
+    !transcript &&
     user.privacy.allowAI &&
-    process.env.DEEPGRAM_API_KEY?.trim()
+    process.env.DEEPGRAM_API_KEY
   ) {
     try {
-      speechTranscript = redact(await transcribeWithDeepgram(
+      transcript = await transcribeWithDeepgram(
         audioBuffer,
         audio!.type,
         language,
-      ));
+      );
       audioStatus = "transcribed";
     } catch {
       /* Return explicit unavailable status, never fabricate text. */
     }
   }
-  // Redact each source separately so a long typed message cannot truncate away
-  // the entire recording. Preserve both even when they contain different needs.
-  const safeText = [redact(typedText), speechTranscript].filter(Boolean).join("\n\n");
+  const safeText = redact(transcript);
   let triage: TriageFields = {
     urgency_level: "HIGH",
     category: "OTHER",
     summary: safeText || "mediaRequest",
     dispatch_action: "NEIGHBORHOOD_VOLUNTEER",
   };
-  let source: HelpRequest["source"] = "fallback";
-  const imageStatus: HelpRequest["imageStatus"] = image ? "prepared" : "none";
+  let source: HelpRequest["source"] = "fallback",
+    imageStatus: HelpRequest["imageStatus"] = image ? "prepared" : "none";
   if (user.privacy.allowAI) {
-    if (safeText && process.env.OPENROUTER_API_KEY?.trim()) {
+    if (!imageBuffer && safeText && process.env.OPENROUTER_API_KEY) {
       try {
-        const extraction = await triageRequestWithOpenRouter({
-          text: safeText,
-          locale,
-        });
-        triage = extraction;
+        triage = await triageTextWithOpenRouter(safeText, locale);
         source = "openrouter";
       } catch {}
     }
     if (source === "fallback" && process.env.GEMINI_API_KEY) {
       try {
         const media: Array<{ buffer: Buffer; mimeType: string }> = [];
-        if (audioBuffer && !speechTranscript)
+        if (imageBuffer)
+          media.push({ buffer: imageBuffer, mimeType: "image/jpeg" });
+        if (audioBuffer && !transcript)
           media.push({ buffer: audioBuffer, mimeType: audio!.type });
         triage = await triageRequestWithGemini({
           text: safeText,
@@ -138,6 +137,7 @@ export async function POST(request: Request) {
           locale,
         });
         source = "gemini";
+        if (imageBuffer) imageStatus = "analyzed";
       } catch {}
     }
   }
@@ -152,7 +152,6 @@ export async function POST(request: Request) {
     createdAt: new Date().toISOString(),
     source,
     transcript: safeText || undefined,
-    speechTranscript,
     audioStatus,
     imageStatus,
     imageWidth,
