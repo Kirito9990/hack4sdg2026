@@ -34,7 +34,7 @@ test("session authentication reads SQLite and leaves the JSON backup in place", 
     assert.deepEqual(report.messages, ["msg"]);
     assert.equal(report.afterLogout, null);
     assert.equal(report.backupStill.userId, "resident");
-    assert.deepEqual(report.jsonSessions, ["backup", "json-only"]);
+    assert.deepEqual(report.jsonSessions, ["backup", "expired"]);
     assert.deepEqual(report.messageTexts, ["hello"]);
     assert.deepEqual(report.requestSummaries, ["Keep"]);
   } finally {

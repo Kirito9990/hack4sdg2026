@@ -239,3 +239,7 @@ Additional user corrections this run: simplify login; phone examples belong in p
 ### 2026-10-01 — message reads use SQLite
 
 - Chat messages load from carecall_messages in snapshot position order. The JSON messages array remains the backup and is still written on save. Sender, text, image data, and timestamp come from the table. A read does not rewrite the JSON payload.
+
+### 2026-10-01 — sessions use SQLite for reads and writes
+
+- The in-memory session list loads from carecall_sessions. Login, logout, and account deletion change that list and the save writes it back to the table and to the JSON backup. A session that exists only in the JSON payload is not restored on the next load. Request and message handling is unchanged.
