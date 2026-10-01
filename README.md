@@ -29,7 +29,7 @@ The local test override is in ignored `.env.local`, not the committed example.
 
 This version has a Next.js API backend and local SQLite persistence (Node >=22.13). A single server process owns the store. Users, 30-day sessions, privacy preferences, optional three-line addresses, requests and conversations survive server restarts on the same persistent disk. Create account registers a phone number, role, and password. Log in requires that password as well as the same phone number and role, then opens the saved account, including the name, address and privacy settings. Passwords are stored as bcrypt hashes. A different role with that phone is a separate account. Phone ownership is not verified.
 
-Set CARECALL_DB_PATH to an absolute writable database path. The default is .carecall-data/carecall.sqlite under the server working directory; database files are Git-ignored. Keep one process per database. Accounts and privacy settings are rows in `carecall_users` and `carecall_privacy` (name, phone, role, password hash, shift availability, address, privacy acceptance time, and the six consent flags). Sessions, requests and conversations stay in the atomic JSON snapshot, written in the same transaction. Existing snapshot-only files keep working until the next save, which copies accounts into those tables. This is still one process per file, not a multi-instance database. Production requires verified authentication and a shared database such as PostgreSQL.
+Set CARECALL_DB_PATH to an absolute writable database path. The default is .carecall-data/carecall.sqlite under the server working directory; database files are Git-ignored. Keep one process per database. Accounts and privacy settings are rows in `carecall_users` and `carecall_privacy` (name, phone, role, password hash, shift availability, address, privacy acceptance time, and the six consent flags). Sessions, requests, and messages are read from `carecall_sessions`, `carecall_requests`, and `carecall_messages`. Those tables are the runtime source of truth. Each save also writes the JSON snapshot in `carecall_state` as a backup. An older snapshot-only file is copied into the tables on load. This is still one process per file, not a multi-instance database. Production requires verified authentication and a shared database such as PostgreSQL.
 
 Render free services use ephemeral filesystems: this local implementation alone does not make cloud data durable across redeploys/restarts. Configure a paid persistent disk with CARECALL_DB_PATH, or migrate to managed PostgreSQL before relying on archived history. No hosting resources were purchased or changed.
 
@@ -65,13 +65,13 @@ Existing optional adapters:
 - `GEMINI_API_KEY`: image/audio/text interpretation. Both attachments are supplied when needed; photos are not silently dropped when a transcript exists.
 - Model names can be configured in the environment.
 
-Without keys/consent, requests remain usable with a clearly labelled **unassessed / priority human review** state (internal HIGH/OTHER), not a fabricated model result. A recording/photo alone may have no actionable description until a provider is configured; add typed text for the local demo. Model outputs require validation and human oversight before a real emergency deployment.
+Without keys/consent, requests remain usable with a clearly labelled **unassessed** state. The saved urgency is NOT_ASSESSED and the category is OTHER, not HIGH, and not a fabricated model result. A recording/photo alone may have no actionable description until a provider is configured; add typed text for the local demo. Model outputs require validation and human oversight before a real emergency deployment.
 
 ## Mobile workflow
 
 Resident navigation separates new requests, request progress and location. The request composer has a text field, a working + attachment button, and a tap-to-record microphone. Location is requested explicitly; the map remains visible without GPS and supports manual selection. Missing location produces an actionable explanation instead of disabling Send. Accepted tasks separate conversation, details and the volunteer route map. Main actions stay visible while long content scrolls inside its panel. The account button opens a sidebar with vertical links to profile, privacy and management pages. Login keeps detailed usage/privacy notes in a disclosure and phone-format examples in the input placeholder.
 
-Priority cards support three labelled levels (red HIGH, amber MEDIUM, green LOW), category and a brief summary. Missing-provider fallback stays HIGH/OTHER and explicitly awaits assessment.
+Priority cards support three labelled levels (red HIGH, amber MEDIUM, green LOW), category and a brief summary. A missing provider or withheld AI consent saves urgency NOT_ASSESSED, shown as unassessed, not HIGH.
 
 ## Maps
 
@@ -128,7 +128,7 @@ The teammate built the Next.js resident/volunteer foundation, voice/photo submis
 | Mobile navigation | Resident and volunteer pages with longer sections | Compact task stages and bottom navigation; History replaces the general Map tab; account sidebar opens dedicated sections; original cream/dark palette retained |
 | Request composition | Voice/photo submission and optional provider processing | Text, a working + photo picker and simple tap-to-record microphone; clear submission/acceptance/completion banners; preserves drafts when location fails |
 | Location and maps | Browser GPS with displayed coordinates; no map component in the baseline tree | Interactive OpenStreetMap/Leaflet, manual pin fallback, signup location request, remembered preference, no manual coordinate fields; live foreground volunteer position and animated external-map chooser for walking/transit navigation |
-| Classification UI | Urgency badge, summary, category and dispatch labels | Category on an urgency-colored card with short summary; existing provider adapters retained; fallback remains HIGH/OTHER when classification is unavailable, not a medical assessment |
+| Classification UI | Urgency badge, summary, category and dispatch labels | Category on an urgency-colored card with short summary; existing provider adapters retained; fallback urgency is NOT_ASSESSED when classification is unavailable, not HIGH and not a medical assessment |
 | Acceptance | Sets request status to ACCEPTED; resident polls for updates | Server binds the request to one volunteer, prevents duplicate acceptance and exposes matched status to both participants |
 | Conversation and calls | Volunteer gets a resident tel link after accepting; no chat API | Participant-only text/photo conversation with call control in its header; current permitted number, device-dialer link and copy fallback; phone sharing defaults off |
 | Completion and history | PENDING/ACCEPTED flow | Resident confirms completion; volunteer sees update; text/photo writes and calls stop; seven-day read-only history followed by database archival |
@@ -136,7 +136,7 @@ The teammate built the Next.js resident/volunteer foundation, voice/photo submis
 | Account | Browser localStorage profile and server in-memory session creation | HttpOnly cookie session, profile editor, optional three-line resident address, vertical account drawer, sign-out and deletion |
 | Privacy and API access | Status/accept routes do not enforce participant session checks | Required privacy checkbox with linked notice; per-account name/address/phone/chat/location/AI controls; server role and participant checks, same-origin writes and reduced public-list details |
 | Media handling | Existing external speech/image model calls | Re-encoded photos with EXIF removed, file/size validation, bounded chat images and explicit external-processing consent; simple recording UI leaves recognition to backend providers |
-| Storage | In-memory users/sessions/requests; restart clears data | Local single-process SQLite: account and privacy rows, plus a snapshot for sessions, requests and chat |
+| Storage | In-memory users/sessions/requests; restart clears data | Local single-process SQLite. Session, request, and message tables are the runtime source of truth. The JSON snapshot is a backup |
 | Deployment and verification | Baseline tracked tree has no Render YAML or Dockerfile; README describes local development | Render configuration, standalone build preparation, Docker support, health endpoint and API/mobile/persistence regression tests |
 
 ### Important remaining limits

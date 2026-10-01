@@ -21,7 +21,7 @@ Read this file before changing CareCall. Append one entry after each run; preser
 - Render: https://carecall-djzc.onrender.com ; dashboard service srv-dar78s0u01pc738fn950.
 - Actual Render service auto-deploys pushes to codex/CareCall even though render.yaml says autoDeployTrigger: off (manually created service).
 - HTTPS is managed by Render. Local unpushed edits do not update production.
-- Current LOCAL code uses single-process SQLite. Accounts and privacy settings are rows in carecall_users and carecall_privacy; sessions, requests and conversations remain in the JSON snapshot. The local file is .carecall-data/carecall.sqlite and is git-ignored. Use CARECALL_DB_PATH on a durable disk. Render free disk is ephemeral, so this local file does not make the public website durable. No verified phone authentication or account recovery.
+- Current LOCAL code uses single-process SQLite. Accounts and privacy settings are rows in carecall_users and carecall_privacy. Sessions, requests, and messages are read from carecall_sessions, carecall_requests, and carecall_messages; those tables are the runtime source of truth. The JSON snapshot in carecall_state is a backup written on save. The local file is .carecall-data/carecall.sqlite and is git-ignored. Use CARECALL_DB_PATH on a durable disk. Render free disk is ephemeral, so this local file does not make the public website durable. No verified phone authentication or account recovery. AI consent off, or a failed classification, saves urgency NOT_ASSESSED rather than HIGH.
 - Calls are native tel links, not browser VoIP.
 - Local app uses port 47291. Test servers must use separate ports and synthetic users.
 
@@ -247,3 +247,7 @@ Additional user corrections this run: simplify login; phone examples belong in p
 ### 2026-10-01 — nearby volunteer list omits the request summary
 
 - The open-task list no longer includes the request summary, transcript, resident identity, or photo. It still includes the request id, category, urgency, approximate location, distance, and matching lists. The matched request and chat still show the details that privacy settings allow after acceptance. Authentication, the AI pipeline, and database storage were not changed.
+
+### 2026-10-02 — documentation matches SQLite reads and unassessed fallback
+
+- README and the known-facts section now say carecall_sessions, carecall_requests, and carecall_messages are the runtime source of truth, and the JSON snapshot is a backup. They also say a missing or failed classification saves urgency NOT_ASSESSED, not HIGH. Application code was not changed. Dated entries above remain the record of each earlier phase.
