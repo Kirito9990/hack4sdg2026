@@ -564,9 +564,9 @@ export const messages = {
     "媒体请求等待处理",
   ],
   emptyRequest: [
-    "Enter a description, record audio or add a photo.",
-    "請輸入描述、錄音或加入相片。",
-    "请输入描述、录音或添加照片。",
+    "Add a description or a voice transcript. A photo alone is not enough.",
+    "請加入文字描述或語音轉錄。只上傳相片並不足夠。",
+    "请添加文字描述或语音转写。只上传照片不够。",
   ],
   invalidName: [
     "Enter a name with 2–80 characters.",

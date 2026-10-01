@@ -215,3 +215,7 @@ Additional user corrections this run: simplify login; phone examples belong in p
 ### 2026-10-01 — authentication review
 
 - Sessions saved before password login do not have `passwordAuth` and are removed from the server store, so the old cookie no longer opens an account. Login failures for a missing account, a wrong password, and an account with no password hash all return the same error. Failed-attempt counts live in this process and reset on restart. The local database had one development account without a hash and two old sessions; those sessions are discarded, and the account cannot be claimed with the phone number and role. No password recovery was added.
+
+### 2026-10-01 — request text or transcript required
+
+- A request is saved only when it has typed text or a successful voice transcript. An empty form and a photo with neither are rejected. Voice with a transcript, including with a photo, is still accepted. Audio that does not produce a transcript is rejected. Authentication, the database schema, and the Deepgram and OpenRouter clients were not changed.

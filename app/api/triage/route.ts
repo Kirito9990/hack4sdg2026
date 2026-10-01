@@ -2,6 +2,7 @@ import sharp from "sharp";
 import { chatImage } from "@/lib/chat-image";
 import { triageRequestWithGemini } from "@/lib/ai";
 import { triageTextWithOpenRouter } from "@/lib/openrouter";
+import { effectiveRequestText } from "@/lib/request-content";
 import { audioContentType, transcribeWithDeepgram } from "@/lib/speech";
 import { redact, store, persist, view } from "@/lib/db";
 import { currentUser, fail, json, sameOrigin, validCoords } from "@/lib/server";
@@ -35,9 +36,11 @@ export async function POST(request: Request) {
     : "auto";
   const audio = upload(form.get("audio")),
     image = upload(form.get("image"));
-  let transcript = String(form.get("text") || "").trim();
-  if (transcript.length > 4000) return fail("invalidInput");
-  if (!transcript && !audio && !image) return fail("emptyRequest");
+  const typed = String(form.get("text") || "").trim();
+  if (typed.length > 4000) return fail("invalidInput");
+  if (!typed && !audio) return fail("emptyRequest");
+  let transcript = typed;
+  let spoken = "";
   if ([audio, image].some((f) => f && f.size > 8 * 1024 * 1024))
     return fail("fileTooLarge", 413);
   if (
@@ -90,24 +93,24 @@ export async function POST(request: Request) {
     ? Buffer.from(await audio.arrayBuffer())
     : undefined;
   let audioStatus: HelpRequest["audioStatus"] = audio ? "unavailable" : "none";
-  if (audio && transcript) audioStatus = "provided";
+  if (audio && typed) audioStatus = "provided";
   if (
     audioBuffer &&
-    !transcript &&
+    !typed &&
     user.privacy.allowAI &&
     process.env.DEEPGRAM_API_KEY
   ) {
     try {
-      transcript = await transcribeWithDeepgram(
-        audioBuffer,
-        audio!.type,
-        language,
-      );
+      spoken = (
+        await transcribeWithDeepgram(audioBuffer, audio!.type, language)
+      ).trim();
+      transcript = spoken;
       audioStatus = "transcribed";
     } catch {
       /* Return explicit unavailable status, never fabricate text. */
     }
   }
+  if (!effectiveRequestText(typed, spoken)) return fail("emptyRequest");
   const safeText = redact(transcript);
   let triage: TriageFields = {
     urgency_level: "HIGH",

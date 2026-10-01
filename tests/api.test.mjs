@@ -392,8 +392,8 @@ test("session, matching, media and privacy integration", async (t) => {
           "audio.webm",
         );
         const fallback = await resident.call("/api/triage", audio);
-        assert.equal(fallback.body.audioStatus, "unavailable");
-        assert.equal(fallback.body.transcript, undefined);
+        assert.equal(fallback.status, 400);
+        assert.equal(fallback.body.error, "emptyRequest");
       },
     );
     await t.test("cross-origin writes and logout are rejected", async () => {

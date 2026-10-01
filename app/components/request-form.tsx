@@ -188,7 +188,7 @@ export default function RequestForm({
           setError(transcribing ? "transcribing" : "stopRecordingFirst");
           return;
         }
-        if (!text.trim() && !photo && !audio) {
+        if (!text.trim()) {
           setError("emptyRequest");
           return;
         }
