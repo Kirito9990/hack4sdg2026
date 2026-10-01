@@ -114,6 +114,9 @@ export async function POST(request: Request) {
     category: "OTHER",
     summary: safeText || "mediaRequest",
     dispatch_action: "NEIGHBORHOOD_VOLUNTEER",
+    requirements: [],
+    tools: [],
+    resources: [],
   };
   let source: HelpRequest["source"] = "fallback",
     imageStatus: HelpRequest["imageStatus"] = image ? "prepared" : "none";
@@ -142,6 +145,13 @@ export async function POST(request: Request) {
     }
   }
   triage.summary = redact(triage.summary);
+  const cleanList = (items: string[] | undefined) =>
+    (items || [])
+      .map((item) => redact(item).trim())
+      .filter((item) => item && !/^\[(contact|name|address) hidden\]$/.test(item));
+  triage.requirements = cleanList(triage.requirements);
+  triage.tools = cleanList(triage.tools);
+  triage.resources = cleanList(triage.resources);
   const saved: HelpRequest = {
     ...triage,
     id: crypto.randomUUID(),

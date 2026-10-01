@@ -67,8 +67,20 @@ export function view(r: HelpRequest, user: User) {
   const active =
     r.status === "ACCEPTED";
   const closed = r.status === "CLOSED";
-  const { lat, lng, transcript, summary, imageData, ...record } = r;
+  const {
+    lat,
+    lng,
+    transcript,
+    summary,
+    imageData,
+    requirements,
+    tools,
+    resources,
+    ...record
+  } = r;
   const people = [resident, volunteer].filter((person): person is User => !!person);
+  const redactLines = (items?: string[]) =>
+    items?.map((item) => redact(item, people)).filter((item) => item.trim());
   const testPhone = process.env.CARECALL_TEST_CALL_PHONE?.trim();
   const callPhone =
     active && other?.privacy.allowCalls
@@ -78,7 +90,25 @@ export function view(r: HelpRequest, user: User) {
       : null;
   return {
     ...record,
-    ...(closed ? { summary: redact(summary, people), transcript: transcript ? redact(transcript, people) : undefined, imageHidden: !!imageData } : { lat, lng, transcript, summary, imageData }),
+    ...(closed
+      ? {
+          summary: redact(summary, people),
+          transcript: transcript ? redact(transcript, people) : undefined,
+          requirements: redactLines(requirements),
+          tools: redactLines(tools),
+          resources: redactLines(resources),
+          imageHidden: !!imageData,
+        }
+      : {
+          lat,
+          lng,
+          transcript,
+          summary,
+          imageData,
+          requirements,
+          tools,
+          resources,
+        }),
     residentName: !closed && resident && (resident.id===user.id || resident.privacy.showName !== false) ? resident.name : "",
     volunteerName: !closed && volunteer && (volunteer.id===user.id || volunteer.privacy.showName !== false) ? volunteer.name : "",
     residentAddress: !closed && resident && (resident.id===user.id || (active && resident.privacy.shareAddress)) ? resident.address : undefined,
