@@ -235,3 +235,7 @@ Additional user corrections this run: simplify login; phone examples belong in p
 ### 2026-10-01 — request reads use SQLite
 
 - Request lists load from carecall_requests in snapshot position order. The JSON requests array remains the backup and is still written. Messages still load from the JSON snapshot. Optional request fields stay absent when the table cell is NULL.
+
+### 2026-10-01 — message reads use SQLite
+
+- Chat messages load from carecall_messages in snapshot position order. The JSON messages array remains the backup and is still written on save. Sender, text, image data, and timestamp come from the table. A read does not rewrite the JSON payload.
