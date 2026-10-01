@@ -223,3 +223,7 @@ Additional user corrections this run: simplify login; phone examples belong in p
 ### 2026-10-01 — one classification pipeline
 
 - Typed text, a voice transcript, and a Gemini image description are prepared together before classification. OpenRouter classifies that text. It does not receive image bytes. If OpenRouter fails, Gemini classifies the same text, and sees the image only when the description step failed. AI consent off or a failed classification saves the request as source fallback with urgency NOT_ASSESSED. Authentication, request validation, and the database schema were not changed.
+
+### 2026-10-01 — snapshot tables, reads unchanged
+
+- Sessions, requests, and messages can be copied from the JSON snapshot into carecall_sessions, carecall_requests, and carecall_messages. The copy runs in one transaction, leaves the JSON payload in place, and keeps only sessions with passwordAuth true. Later saves write the JSON snapshot and those tables. Application reads still come from the JSON snapshot.
