@@ -49,7 +49,7 @@ async function client(role, name, phone = "61234567") {
     });
     return { status: response.status, body: await response.json() };
   };
-  const result = { user, call };
+  const result = { user, call, phone, role };
   clients.push(result);
   return result;
 }
@@ -106,16 +106,42 @@ test("session, matching, media and privacy integration", async (t) => {
         );
         const task = list.body.tasks.find((x) => x.id === created.body.id);
         assert(task);
+        assert.equal(task.id, created.body.id);
+        assert.equal(task.category, created.body.category);
+        assert.equal(task.urgency_level, created.body.urgency_level);
+        assert.equal(typeof task.distanceMeters, "number");
+        assert.deepEqual(task.requirements, created.body.requirements || []);
+        assert.deepEqual(task.tools, created.body.tools || []);
+        assert.deepEqual(task.resources, created.body.resources || []);
         assert.equal(task.lat, 22.32);
         assert.equal(task.lng, 114.17);
+        assert.deepEqual(Object.keys(task).sort(), [
+          "category",
+          "createdAt",
+          "distanceMeters",
+          "id",
+          "lat",
+          "lng",
+          "requirements",
+          "resources",
+          "source",
+          "tools",
+          "urgency_level",
+        ]);
         for (const key of [
           "residentName",
           "residentPhone",
           "residentId",
+          "residentAddress",
           "transcript",
           "summary",
+          "imageData",
         ])
           assert(!(key in task));
+        const published = JSON.stringify(task);
+        assert.equal(published.includes("61234567"), false);
+        assert.equal(published.includes("Spoof"), false);
+        assert.equal(published.includes("Resident Test"), false);
         assert.equal(
           (await other.call("/api/request/status?id=" + created.body.id))
             .status,
@@ -160,6 +186,8 @@ test("session, matching, media and privacy integration", async (t) => {
         );
         assert.equal(status.body.volunteerId, winner.user.id);
         assert.equal(status.body.status, "ACCEPTED");
+        assert.equal(typeof status.body.summary, "string");
+        assert.ok(status.body.summary.length > 0);
         assert.equal(status.body.callPhone, null);
         assert.equal(
           (await loser.call("/api/request/status?id=" + created.body.id))
@@ -410,6 +438,26 @@ test("session, matching, media and privacy integration", async (t) => {
       assert.equal((await other.call("/api/request/status")).status, 401);
     });
   } finally {
-    for (const c of clients) await c.call("/api/account", undefined, "DELETE");
+    for (const c of clients) {
+      const deleted = await c.call("/api/account", undefined, "DELETE");
+      if (deleted.status === 401) {
+        const login = await fetch(base + "/api/auth", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Origin: base },
+          body: JSON.stringify({
+            mode: "login",
+            phone: c.phone,
+            role: c.role,
+            password: "test-password-1",
+          }),
+        });
+        const cookie = login.headers.get("set-cookie")?.split(";")[0];
+        if (cookie)
+          await fetch(base + "/api/account", {
+            method: "DELETE",
+            headers: { Cookie: cookie, Origin: base },
+          });
+      }
+    }
   }
 });

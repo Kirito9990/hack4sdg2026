@@ -243,3 +243,7 @@ Additional user corrections this run: simplify login; phone examples belong in p
 ### 2026-10-01 — sessions use SQLite for reads and writes
 
 - The in-memory session list loads from carecall_sessions. Login, logout, and account deletion change that list and the save writes it back to the table and to the JSON backup. A session that exists only in the JSON payload is not restored on the next load. Request and message handling is unchanged.
+
+### 2026-10-01 — nearby volunteer list omits the request summary
+
+- The open-task list no longer includes the request summary, transcript, resident identity, or photo. It still includes the request id, category, urgency, approximate location, distance, and matching lists. The matched request and chat still show the details that privacy settings allow after acceptance. Authentication, the AI pipeline, and database storage were not changed.

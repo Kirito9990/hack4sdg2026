@@ -17,7 +17,6 @@ type Task = {
   category: RequestCategory;
   urgency_level: UrgencyLevel;
   source: string;
-  summary?: string;
   requirements?: string[];
   tools?: string[];
   resources?: string[];
