@@ -231,3 +231,7 @@ Additional user corrections this run: simplify login; phone examples belong in p
 ### 2026-10-01 — session reads use SQLite
 
 - Authentication looks up the session cookie in carecall_sessions. The JSON sessions array remains the backup copy and is still written. Requests and messages still load from the JSON snapshot. A session without password authentication, or older than 30 days, is not accepted.
+
+### 2026-10-01 — request reads use SQLite
+
+- Request lists load from carecall_requests in snapshot position order. The JSON requests array remains the backup and is still written. Messages still load from the JSON snapshot. Optional request fields stay absent when the table cell is NULL.

@@ -149,10 +149,13 @@ test("existing JSON snapshot migrates into tables and later writes update both c
     assert.equal(stored.messages[1].position, 1);
     const read = child(
       file,
-      'import {DatabaseSync} from "node:sqlite";const db=new DatabaseSync(process.env.CARECALL_DB_PATH);db.prepare("UPDATE carecall_requests SET summary=? WHERE id=?").run("changed in table only","old");db.close();const {loadSnapshot}=await import("./lib/persistence.mjs");console.log(loadSnapshot().requests.find(request=>request.id==="old").summary);',
+      'import {DatabaseSync} from "node:sqlite";const db=new DatabaseSync(process.env.CARECALL_DB_PATH);db.prepare("UPDATE carecall_requests SET summary=? WHERE id=?").run("changed in table only","old");db.close();const {loadSnapshot}=await import("./lib/persistence.mjs");const loaded=loadSnapshot();const backup=new DatabaseSync(process.env.CARECALL_DB_PATH,{readOnly:true});const payload=JSON.parse(backup.prepare("SELECT payload FROM carecall_state WHERE id=1").get().payload);backup.close();console.log(JSON.stringify({loaded:loaded.requests.find(request=>request.id==="old").summary,backup:payload.requests.find(request=>request.id==="old").summary,message:loaded.messages[0].text}));',
     );
     assert.equal(read.status, 0, read.stderr);
-    assert.equal(read.stdout.trim(), "Old request");
+    const seen = JSON.parse(read.stdout);
+    assert.equal(seen.loaded, "changed in table only");
+    assert.equal(seen.backup, "Old request");
+    assert.equal(seen.message, "first");
     const dual = child(
       file,
       'const {loadSnapshot,writeSnapshot}=await import("./lib/persistence.mjs");const data=loadSnapshot();data.messages.push({id:"m3",requestId:"old",senderId:"resident",text:"third",createdAt:"2026-10-01T04:00:00.000Z"});writeSnapshot(data);console.log("ok");',
