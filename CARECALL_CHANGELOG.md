@@ -201,3 +201,9 @@ Additional user corrections this run: simplify login; phone examples belong in p
 
 - User asked to withdraw the previous push before continuing the returning-login work. Published revert dfb0794 on codex/CareCall, restoring the remote tree to 29d3307. Render will auto-deploy that revert. The account tables and returning login stayed local as cherry-pick fb24a24 plus the login changes.
 - User then asked to push this local work to codex/CareCall. Render will auto-deploy it. The public site's free disk remains ephemeral.
+
+### 2026-10-01 — create account and log in are separate
+
+- The login page now starts on Log in (phone and role only). First-time users press Create account, then enter a name, accept the privacy notice, and allow a location request. Creating an existing phone and role is rejected. Logging in without that account is rejected. Requests that omit a mode still open or create an account, so existing API tests keep working.
+- Local check on http://127.0.0.1:47291: Create account opened the registration form, saved Ada Lam, and opened the resident page. Sign out returned to Log in. Logging in with the same phone and Resident role showed Ada Lam again. The API rejected a second create with accountExists and a missing login with accountNotFound. The synthetic account was deleted.
+- User asked to push this to codex/CareCall. Render will auto-deploy it. The public site's free disk remains ephemeral.

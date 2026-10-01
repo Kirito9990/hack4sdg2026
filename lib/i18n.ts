@@ -270,6 +270,25 @@ export const messages = {
   account: ["Account centre", "用戶中心", "用户中心"],
   home: ["My requests", "我的請求", "我的请求"],
   signout: ["Sign out", "登出", "退出登录"],
+  createAccount: ["Create account", "建立帳戶", "创建账户"],
+  logIn: ["Log in", "登入", "登录"],
+  loginIntro: [
+    "Use the phone number and role you registered.",
+    "請用註冊時的電話號碼和身份登入。",
+    "请用注册时的电话号码和身份登录。",
+  ],
+  needAccount: ["First time here? Create account", "第一次使用？建立帳戶", "第一次使用？创建账户"],
+  haveAccount: ["Already registered? Log in", "已經註冊？登入", "已经注册？登录"],
+  accountExists: [
+    "This phone number already has that account. Log in instead.",
+    "這個電話號碼已有該身份的帳戶，請改為登入。",
+    "这个电话号码已有该身份的账户，请改为登录。",
+  ],
+  accountNotFound: [
+    "No account for this phone number and role. Create an account first.",
+    "沒有這個電話號碼和身份的帳戶，請先建立帳戶。",
+    "没有这个电话号码和身份的账户，请先创建账户。",
+  ],
   start: ["Start using CareCall", "開始使用 CareCall", "开始使用 CareCall"],
   intro: [
     "Request help or volunteer nearby.",

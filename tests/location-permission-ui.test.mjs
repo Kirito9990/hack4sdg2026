@@ -64,10 +64,11 @@ test("location recovers from old denials without overwriting account consent", a
     const { p: login } = await context("missing");
     await login.goto(base + "/login");
     await login.evaluate(() => { window.geoMode = "success"; });
+    await login.getByRole("button", { name: "First time here? Create account", exact: true }).click();
     await login.getByRole("textbox", { name: "Your name", exact: true }).fill("Location signup");
     await login.getByRole("textbox", { name: "Phone number", exact: true }).fill("61234567");
     await login.locator("#privacy-consent").check();
-    await login.getByRole("button", { name: "Continue", exact: true }).click();
+    await login.getByRole("button", { name: "Create account", exact: true }).click();
     await login.getByText("Location ready", { exact: true }).waitFor();
     assert.equal(await login.evaluate(() => window.geoCalls), 1);
 

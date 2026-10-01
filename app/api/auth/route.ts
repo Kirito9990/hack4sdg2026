@@ -17,11 +17,13 @@ export async function GET() {
 export async function POST(request: Request) {
   if (!sameOrigin(request)) return fail("forbidden", 403);
   const body = await request.json().catch(() => null);
+  if (!body) return fail("invalidInput");
+  const mode = body.mode === "login" || body.mode === "create" ? body.mode : "continue";
   if (
-    !body ||
-    typeof body.name !== "string" ||
-    body.name.trim().length < 2 ||
-    body.name.length > 80
+    mode !== "login" &&
+    (typeof body.name !== "string" ||
+      body.name.trim().length < 2 ||
+      body.name.length > 80)
   )
     return fail("invalidName");
   const phone = normalizePhone(
@@ -30,11 +32,14 @@ export async function POST(request: Request) {
   if (!validPhone(phone)) return fail("invalidPhone");
   if (!["resident", "volunteer"].includes(body.role))
     return fail("invalidRole");
-  if(body.privacyAccepted!==true)return fail("privacyRequired");
+  if (mode !== "login" && body.privacyAccepted !== true)
+    return fail("privacyRequired");
   const data = store();
   let user = data.users
     .filter((item) => item.phone === phone && item.role === body.role)
     .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)))[0];
+  if (mode === "login" && !user) return fail("accountNotFound");
+  if (mode === "create" && user) return fail("accountExists");
   if (!user) {
     user = {
       id: crypto.randomUUID(),

@@ -22,14 +22,14 @@ test("request usability: denied GPS, manual map, clickable photos, recording, ac
  async function fit(p){const s=await p.evaluate(()=>({w:innerWidth,h:innerHeight,sw:document.documentElement.scrollWidth,sh:document.documentElement.scrollHeight}));assert(s.sw<=s.w+1,JSON.stringify(s));assert(s.sh<=s.h+1,JSON.stringify(s));}
  try {
   const {p}=await context();
-  await p.goto(base+"/login");await p.getByRole("button",{name:"Continue",exact:true}).waitFor();
+  await p.goto(base+"/login");await p.getByRole("button",{name:"Log in",exact:true}).waitFor();await p.getByRole("button",{name:"First time here? Create account",exact:true}).click();
   assert.equal(await p.locator('input[type=tel]').getAttribute("placeholder"),"0000 0000");
   assert(!/local demo/i.test(await p.locator("main").innerText()));
   await fit(p);
   if(process.env.CARECALL_SCREENSHOT_DIR)await p.screenshot({path:process.env.CARECALL_SCREENSHOT_DIR+"/carecall-login-corrected.png"});
   await p.getByRole("textbox",{name:"Your name",exact:true}).fill("Test Resident");
   await p.getByRole("textbox",{name:"Phone number",exact:true}).fill("61234567");
-  await p.locator("#privacy-consent").check();await p.getByRole("button",{name:"Continue",exact:true}).click();
+  await p.locator("#privacy-consent").check();await p.getByRole("button",{name:"Create account",exact:true}).click();
   await p.getByRole("button",{name:"Send request",exact:true}).waitFor();
   assert.equal(await p.evaluate(()=>window.geoCalls),1);
   assert.equal(await p.evaluate(()=>getComputedStyle(document.body).backgroundColor),"rgb(243, 239, 228)");
