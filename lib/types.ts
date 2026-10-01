@@ -46,6 +46,7 @@ export type HelpRequest = TriageFields & {
   closedReason?: "completed" | "cancelled";
   imageData?: string;
   transcript?: string;
+  speechTranscript?: string;
   source: "openrouter" | "gemini" | "fallback";
   audioStatus: "none" | "transcribed" | "provided" | "unavailable";
   imageStatus: "none" | "prepared" | "analyzed";

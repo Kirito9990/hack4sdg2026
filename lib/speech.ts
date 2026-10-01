@@ -10,8 +10,13 @@ export async function transcribeWithDeepgram(
   if (!key) throw new Error("Missing speech key");
   const url = new URL("https://api.deepgram.com/v1/listen");
   url.searchParams.set("model", process.env.DEEPGRAM_MODEL || "nova-3");
-  if (language === "auto") url.searchParams.set("detect_language", "true");
-  else url.searchParams.set("language", language);
+  // UI language is not evidence of the spoken language. Keep automatic
+  // detection unless the API caller or deployment explicitly supplies one.
+  const speechLanguage = language === "auto"
+    ? process.env.DEEPGRAM_LANGUAGE?.trim() || "auto"
+    : language;
+  if (speechLanguage === "auto") url.searchParams.set("detect_language", "true");
+  else url.searchParams.set("language", speechLanguage);
   url.searchParams.set("smart_format", "true");
   const response = await fetch(url, {
     method: "POST",

@@ -1,5 +1,8 @@
 import type { Locale } from "@/lib/types";
 export const messages = {
+  extractedContent: ["Speech transcript", "語音文字", "语音文字"],
+  speechTranscript: ["Speech transcript", "語音文字", "语音文字"],
+  extractionReviewHint: ["Transcription can contain mistakes. Check it against your recording.", "語音轉錄可能有誤，請對照原錄音核實。", "语音转录可能有误，请对照原录音核实。"],
   progressTab: ["Progress", "進度", "进度"],
   viewProgress: ["View request progress", "查看求助進度", "查看请求进度"],
   helpInProgress: ["Help in progress", "協助進行中", "协助进行中"],
@@ -230,9 +233,9 @@ export const messages = {
   back: ["Back", "返回", "返回"],
   reviewRequest: ["Review & send", "確認並送出", "确认并发送"],
   describeHint: [
-    "What help do you need? Add text, a photo or a voice note.",
-    "你需要甚麼協助？可輸入文字、附上圖片或錄音。",
-    "你需要什么帮助？可输入文字、附上图片或录音。",
+    "What help do you need? Enter text or record a voice note. A photo is optional.",
+    "你需要甚麼協助？請輸入文字或錄音，亦可附上圖片。",
+    "你需要什么帮助？请输入文字或录音，也可附上图片。",
   ],
   attached: ["Attached", "已附上", "已附上"],
   reviewTitle: ["Ready to request help?", "準備送出求助？", "准备发送求助？"],
@@ -292,14 +295,14 @@ export const messages = {
     "启用临时文字对话",
   ],
   allowAI: [
-    "Allow external AI processing of my submitted media and text",
-    "允許外部 AI 處理我提交的媒體及文字",
-    "允许外部 AI 处理我提交的媒体及文字",
+    "Allow external AI processing of my voice recordings and text",
+    "允許外部 AI 處理我的錄音及文字",
+    "允许外部 AI 处理我的录音及文字",
   ],
   aiPrivacy: [
-    "Off by default. When enabled, configured speech and vision providers may receive your media and redacted text. Contact fields are not sent.",
-    "預設關閉。啟用後，已設定的語音及圖像服務可能接收媒體和已遮蔽聯絡資料的文字；不會傳送帳戶聯絡欄位。",
-    "默认关闭。启用后，已配置的语音及图像服务可能接收媒体和已隐藏联系信息的文字；不会发送账户联系字段。",
+    "Off by default. When enabled, configured AI providers may receive your voice recordings and redacted text. Photos are attachments for your matched partner and are not sent to AI. Contact fields are not sent.",
+    "預設關閉。啟用後，已設定的 AI 服務可能接收錄音及已遮蔽個人資料的文字。相片只作配對對象可查看的附件，不會傳送給 AI；亦不會傳送帳戶聯絡欄位。",
+    "默认关闭。启用后，已配置的 AI 服务可能接收录音及已隐藏个人信息的文字。照片仅作匹配对象可查看的附件，不会发送给 AI；也不会发送账户联系字段。",
   ],
   privacyInfo: ["Your matched partner can read messages while chat sharing is enabled. Finished chats are read-only for 7 days, then archived on the server.","開啟聊天分享時，配對對象可查看對話。完成後只能查看7天，之後在伺服器歸檔。","开启聊天分享时，匹配对象可查看对话。完成后只能查看7天，之后在服务器归档。"],
   demo: [
@@ -325,9 +328,9 @@ export const messages = {
   emergencyCall: ["Emergency call", "緊急求助", "紧急求助"],
   requestHelp: ["Request help", "尋求協助", "寻求帮助"],
   requestIntro: [
-    "Describe what you need, record a voice note, or add a photo.",
-    "描述需要的協助、錄音或加入相片。",
-    "描述需要的帮助、录音或添加照片。",
+    "Describe what you need or record a voice note. You can also attach a photo.",
+    "請描述需要的協助或錄音，亦可附上相片。",
+    "请描述需要的帮助或录音，也可附上照片。",
   ],
   description: [
     "Description / editable transcript",
@@ -364,9 +367,9 @@ export const messages = {
   removePhoto: ["Remove photo", "移除相片", "移除照片"],
   photoPreview: ["Photo preview", "相片預覽", "照片预览"],
   imagePrepared: [
-    "Photo resized and metadata removed. Scene interpretation requires a configured vision API and AI consent.",
-    "相片已調整大小並移除中繼資料。場景分析需要設定視覺 API 及同意 AI 處理。",
-    "照片已调整大小并移除元数据。场景分析需要配置视觉 API 并同意 AI 处理。",
+    "Photo attached for your matched volunteer to view. It is not analyzed by AI.",
+    "相片已附上，配對義工可查看；不會交由 AI 分析。",
+    "照片已附上，匹配志愿者可查看；不会交由 AI 分析。",
   ],
   sendRequest: ["Send request", "送出請求", "提交请求"],
   sending: ["Sending…", "傳送中…", "发送中…"],
@@ -513,9 +516,9 @@ export const messages = {
     "媒体请求等待处理",
   ],
   emptyRequest: [
-    "Enter a description, record audio or add a photo.",
-    "請輸入描述、錄音或加入相片。",
-    "请输入描述、录音或添加照片。",
+    "Enter a description or record a voice note before sending. A photo alone is not enough.",
+    "請先輸入描述或錄音再傳送，不能只提交相片。",
+    "请先输入描述或录音再发送，不能只提交照片。",
   ],
   invalidName: [
     "Enter a name with 2–80 characters.",

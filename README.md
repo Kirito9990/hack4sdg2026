@@ -16,7 +16,7 @@ Open http://127.0.0.1:47291. Copy `.env.example` to `.env.local` for optional pr
 Use separate browser profiles (or a normal and private window); tabs in the same profile share the same session cookie.
 
 1. Create a resident session. Eight-digit Hong Kong numbers are normalized to +852. Enable “Allow my matched partner to call me” to test calling.
-2. Submit text, a recording or a photo. Grant location access.
+2. Submit text or a recording, with an optional photo attachment. Grant location access. Photo-only submissions are rejected.
 3. In the second profile create a volunteer session nearby, turn on the shift switch, and accept the request. Both pages poll automatically.
 4. Exchange text and photos in the temporary conversation; its header includes the call button. Refreshing either page restores that session's requests.
 5. “Call resident” shows the current shared number; “Open phone app” opens a `tel:` link in the device's dialer. It does **not** create a browser VoIP call. A capable phone or configured desktop calling app is needed. No calls are made automatically.
@@ -46,7 +46,7 @@ Implemented boundaries:
 - Chat is participant-only (not end-to-end encrypted). Resident completion immediately blocks text/photo writes and calls. Read-only conversations remain visible for seven days from completion, then disappear from list, request and chat APIs while remaining stored. Account centre can delete all completed shared history, including older archives. Disabling chat sharing blocks reads as well.
 - Raw audio and original photos are not saved. Re-encoded request/chat photos have EXIF removed and follow the request archive lifecycle. Chat photos are at most 960 pixels and 256 KiB, with at most 20 per conversation. Uploads are limited to 8 MiB and 25 megapixels.
 - Volunteers start off shift. The UI and API block shift changes during an accepted assignment. Only residents may confirm completion; afterwards the shift toggle is available again.
-- Contact fields are not sent to AI providers. Free text is redacted; faces, speech and visual text within media are not anonymized. Media processing requires explicit account consent.
+- Contact fields are not sent to AI providers. Free text is redacted; speech is not anonymized before transcription and requires explicit AI consent. Photos are attachments shared with the matched partner and are never sent to AI providers.
 - Account deletion removes the user's account, sessions, resident requests and related conversations, and closes tasks they accepted.
 
 ## Speech and image processing
@@ -55,17 +55,24 @@ The resident voice control only records audio: tap once to start and again to st
 
 Optional backend support:
 
-- **Recorded audio:** set `DEEPGRAM_API_KEY` and enable AI processing to transcribe on submission. When the client does not provide a language, the optional adapter requests automatic language detection. Missing keys, provider errors and empty transcripts are shown honestly as unavailable. An accompanying typed description is used without claiming the recording was transcribed.
+- **Recorded audio:** set `DEEPGRAM_API_KEY` and enable AI processing to transcribe on submission, including when typed text or a photo is also attached. Typed text and speech are both retained for assessment. The redacted speech is saved separately as `speechTranscript`. Missing keys, provider errors and empty transcripts remain explicitly unavailable; typed text still works.
+- **Speech language:** `DEEPGRAM_LANGUAGE=auto` requests dominant-language detection without tying it to the interface language. For a Cantonese-only test, set `DEEPGRAM_LANGUAGE=zh-HK`. Deepgram documents Cantonese support, but its detection list specifies `zh`, so automatic Cantonese detection and Cantonese/English code-switching need live evaluation. See [models/languages](https://developers.deepgram.com/docs/models-languages-overview) and [language detection](https://developers.deepgram.com/docs/language-detection).
 
-Photos are previewed and resized in the browser, then independently validated and re-encoded on the server. Scene understanding is best handled by the future multimodal model, rather than pretending OCR alone can interpret a hazard.
+Photos are optional attachments for the resident and matched volunteer to view. The server validates, resizes and re-encodes them to strip metadata; they are never sent to OpenRouter or Gemini for OCR, scene analysis or classification. Both the form and API require nonblank text or a nonempty recording before sending; a photo alone does not meet that requirement. The matched volunteer can see the attachment in the conversation and request details; unrelated volunteers cannot access it. Completed-history photo hiding is unchanged.
+
+An expandable **Speech transcript** section shows the redacted speech result in pending requests, matched request progress and history, in all three UI languages. Known personal details are redacted and transcripts are excluded from public nearby listings. Transcription can be wrong and should be checked against the recording.
 
 Existing optional adapters:
 
-- `OPENROUTER_API_KEY`: structured text triage.
-- `GEMINI_API_KEY`: image/audio/text interpretation. Both attachments are supplied when needed; photos are not silently dropped when a transcript exists.
+- `OPENROUTER_API_KEY`: structured classification of typed text and speech transcripts. The provider must support JSON schema. The default `openrouter/free` is subject to model availability and rate limits. No vision model is needed. See [structured outputs](https://openrouter.ai/docs/guides/features/structured-outputs).
+- `GEMINI_API_KEY`: optional fallback audio/text interpretation. It is not required for the Deepgram → OpenRouter flow. Photo attachments are excluded from this fallback too.
 - Model names can be configured in the environment.
 
-Without keys/consent, requests remain usable with a clearly labelled **unassessed / priority human review** state (internal HIGH/OTHER), not a fabricated model result. A recording/photo alone may have no actionable description until a provider is configured; add typed text for the local demo. Model outputs require validation and human oversight before a real emergency deployment.
+For local live checks, add the two keys to the existing ignored `.env.local` without overwriting other settings, restart the dev server, and enable AI processing in the resident's privacy settings. These server-only adapters use HTTP APIs and need no separate provider SDK. Test a short recording, typed text and an optional photo attachment. Inspect the displayed transcript and `/api/triage` response. Provider calls consume the applicable quota; use non-personal test material. No live accuracy is claimed by the mocked tests below.
+
+For a repeatable live smoke check, `node scripts/check-live-ai.mjs --confirm-live path/to/synthetic.wav` uses the actual intake handler and real speech/text provider calls with isolated in-memory test identity/storage. Supply an English WAV saying “Please help me carry drinking water upstairs.” The script attaches a synthetic image, verifies it is not sent to OpenRouter, checks rejection of photo-only input, and saves sanitized reports under ignored `local-artifacts/live-ai-20261001`. It loads keys privately through Next's environment loader and never prints keys, headers or raw provider error bodies. This command deliberately consumes provider quota and is not part of the ordinary test suite. OpenRouter requests allow up to 60 seconds for the complete response; HTTP 200 headers alone do not establish successful classification.
+
+Without keys/consent, text or recording requests remain usable with a clearly labelled **unassessed / priority human review** state (internal HIGH/OTHER), not a fabricated model result. A recording alone may have no actionable description until a speech provider is configured; add typed text for the local demo. Model outputs require validation and human oversight before a real emergency deployment.
 
 ## Mobile workflow
 
@@ -88,6 +95,7 @@ Public OSM tiles and the OSRM demo endpoint are best-effort external services, n
 ```sh
 npm run lint
 npm run build
+node --test tests/ai-providers.test.mjs
 ```
 
 With a local server running and a nonempty test-call override configured:
