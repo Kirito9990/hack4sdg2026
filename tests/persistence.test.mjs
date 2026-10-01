@@ -12,8 +12,29 @@ test("SQLite preserves preferences, address and old conversations across process
  function child(code){const p=spawnSync(process.execPath,["--input-type=module","-e",code],{env,encoding:"utf8"});assert.equal(p.status,0,p.stderr);return p.stdout;}
  try{child('import {loadSnapshot,writeSnapshot} from "./lib/persistence.mjs";loadSnapshot();writeSnapshot('+JSON.stringify(data)+');');
  const loaded=JSON.parse(child('import {loadSnapshot} from "./lib/persistence.mjs";console.log(JSON.stringify(loadSnapshot()));'));assert.deepEqual(loaded,data);
+ const tables=JSON.parse(child('import {DatabaseSync} from "node:sqlite";const db=new DatabaseSync(process.env.CARECALL_DB_PATH);const user=db.prepare("SELECT id,address,name FROM carecall_users").get();const privacy=db.prepare("SELECT allow_location,show_name,allow_calls FROM carecall_privacy WHERE user_id=?").get("r");console.log(JSON.stringify({user,privacy}));db.close();'));
+ assert.equal(tables.user.address,"District\nBuilding\nUnit");assert.equal(tables.user.name,null);assert.equal(tables.privacy.allow_location,1);assert.equal(tables.privacy.show_name,0);assert.equal(tables.privacy.allow_calls,null);
  child('import {loadSnapshot,writeSnapshot} from "./lib/persistence.mjs";const d=loadSnapshot();d.requests=[];d.messages=[];writeSnapshot(d);');
  const deleted=JSON.parse(child('import {loadSnapshot} from "./lib/persistence.mjs";console.log(JSON.stringify(loadSnapshot()));'));assert.equal(deleted.messages.length,0);assert.equal(deleted.users[0].privacy.allowLocation,true);
+ child('import {loadSnapshot,writeSnapshot} from "./lib/persistence.mjs";const d=loadSnapshot();d.users=[];writeSnapshot(d);');
+ const removed=JSON.parse(child('import {DatabaseSync} from "node:sqlite";const db=new DatabaseSync(process.env.CARECALL_DB_PATH);console.log(JSON.stringify({users:db.prepare("SELECT COUNT(*) AS n FROM carecall_users").get().n,privacy:db.prepare("SELECT COUNT(*) AS n FROM carecall_privacy").get().n}));db.close();'));
+ assert.equal(removed.users,0);assert.equal(removed.privacy,0);
+ }finally{rmSync(dir,{recursive:true,force:true});}
+});
+test("account profile and privacy settings round-trip as table rows",()=>{
+ const dir=mkdtempSync(join(tmpdir(),"carecall-user-"));
+ const env={...process.env,CARECALL_DB_PATH:join(dir,"state.sqlite")};
+ const user={id:"resident",name:"Ada Lam",phone:"+85261234567",role:"resident",available:false,address:"District\nBuilding\nUnit",privacyAcceptedAt:"2026-10-01T00:00:00.000Z",createdAt:"2026-10-01T00:00:00.000Z",privacy:{allowCalls:true,allowAI:false,allowChat:true,showName:false,shareAddress:true,allowLocation:false}};
+ const data={users:[user],sessions:[{id:"session",userId:"resident",createdAt:user.createdAt}],requests:[],messages:[]};
+ function child(code){const p=spawnSync(process.execPath,["--input-type=module","-e",code],{env,encoding:"utf8"});assert.equal(p.status,0,p.stderr);return p.stdout;}
+ try{child('import {loadSnapshot,writeSnapshot} from "./lib/persistence.mjs";loadSnapshot();writeSnapshot('+JSON.stringify(data)+');');
+  const loaded=JSON.parse(child('import {loadSnapshot} from "./lib/persistence.mjs";console.log(JSON.stringify(loadSnapshot()));'));assert.deepEqual(loaded.users[0],user);
+  const row=JSON.parse(child('import {DatabaseSync} from "node:sqlite";const db=new DatabaseSync(process.env.CARECALL_DB_PATH);const user=db.prepare("SELECT name,phone,role,available,address,privacy_accepted_at FROM carecall_users").get();const privacy=db.prepare("SELECT * FROM carecall_privacy").get();console.log(JSON.stringify({user,privacy}));db.close();'));
+  assert.equal(row.user.name,"Ada Lam");assert.equal(row.user.phone,"+85261234567");assert.equal(row.user.role,"resident");assert.equal(row.user.available,0);assert.equal(row.user.privacy_accepted_at,user.privacyAcceptedAt);
+  assert.equal(row.privacy.allow_calls,1);assert.equal(row.privacy.allow_ai,0);assert.equal(row.privacy.allow_chat,1);assert.equal(row.privacy.show_name,0);assert.equal(row.privacy.share_address,1);assert.equal(row.privacy.allow_location,0);
+  child('import {loadSnapshot,writeSnapshot} from "./lib/persistence.mjs";const d=loadSnapshot();d.users[0].privacy.allowAI=true;d.users[0].name="Ada Chan";writeSnapshot(d);');
+  const updated=JSON.parse(child('import {DatabaseSync} from "node:sqlite";const db=new DatabaseSync(process.env.CARECALL_DB_PATH);console.log(JSON.stringify({name:db.prepare("SELECT name FROM carecall_users").get().name,allowAI:db.prepare("SELECT allow_ai FROM carecall_privacy").get().allow_ai}));db.close();'));
+  assert.equal(updated.name,"Ada Chan");assert.equal(updated.allowAI,1);
  }finally{rmSync(dir,{recursive:true,force:true});}
 });
 test("seven-day boundary hides closed requests without hiding active requests",async()=>{
