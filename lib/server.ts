@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { store } from "@/lib/db";
+import { readPasswordSession } from "@/lib/persistence.mjs";
 import type { User } from "@/lib/types";
 export const COOKIE = "carecall_session";
 const AUTH_WINDOW_MS = 15 * 60 * 1000;
@@ -35,13 +36,8 @@ export function publicUser(user: User) {
 }
 export async function currentUser() {
   const token = (await cookies()).get(COOKIE)?.value;
-  const data = store(),
-    session = data.sessions.find(
-      (s) =>
-        s.passwordAuth === true &&
-        s.id === token &&
-        Date.parse(s.createdAt) + 30 * 86400000 > Date.now(),
-    );
+  const data = store();
+  const session = readPasswordSession(token);
   return session ? data.users.find((u) => u.id === session.userId) : undefined;
 }
 export function json(value: unknown, status = 200) {

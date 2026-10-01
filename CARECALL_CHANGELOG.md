@@ -227,3 +227,7 @@ Additional user corrections this run: simplify login; phone examples belong in p
 ### 2026-10-01 — snapshot tables, reads unchanged
 
 - Sessions, requests, and messages can be copied from the JSON snapshot into carecall_sessions, carecall_requests, and carecall_messages. The copy runs in one transaction, leaves the JSON payload in place, and keeps only sessions with passwordAuth true. Later saves write the JSON snapshot and those tables. Application reads still come from the JSON snapshot.
+
+### 2026-10-01 — session reads use SQLite
+
+- Authentication looks up the session cookie in carecall_sessions. The JSON sessions array remains the backup copy and is still written. Requests and messages still load from the JSON snapshot. A session without password authentication, or older than 30 days, is not accepted.
