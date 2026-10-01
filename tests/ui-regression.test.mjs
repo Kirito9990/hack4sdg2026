@@ -18,7 +18,7 @@ test("request usability: denied GPS, manual map, clickable photos, recording, ac
   },mode);
   const p=await c.newPage();p.on("pageerror",e=>errors.push(e.message));return {c,p};
  }
- async function create(c,role){await c.request.post(base+"/api/auth",{data:{name:"UI "+role,phone:"61234567",role,allowCalls:true,privacyAccepted:true}});}
+ async function create(c,role){await c.request.post(base+"/api/auth",{data:{mode:"create",name:"UI "+role,phone:"61234567",role,allowCalls:true,privacyAccepted:true,password:"test-password-1"}});}
  async function fit(p){const s=await p.evaluate(()=>({w:innerWidth,h:innerHeight,sw:document.documentElement.scrollWidth,sh:document.documentElement.scrollHeight}));assert(s.sw<=s.w+1,JSON.stringify(s));assert(s.sh<=s.h+1,JSON.stringify(s));}
  try {
   const {p}=await context();
@@ -29,6 +29,7 @@ test("request usability: denied GPS, manual map, clickable photos, recording, ac
   if(process.env.CARECALL_SCREENSHOT_DIR)await p.screenshot({path:process.env.CARECALL_SCREENSHOT_DIR+"/carecall-login-corrected.png"});
   await p.getByRole("textbox",{name:"Your name",exact:true}).fill("Test Resident");
   await p.getByRole("textbox",{name:"Phone number",exact:true}).fill("61234567");
+  await p.getByRole("textbox",{name:"Password",exact:true}).fill("test-password-1");
   await p.locator("#privacy-consent").check();await p.getByRole("button",{name:"Create account",exact:true}).click();
   await p.getByRole("button",{name:"Send request",exact:true}).waitFor();
   assert.equal(await p.evaluate(()=>window.geoCalls),1);

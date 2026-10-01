@@ -11,12 +11,21 @@ async function client(role, name, phone = "61234567") {
   const response = await fetch(base + "/api/auth", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name, phone, role, privacyAccepted: true }),
+    body: JSON.stringify({
+      mode: "create",
+      name,
+      phone,
+      role,
+      privacyAccepted: true,
+      password: "test-password-1",
+    }),
   });
   assert.equal(response.status, 200);
   assert.match(response.headers.get("set-cookie"), /HttpOnly/i);
-  const { user } = await response.json(),
-    cookie = response.headers.get("set-cookie").split(";")[0];
+  const { user } = await response.json();
+  assert.equal(user.passwordHash, undefined);
+  assert.equal(JSON.stringify(user).includes("test-password-1"), false);
+  const cookie = response.headers.get("set-cookie").split(";")[0];
   const call = async (
     path,
     body,

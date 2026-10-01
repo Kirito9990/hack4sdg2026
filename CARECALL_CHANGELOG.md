@@ -207,3 +207,11 @@ Additional user corrections this run: simplify login; phone examples belong in p
 - The login page now starts on Log in (phone and role only). First-time users press Create account, then enter a name, accept the privacy notice, and allow a location request. Creating an existing phone and role is rejected. Logging in without that account is rejected. Requests that omit a mode still open or create an account, so existing API tests keep working.
 - Local check on http://127.0.0.1:47291: Create account opened the registration form, saved Ada Lam, and opened the resident page. Sign out returned to Log in. Logging in with the same phone and Resident role showed Ada Lam again. The API rejected a second create with accountExists and a missing login with accountNotFound. The synthetic account was deleted.
 - User asked to push this to codex/CareCall. Render will auto-deploy it. The public site's free disk remains ephemeral.
+
+### 2026-10-01 — password required before a session
+
+- Create account and log in now require a password of 8–72 characters. The session cookie is issued only after that check. Phone number and role still identify the account. `mode: "continue"` no longer creates an account. Passwords are stored as bcrypt hashes in `carecall_users.password_hash` and are removed from API responses. Eight failed attempts for the same phone and role are rejected for 15 minutes. Accounts created before this change have no hash and cannot be opened until a password exists. AI classification and the request/session JSON snapshot were not changed.
+
+### 2026-10-01 — authentication review
+
+- Sessions saved before password login do not have `passwordAuth` and are removed from the server store, so the old cookie no longer opens an account. Login failures for a missing account, a wrong password, and an account with no password hash all return the same error. Failed-attempt counts live in this process and reset on restart. The local database had one development account without a hash and two old sessions; those sessions are discarded, and the account cannot be claimed with the phone number and role. No password recovery was added.

@@ -6,6 +6,7 @@ import {
   currentUser,
   fail,
   json,
+  publicUser,
   normalizePhone,
   sameOrigin,
   validPhone,
@@ -50,7 +51,7 @@ export async function PATCH(request: Request) {
   };
   if (!user.privacy.shareLocation) clearVolunteerLocations(user.id);
   persist();
-  return json({ user });
+  return json({ user: publicUser(user) });
 }
 export async function DELETE(request: Request) {
   if (!sameOrigin(request)) return fail("forbidden", 403);

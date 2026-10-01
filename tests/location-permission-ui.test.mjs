@@ -31,7 +31,7 @@ test("location recovers from old denials without overwriting account consent", a
     return { c, p };
   }
   async function create(c, role, allowLocation = false) {
-    const r = await c.request.post(base + "/api/auth", { data: { name: "Location recovery", phone: "61234567", role, allowLocation, privacyAccepted: true } });
+    const r = await c.request.post(base + "/api/auth", { data: { mode: "create", name: "Location recovery", phone: "61234567", role, allowLocation, privacyAccepted: true, password: "test-password-1" } });
     assert.equal(r.status(), 200);
   }
   try {
@@ -67,6 +67,7 @@ test("location recovers from old denials without overwriting account consent", a
     await login.getByRole("button", { name: "First time here? Create account", exact: true }).click();
     await login.getByRole("textbox", { name: "Your name", exact: true }).fill("Location signup");
     await login.getByRole("textbox", { name: "Phone number", exact: true }).fill("61234567");
+    await login.getByRole("textbox", { name: "Password", exact: true }).fill("test-password-1");
     await login.locator("#privacy-consent").check();
     await login.getByRole("button", { name: "Create account", exact: true }).click();
     await login.getByText("Location ready", { exact: true }).waitFor();

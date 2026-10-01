@@ -1,11 +1,47 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { store } from "@/lib/db";
+import type { User } from "@/lib/types";
 export const COOKIE = "carecall_session";
+const AUTH_WINDOW_MS = 15 * 60 * 1000;
+const AUTH_LIMIT = 8;
+// Counts stay in this process. A restart clears them. That is acceptable for one server process.
+function authFailures() {
+  const g = globalThis as typeof globalThis & {
+    __carecallAuthFailures?: Map<string, number[]>;
+  };
+  return (g.__carecallAuthFailures ??= new Map());
+}
+export function authLimited(key: string) {
+  const now = Date.now();
+  const recent = (authFailures().get(key) || []).filter(
+    (time) => now - time < AUTH_WINDOW_MS,
+  );
+  authFailures().set(key, recent);
+  return recent.length >= AUTH_LIMIT;
+}
+export function authFailed(key: string) {
+  const now = Date.now();
+  const recent = (authFailures().get(key) || []).filter(
+    (time) => now - time < AUTH_WINDOW_MS,
+  );
+  recent.push(now);
+  authFailures().set(key, recent);
+}
+export function publicUser(user: User) {
+  const safe = { ...user };
+  delete safe.passwordHash;
+  return safe;
+}
 export async function currentUser() {
   const token = (await cookies()).get(COOKIE)?.value;
   const data = store(),
-    session = data.sessions.find((s) => s.id === token && Date.parse(s.createdAt)+30*86400000>Date.now());
+    session = data.sessions.find(
+      (s) =>
+        s.passwordAuth === true &&
+        s.id === token &&
+        Date.parse(s.createdAt) + 30 * 86400000 > Date.now(),
+    );
   return session ? data.users.find((u) => u.id === session.userId) : undefined;
 }
 export function json(value: unknown, status = 200) {

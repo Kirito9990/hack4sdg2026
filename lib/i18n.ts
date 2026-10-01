@@ -273,9 +273,25 @@ export const messages = {
   createAccount: ["Create account", "建立帳戶", "创建账户"],
   logIn: ["Log in", "登入", "登录"],
   loginIntro: [
-    "Use the phone number and role you registered.",
-    "請用註冊時的電話號碼和身份登入。",
-    "请用注册时的电话号码和身份登录。",
+    "Use the phone number, role, and password you registered.",
+    "請用註冊時的電話號碼、身份和密碼登入。",
+    "请用注册时的电话号码、身份和密码登录。",
+  ],
+  password: ["Password", "密碼", "密码"],
+  invalidCredentials: [
+    "The phone number, role, or password is incorrect.",
+    "電話號碼、身份或密碼不正確。",
+    "电话号码、身份或密码不正确。",
+  ],
+  invalidPassword: [
+    "Use 8–72 characters. The password must also fit in 72 bytes.",
+    "請使用 8–72 個字元，且密碼不能超過 72 個位元組。",
+    "请使用 8–72 个字符，且密码不能超过 72 个字节。",
+  ],
+  tooManyAttempts: [
+    "Too many attempts. Wait and try again.",
+    "嘗試次數過多，請稍後再試。",
+    "尝试次数过多，请稍后再试。",
   ],
   needAccount: ["First time here? Create account", "第一次使用？建立帳戶", "第一次使用？创建账户"],
   haveAccount: ["Already registered? Log in", "已經註冊？登入", "已经注册？登录"],

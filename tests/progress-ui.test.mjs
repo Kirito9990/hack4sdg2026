@@ -15,7 +15,7 @@ test("inline progress, one-time acceptance notices, compact chat and reduced mot
     await c.addInitScript(() => {
       Object.defineProperty(navigator.geolocation, "getCurrentPosition", { value: ok => ok({ coords: { latitude: 22.3193, longitude: 114.1694 } }) });
     });
-    assert.equal((await c.request.post(base + "/api/auth", { data: { name: "Progress " + role, phone: "61234567", role, privacyAccepted: true } })).status(), 200);
+    assert.equal((await c.request.post(base + "/api/auth", { data: { mode: "create", name: "Progress " + role, phone: "61234567", role, privacyAccepted: true, password: "test-password-1" } })).status(), 200);
     const p = await c.newPage();
     p.on("pageerror", e => errors.push(e.message));
     return { c, p };

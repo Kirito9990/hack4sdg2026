@@ -1,5 +1,5 @@
 import {store,persist} from "@/lib/db";
-import { currentUser, fail, json, sameOrigin } from "@/lib/server";
+import { currentUser, fail, json, publicUser, sameOrigin } from "@/lib/server";
 export async function PATCH(request: Request) {
   if (!sameOrigin(request)) return fail("forbidden", 403);
   const user = await currentUser();
@@ -10,5 +10,5 @@ export async function PATCH(request: Request) {
   if(store().requests.some(r=>r.volunteerId===user.id && r.status==="ACCEPTED"))return fail("shiftLocked",409);
   user.available = body.available;
   persist();
-  return json({ user });
+  return json({ user: publicUser(user) });
 }

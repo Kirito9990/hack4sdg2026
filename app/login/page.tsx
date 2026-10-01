@@ -12,6 +12,7 @@ export default function Login() {
   const [mode, setMode] = useState<"login" | "create">("login"),
     [name, setName] = useState(""),
     [phone, setPhone] = useState(""),
+    [password, setPassword] = useState(""),
     [role, setRole] = useState<UserRole>("resident"),
     [agreed, setAgreed] = useState(false),
     [busy, setBusy] = useState(false),
@@ -48,6 +49,7 @@ export default function Login() {
                 name,
                 phone,
                 role,
+                password,
                 privacyAccepted: true,
                 allowLocation: location.choice === "allowed",
               });
@@ -60,7 +62,7 @@ export default function Login() {
                 mode: "login",
                 phone,
                 role,
-                privacyAccepted: true,
+                password,
               });
               setUser(b.user);
               router.push("/" + b.user.role);
@@ -95,6 +97,18 @@ export default function Login() {
             maxLength={24}
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
+          />
+        </label>
+        <label className="field">
+          {t("password")}
+          <input
+            required
+            type="password"
+            autoComplete={mode === "create" ? "new-password" : "current-password"}
+            minLength={8}
+            maxLength={72}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
           />
         </label>
         <div className="grid grid-cols-2 gap-3">

@@ -31,7 +31,7 @@ test("accepted task navigation: mobile links, live GPS, fallbacks, lifecycle and
         document.dispatchEvent(new Event("visibilitychange"));
       };
     });
-    const response = await c.request.post(base + "/api/auth", { data: { name: "Navigation " + role, phone: "61234567", role, privacyAccepted: true } });
+    const response = await c.request.post(base + "/api/auth", { data: { mode: "create", name: "Navigation " + role, phone: "61234567", role, privacyAccepted: true, password: "test-password-1" } });
     assert.equal(response.status(), 200);
     return c;
   }

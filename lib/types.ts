@@ -23,9 +23,15 @@ export type User = {
   address?: string;
   privacyAcceptedAt?: string;
   privacy: Privacy;
+  passwordHash?: string;
   createdAt: string;
 };
-export type Session = { id: string; userId: string; createdAt: string };
+export type Session = {
+  id: string;
+  userId: string;
+  createdAt: string;
+  passwordAuth?: boolean;
+};
 export type TriageFields = {
   urgency_level: UrgencyLevel;
   category: RequestCategory;

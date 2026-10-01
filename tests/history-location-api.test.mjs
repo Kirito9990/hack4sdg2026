@@ -21,7 +21,7 @@ test("shared volunteer points expire and revocation removes all their points", t
 test("history redaction and live location enforce roles, consent, membership and completion", async () => {
   const clients = [];
   async function client(role, name, phone = "61234567") {
-    const r = await fetch(base + "/api/auth", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, phone, role, privacyAccepted: true }) });
+    const r = await fetch(base + "/api/auth", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode: "create", name, phone, role, privacyAccepted: true, password: "test-password-1" }) });
     const { user } = await r.json(), cookie = r.headers.get("set-cookie").split(";")[0];
     const c = { user, async call(path, body, method = body === undefined ? "GET" : "POST", origin = base) {
       const response = await fetch(base + path, { method, headers: { Cookie: cookie, Origin: origin, ...(body instanceof FormData ? {} : { "Content-Type": "application/json" }) }, body: body === undefined ? undefined : body instanceof FormData ? body : JSON.stringify(body) });

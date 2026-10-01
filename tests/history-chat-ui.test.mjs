@@ -20,7 +20,7 @@ test("history stays in place, chat has room, and volunteer location sharing is o
       window.sendPosition = () => { for (const { ok } of window.watches.values()) ok({ coords: { latitude: 22.32, longitude: 114.17, accuracy: 15 }, timestamp: Date.now() }); };
       window.setVisibility = state => { Object.defineProperty(document, "visibilityState", { configurable: true, get: () => state }); document.dispatchEvent(new Event("visibilitychange")); };
     });
-    const response = await c.request.post(base + "/api/auth", { data: { name: "History " + role, phone: "61234567", role, privacyAccepted: true } });
+    const response = await c.request.post(base + "/api/auth", { data: { mode: "create", name: "History " + role, phone: "61234567", role, privacyAccepted: true, password: "test-password-1" } });
     assert.equal(response.status(), 200);
     const p = await c.newPage(); p.on("pageerror", e => errors.push(e.message));
     return { c, p };

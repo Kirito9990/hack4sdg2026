@@ -11,7 +11,14 @@ type Store = {
 const globalStore=globalThis as typeof globalThis & {__carecallV3?:Store};
 export function store():Store {
  const data=globalStore.__carecallV3 ??= (loadSnapshot() as Store|null)||{users:[],sessions:[],requests:[],messages:[]};
- return data;
+ const loaded=data as Store & {droppedLegacySessions?:boolean};
+ if(!Array.isArray(loaded.sessions))loaded.sessions=[];
+ if(loaded.droppedLegacySessions||loaded.sessions.some((session)=>session.passwordAuth!==true)){
+  delete loaded.droppedLegacySessions;
+  loaded.sessions=loaded.sessions.filter((session)=>session.passwordAuth===true);
+  writeSnapshot(loaded);
+ }
+ return loaded;
 }
 export function persist(){writeSnapshot(store());}
 export function chatReadable(r:HelpRequest){

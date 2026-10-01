@@ -1,4 +1,4 @@
-import {currentUser,fail,json,sameOrigin} from "@/lib/server";
+import {currentUser,fail,json,publicUser,sameOrigin} from "@/lib/server";
 import {persist} from "@/lib/db";
 import {clearVolunteerLocations} from "@/lib/volunteer-location";
 export async function PATCH(request:Request){
@@ -8,5 +8,5 @@ export async function PATCH(request:Request){
  if(typeof body?.allowed!=="boolean")return fail("invalidInput");
  user.privacy.allowLocation=body.allowed;
  if(!body.allowed){user.privacy.shareLocation=false;clearVolunteerLocations(user.id);}
- persist();return json({user});
+ persist();return json({user:publicUser(user)});
 }
