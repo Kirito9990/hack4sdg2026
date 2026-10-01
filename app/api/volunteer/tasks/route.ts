@@ -11,7 +11,12 @@ export async function GET(request: Request) {
   const lat = Number(params.get("lat")),
     lng = Number(params.get("lng"));
   if (!validCoords(lat, lng)) return fail("locationError");
-  const rank = { HIGH: 0, MEDIUM: 1, LOW: 2 };
+  const rank: Record<string, number> = {
+    HIGH: 0,
+    MEDIUM: 1,
+    LOW: 2,
+    NOT_ASSESSED: 3,
+  };
   const tasks = store()
     .requests.filter(
       (r) =>
@@ -22,7 +27,7 @@ export async function GET(request: Request) {
     .filter(({ distance }) => distance <= 5000)
     .sort(
       (a, b) =>
-        rank[a.r.urgency_level] - rank[b.r.urgency_level] ||
+        (rank[a.r.urgency_level] ?? 3) - (rank[b.r.urgency_level] ?? 3) ||
         a.distance - b.distance,
     )
     .map(({ r, distance }) => ({

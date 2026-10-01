@@ -1,7 +1,8 @@
 import sharp from "sharp";
 import { chatImage } from "@/lib/chat-image";
-import { triageRequestWithGemini } from "@/lib/ai";
+import { describeImageWithGemini, triageRequestWithGemini } from "@/lib/ai";
 import { triageTextWithOpenRouter } from "@/lib/openrouter";
+import { classifyPrepared, prepareAiInput } from "@/lib/pipeline";
 import { effectiveRequestText } from "@/lib/request-content";
 import { audioContentType, transcribeWithDeepgram } from "@/lib/speech";
 import { redact, store, persist, view } from "@/lib/db";
@@ -112,41 +113,55 @@ export async function POST(request: Request) {
   }
   if (!effectiveRequestText(typed, spoken)) return fail("emptyRequest");
   const safeText = redact(transcript);
-  let triage: TriageFields = {
-    urgency_level: "HIGH",
+  const prepared = prepareAiInput({
+    text: redact(typed),
+    transcript: spoken && spoken !== typed ? redact(spoken) : "",
+    hasImage: !!imageBuffer,
+    metadata: { locale, audioStatus },
+  });
+  let geminiSawImage = false;
+  const assessed = await classifyPrepared(prepared, {
+    allowAI: user.privacy.allowAI === true,
+    locale,
+    describeImage:
+      imageBuffer && process.env.GEMINI_API_KEY
+        ? () => describeImageWithGemini(imageBuffer, "image/jpeg")
+        : undefined,
+    classifyText: process.env.OPENROUTER_API_KEY
+      ? (text, requestLocale) =>
+          triageTextWithOpenRouter(text, requestLocale)
+      : undefined,
+    classifyFallback: process.env.GEMINI_API_KEY
+      ? (text, requestLocale) => {
+          const includeImage = !!imageBuffer && !prepared.image_description;
+          if (includeImage) geminiSawImage = true;
+          return triageRequestWithGemini({
+            text,
+            media: includeImage
+              ? [{ buffer: imageBuffer!, mimeType: "image/jpeg" }]
+              : [],
+            locale: requestLocale,
+          });
+        }
+      : undefined,
+  });
+  const triage: TriageFields = assessed.triage || {
+    urgency_level: "NOT_ASSESSED",
     category: "OTHER",
-    summary: safeText || "mediaRequest",
+    summary: assessed.classification.summary || safeText || "notAssessed",
     dispatch_action: "NEIGHBORHOOD_VOLUNTEER",
     requirements: [],
     tools: [],
     resources: [],
   };
-  let source: HelpRequest["source"] = "fallback",
-    imageStatus: HelpRequest["imageStatus"] = image ? "prepared" : "none";
-  if (user.privacy.allowAI) {
-    if (!imageBuffer && safeText && process.env.OPENROUTER_API_KEY) {
-      try {
-        triage = await triageTextWithOpenRouter(safeText, locale);
-        source = "openrouter";
-      } catch {}
-    }
-    if (source === "fallback" && process.env.GEMINI_API_KEY) {
-      try {
-        const media: Array<{ buffer: Buffer; mimeType: string }> = [];
-        if (imageBuffer)
-          media.push({ buffer: imageBuffer, mimeType: "image/jpeg" });
-        if (audioBuffer && !transcript)
-          media.push({ buffer: audioBuffer, mimeType: audio!.type });
-        triage = await triageRequestWithGemini({
-          text: safeText,
-          media,
-          locale,
-        });
-        source = "gemini";
-        if (imageBuffer) imageStatus = "analyzed";
-      } catch {}
-    }
-  }
+  const source = assessed.source;
+  const imageSeen =
+    assessed.imageAnalyzed || (source === "gemini" && geminiSawImage);
+  const imageStatus: HelpRequest["imageStatus"] = !image
+    ? "none"
+    : imageSeen
+      ? "analyzed"
+      : "prepared";
   triage.summary = redact(triage.summary);
   const cleanList = (items: string[] | undefined) =>
     (items || [])
@@ -155,8 +170,16 @@ export async function POST(request: Request) {
   triage.requirements = cleanList(triage.requirements);
   triage.tools = cleanList(triage.tools);
   triage.resources = cleanList(triage.resources);
+  assessed.classification.summary = triage.summary;
+  assessed.classification.urgency = triage.urgency_level;
+  assessed.classification.matching_tags = cleanList([
+    ...(triage.requirements || []),
+    ...(triage.tools || []),
+    ...(triage.resources || []),
+  ]);
   const saved: HelpRequest = {
     ...triage,
+    classification: assessed.classification,
     id: crypto.randomUUID(),
     residentId: user.id,
     lat,

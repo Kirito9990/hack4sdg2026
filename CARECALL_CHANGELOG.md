@@ -219,3 +219,7 @@ Additional user corrections this run: simplify login; phone examples belong in p
 ### 2026-10-01 — request text or transcript required
 
 - A request is saved only when it has typed text or a successful voice transcript. An empty form and a photo with neither are rejected. Voice with a transcript, including with a photo, is still accepted. Audio that does not produce a transcript is rejected. Authentication, the database schema, and the Deepgram and OpenRouter clients were not changed.
+
+### 2026-10-01 — one classification pipeline
+
+- Typed text, a voice transcript, and a Gemini image description are prepared together before classification. OpenRouter classifies that text. It does not receive image bytes. If OpenRouter fails, Gemini classifies the same text, and sees the image only when the description step failed. AI consent off or a failed classification saves the request as source fallback with urgency NOT_ASSESSED. Authentication, request validation, and the database schema were not changed.

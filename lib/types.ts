@@ -1,6 +1,6 @@
 export type UserRole = "resident" | "volunteer";
 export type Locale = "en" | "zh-Hant" | "zh-Hans";
-export type UrgencyLevel = "HIGH" | "MEDIUM" | "LOW";
+export type UrgencyLevel = "HIGH" | "MEDIUM" | "LOW" | "NOT_ASSESSED";
 export type RequestCategory = "MEDICAL" | "NON_MEDICAL" | "MOBILITY" | "OTHER";
 export type DispatchAction =
   "EMERGENCY_medical" | "EMERGENCY_nonmedical" | "NEIGHBORHOOD_VOLUNTEER";
@@ -32,6 +32,13 @@ export type Session = {
   createdAt: string;
   passwordAuth?: boolean;
 };
+export type SafetyClassification = {
+  category: string;
+  urgency: string;
+  safety_level: string;
+  matching_tags: string[];
+  summary: string;
+};
 export type TriageFields = {
   urgency_level: UrgencyLevel;
   category: RequestCategory;
@@ -56,6 +63,7 @@ export type HelpRequest = TriageFields & {
   imageData?: string;
   transcript?: string;
   source: "openrouter" | "gemini" | "fallback";
+  classification?: SafetyClassification;
   audioStatus: "none" | "transcribed" | "provided" | "unavailable";
   imageStatus: "none" | "prepared" | "analyzed";
   imageWidth?: number;

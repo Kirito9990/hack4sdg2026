@@ -153,6 +153,48 @@ function parseModelJson(text: string | undefined): unknown {
   }
 }
 
+export async function describeImageWithGemini(image: Buffer, mimeType: string) {
+  const key = process.env.GEMINI_API_KEY?.trim();
+  if (!key) throw new Error("Missing vision key");
+  const model = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+  const response = await fetch(
+    "https://generativelanguage.googleapis.com/v1beta/models/" +
+      encodeURIComponent(model) +
+      ":generateContent",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-goog-api-key": key },
+      signal: AbortSignal.timeout(25000),
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [
+              {
+                text: "Describe this photo for a neighbour who may help. Mention visible hazards, objects, and access problems. Do not identify people or include names or phone numbers. Do not assign urgency. Return plain text only.",
+              },
+              {
+                inlineData: {
+                  mimeType,
+                  data: image.toString("base64"),
+                },
+              },
+            ],
+          },
+        ],
+      }),
+    },
+  );
+  if (!response.ok) throw new Error("Vision provider unavailable");
+  const result = await response.json();
+  const description = String(
+    result.candidates?.[0]?.content?.parts
+      ?.map((part: { text?: string }) => part.text || "")
+      .join("") || "",
+  ).trim();
+  if (!description) throw new Error("Empty image description");
+  return description.slice(0, 1000);
+}
+
 export function parseTriage(text: string): TriageFields {
   const parsed = normalizeTriage(parseModelJson(text));
   if (!isTriageFields(parsed)) throw new Error("Invalid triage");
