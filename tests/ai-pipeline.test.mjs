@@ -23,7 +23,6 @@ test("text and voice classify without using an attached image", async () => {
   const text = prepareAiInput({
     text: "Please bring water upstairs.",
     transcript: "",
-    hasImage: false,
   });
   let classified = 0;
   const textResult = await classifyPrepared(text, {
@@ -48,7 +47,6 @@ test("text and voice classify without using an attached image", async () => {
   const image = prepareAiInput({
     text: "The light is out.",
     transcript: "",
-    hasImage: true,
   });
   const imageResult = await classifyPrepared(image, {
     allowAI: true,
@@ -64,7 +62,6 @@ test("text and voice classify without using an attached image", async () => {
   const voice = prepareAiInput({
     text: "",
     transcript: "I need help carrying supplies.",
-    hasImage: false,
     metadata: { audioStatus: "transcribed" },
   });
   const voiceResult = await classifyPrepared(voice, {
@@ -82,7 +79,6 @@ test("text and voice classify without using an attached image", async () => {
   const voiceImage = prepareAiInput({
     text: "",
     transcript: "Please bring a flashlight.",
-    hasImage: true,
     metadata: { audioStatus: "transcribed" },
   });
   const voiceImageResult = await classifyPrepared(voiceImage, {
@@ -96,7 +92,7 @@ test("text and voice classify without using an attached image", async () => {
   assert.equal(voiceImageResult.source, "openrouter");
 
   const failed = await classifyPrepared(
-    prepareAiInput({ text: "Snack request", transcript: "", hasImage: true }),
+    prepareAiInput({ text: "Snack request", transcript: "" }),
     {
       allowAI: true,
       locale: "en",
@@ -114,7 +110,6 @@ test("text and voice classify without using an attached image", async () => {
     prepareAiInput({
       text: "Please bring water.",
       transcript: "",
-      hasImage: true,
     }),
     {
       allowAI: false,

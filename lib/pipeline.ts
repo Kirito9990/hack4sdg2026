@@ -3,20 +3,17 @@ import type { SafetyClassification, TriageFields } from "@/lib/types";
 export type PreparedRequest = {
   text: string;
   transcript: string;
-  has_image: boolean;
   metadata: Record<string, string | boolean>;
 };
 
 export function prepareAiInput(input: {
   text: string;
   transcript: string;
-  hasImage: boolean;
   metadata?: Record<string, string | boolean>;
 }): PreparedRequest {
   return {
     text: input.text.trim(),
     transcript: input.transcript.trim(),
-    has_image: input.hasImage,
     metadata: input.metadata || {},
   };
 }

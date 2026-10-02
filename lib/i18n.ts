@@ -547,11 +547,6 @@ export const messages = {
     "语音转录不可用，请补充文字描述；系统未生成虚构文字。",
   ],
   transcribed: ["Transcript available", "已有語音文字", "已有语音文字"],
-  imageAnalyzed: [
-    "Image analyzed by the configured vision service",
-    "相片已由設定的視覺服務分析",
-    "照片已由配置的视觉服务分析",
-  ],
   processed: ["Input processing", "輸入處理", "输入处理"],
   fallback: [
     "AI assessment unavailable or not permitted. This is flagged for priority human review, not a confirmed emergency classification.",

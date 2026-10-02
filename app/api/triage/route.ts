@@ -56,8 +56,7 @@ export async function POST(request: Request) {
   )
     return fail("invalidAudio");
   let imageData: string | undefined;
-  let imageBuffer: Buffer | undefined,
-    imageWidth: number | undefined,
+  let imageWidth: number | undefined,
     imageHeight: number | undefined;
   if (image) {
     try {
@@ -81,7 +80,6 @@ export async function POST(request: Request) {
         })
         .jpeg({ quality: 82 })
         .toBuffer({ resolveWithObject: true });
-      imageBuffer = output.data;
       imageWidth = output.info.width;
       imageHeight = output.info.height;
       imageData = await chatImage(image);
@@ -115,7 +113,6 @@ export async function POST(request: Request) {
   const prepared = prepareAiInput({
     text: redact(typed),
     transcript: spoken && spoken !== typed ? redact(spoken) : "",
-    hasImage: !!imageBuffer,
     metadata: { locale, audioStatus },
   });
   const assessed = await classifyPrepared(prepared, {

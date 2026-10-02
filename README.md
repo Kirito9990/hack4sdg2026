@@ -57,7 +57,7 @@ Optional backend support:
 
 - **Recorded audio:** set `DEEPGRAM_API_KEY` and enable AI processing to transcribe on submission. When the client does not provide a language, the optional adapter requests automatic language detection. Missing keys, provider errors and empty transcripts are shown honestly as unavailable. An accompanying typed description is used without claiming the recording was transcribed.
 
-Photos are previewed and resized in the browser, then independently validated and re-encoded on the server. Scene understanding is best handled by the future multimodal model, rather than pretending OCR alone can interpret a hazard.
+Photos are previewed and resized in the browser, then independently validated and re-encoded on the server. A request needs typed text or a successful voice transcript. An image is an optional attachment and is not interpreted by a model.
 
 Existing optional adapters:
 
@@ -65,7 +65,7 @@ Existing optional adapters:
 - Photos are optional request attachments. They are stored with the request and are not sent to a model.
 - Model names can be configured in the environment.
 
-Without keys/consent, requests remain usable with a clearly labelled **unassessed** state. The saved urgency is NOT_ASSESSED and the category is OTHER, not HIGH, and not a fabricated model result. A recording/photo alone may have no actionable description until a provider is configured; add typed text for the local demo. Model outputs require validation and human oversight before a real emergency deployment.
+Without keys/consent, requests remain usable with a clearly labelled **unassessed** state. The saved urgency is NOT_ASSESSED and the category is OTHER, not HIGH, and not a fabricated model result. An image alone is rejected. Model outputs require validation and human oversight before a real emergency deployment.
 
 ## Mobile workflow
 
