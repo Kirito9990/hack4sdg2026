@@ -259,3 +259,7 @@ Additional user corrections this run: simplify login; phone examples belong in p
 ### 2026-10-02 — mobile photo formats
 
 - JPEG, PNG, and WebP uploads still follow the previous resize, EXIF rotation, 8 MB, and 25 megapixel checks. HEIC and HEIF uploads are converted to JPEG before those checks so a browser can display them. The stored attachment stays `imageStatus: prepared` and is not sent to a model. An image with no text or transcript is still rejected. Authentication, classification, and the database schema were not changed.
+
+### 2026-10-03 — production build type check
+
+- `heic-convert` now has an ambient declaration, and the login-attempt timestamps in `lib/server.ts` are typed as numbers. `npm run build` completed, including TypeScript checking. Conversion, authentication, and request handling were not changed.

@@ -16,7 +16,7 @@ function authFailures() {
 export function authLimited(key: string) {
   const now = Date.now();
   const recent = (authFailures().get(key) || []).filter(
-    (time) => now - time < AUTH_WINDOW_MS,
+    (time: number) => now - time < AUTH_WINDOW_MS,
   );
   authFailures().set(key, recent);
   return recent.length >= AUTH_LIMIT;
@@ -24,7 +24,7 @@ export function authLimited(key: string) {
 export function authFailed(key: string) {
   const now = Date.now();
   const recent = (authFailures().get(key) || []).filter(
-    (time) => now - time < AUTH_WINDOW_MS,
+    (time: number) => now - time < AUTH_WINDOW_MS,
   );
   recent.push(now);
   authFailures().set(key, recent);

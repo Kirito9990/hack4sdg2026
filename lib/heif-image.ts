@@ -1,14 +1,5 @@
 import convert from "heic-convert";
 
-declare module "heic-convert" {
-  function convert(options: {
-    buffer: Uint8Array;
-    format: "JPEG" | "PNG";
-    quality?: number;
-  }): Promise<Uint8Array>;
-  export default convert;
-}
-
 const HEIF_BRANDS = new Set(["heic", "heix", "hevc", "hevx", "mif1", "msf1"]);
 const BOX_CONTAINERS = new Set([
   "meta",
