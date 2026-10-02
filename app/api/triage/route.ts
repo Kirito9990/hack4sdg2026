@@ -1,6 +1,5 @@
 import sharp from "sharp";
 import { chatImage } from "@/lib/chat-image";
-import { describeImageWithGemini, triageRequestWithGemini } from "@/lib/ai";
 import { triageTextWithOpenRouter } from "@/lib/openrouter";
 import { classifyPrepared, prepareAiInput } from "@/lib/pipeline";
 import { effectiveRequestText } from "@/lib/request-content";
@@ -119,30 +118,12 @@ export async function POST(request: Request) {
     hasImage: !!imageBuffer,
     metadata: { locale, audioStatus },
   });
-  let geminiSawImage = false;
   const assessed = await classifyPrepared(prepared, {
     allowAI: user.privacy.allowAI === true,
     locale,
-    describeImage:
-      imageBuffer && process.env.GEMINI_API_KEY
-        ? () => describeImageWithGemini(imageBuffer, "image/jpeg")
-        : undefined,
     classifyText: process.env.OPENROUTER_API_KEY
       ? (text, requestLocale) =>
           triageTextWithOpenRouter(text, requestLocale)
-      : undefined,
-    classifyFallback: process.env.GEMINI_API_KEY
-      ? (text, requestLocale) => {
-          const includeImage = !!imageBuffer && !prepared.image_description;
-          if (includeImage) geminiSawImage = true;
-          return triageRequestWithGemini({
-            text,
-            media: includeImage
-              ? [{ buffer: imageBuffer!, mimeType: "image/jpeg" }]
-              : [],
-            locale: requestLocale,
-          });
-        }
       : undefined,
   });
   const triage: TriageFields = assessed.triage || {
@@ -155,13 +136,7 @@ export async function POST(request: Request) {
     resources: [],
   };
   const source = assessed.source;
-  const imageSeen =
-    assessed.imageAnalyzed || (source === "gemini" && geminiSawImage);
-  const imageStatus: HelpRequest["imageStatus"] = !image
-    ? "none"
-    : imageSeen
-      ? "analyzed"
-      : "prepared";
+  const imageStatus: HelpRequest["imageStatus"] = image ? "prepared" : "none";
   triage.summary = redact(triage.summary);
   const cleanList = (items: string[] | undefined) =>
     (items || [])

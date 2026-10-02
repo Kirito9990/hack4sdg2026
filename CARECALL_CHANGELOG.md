@@ -251,3 +251,7 @@ Additional user corrections this run: simplify login; phone examples belong in p
 ### 2026-10-02 — documentation matches SQLite reads and unassessed fallback
 
 - README and the known-facts section now say carecall_sessions, carecall_requests, and carecall_messages are the runtime source of truth, and the JSON snapshot is a backup. They also say a missing or failed classification saves urgency NOT_ASSESSED, not HIGH. Application code was not changed. Dated entries above remain the record of each earlier phase.
+
+### 2026-10-02 — photos stay attachments
+
+- A request photo is validated and stored, and it is not described or classified. OpenRouter still classifies typed text and voice transcripts only. If that call fails, or AI consent is off, the request is saved as NOT_ASSESSED. Authentication and the database schema were not changed.

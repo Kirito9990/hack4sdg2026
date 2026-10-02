@@ -62,7 +62,7 @@ Photos are previewed and resized in the browser, then independently validated an
 Existing optional adapters:
 
 - `OPENROUTER_API_KEY`: structured text triage.
-- `GEMINI_API_KEY`: image/audio/text interpretation. Both attachments are supplied when needed; photos are not silently dropped when a transcript exists.
+- Photos are optional request attachments. They are stored with the request and are not sent to a model.
 - Model names can be configured in the environment.
 
 Without keys/consent, requests remain usable with a clearly labelled **unassessed** state. The saved urgency is NOT_ASSESSED and the category is OTHER, not HIGH, and not a fabricated model result. A recording/photo alone may have no actionable description until a provider is configured; add typed text for the local demo. Model outputs require validation and human oversight before a real emergency deployment.
@@ -141,7 +141,7 @@ The teammate built the Next.js resident/volunteer foundation, voice/photo submis
 
 ### Important remaining limits
 
-- The inherited Deepgram/OpenRouter/Gemini integrations need configured keys and account consent. Recording or uploading alone does not mean speech was transcribed or an image was semantically understood. Image resizing/EXIF removal works without an LLM.
+- Deepgram and OpenRouter need configured keys and account consent. A photo is stored as an attachment and is not classified. Image resizing and EXIF removal work without an LLM. Recording alone does not mean speech was transcribed.
 - Calls use the device phone app. CareCall does not yet implement browser VoIP, WebRTC, a PSTN provider, or call recording. No live call was placed during tests.
 - Location permission belongs to the browser and can be revoked. Database persistence remembers account preferences; it cannot make browser permission permanent.
 - SQLite currently supports one server process. Render's free filesystem is ephemeral, so deploying this code does not guarantee preservation across redeploys or instance replacement. Use a persistent disk or managed database for durable production history.

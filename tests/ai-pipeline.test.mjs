@@ -19,29 +19,24 @@ const low = {
   resources: ["Bottled water"],
 };
 
-test("text, voice, image, failure, and disabled consent share one pipeline", async () => {
+test("text and voice classify without using an attached image", async () => {
   const text = prepareAiInput({
     text: "Please bring water upstairs.",
     transcript: "",
     hasImage: false,
   });
-  let described = 0;
   let classified = 0;
   const textResult = await classifyPrepared(text, {
     allowAI: true,
     locale: "en",
-    describeImage: async () => {
-      described += 1;
-      return "unused";
-    },
     classifyText: async (packet) => {
       classified += 1;
       assert.match(packet, /Please bring water upstairs/);
+      assert.equal(packet.includes("Image description"), false);
       assert.equal(packet.includes("base64"), false);
       return low;
     },
   });
-  assert.equal(described, 0);
   assert.equal(classified, 1);
   assert.equal(textResult.source, "openrouter");
   assert.equal(textResult.classification.urgency, "LOW");
@@ -50,7 +45,6 @@ test("text, voice, image, failure, and disabled consent share one pipeline", asy
     "Bottled water",
   ]);
 
-  const order = [];
   const image = prepareAiInput({
     text: "The light is out.",
     transcript: "",
@@ -59,21 +53,13 @@ test("text, voice, image, failure, and disabled consent share one pipeline", asy
   const imageResult = await classifyPrepared(image, {
     allowAI: true,
     locale: "en",
-    describeImage: async () => {
-      order.push("vision");
-      return "A dark stairwell with no visible lamp.";
-    },
     classifyText: async (packet) => {
-      order.push("classify");
-      assert.match(packet, /The light is out/);
-      assert.match(packet, /dark stairwell/);
-      return { ...low, summary: "Dark stairs need a light." };
+      assert.equal(packet, "Typed request: The light is out.");
+      return low;
     },
   });
-  assert.deepEqual(order, ["vision", "classify"]);
-  assert.equal(imageResult.imageAnalyzed, true);
-  assert.equal(imageResult.classification.summary, "Dark stairs need a light.");
-  assert.notEqual(imageResult.classification.urgency, "HIGH");
+  assert.equal(imageResult.source, "openrouter");
+  assert.equal(imageResult.classification.urgency, "LOW");
 
   const voice = prepareAiInput({
     text: "",
@@ -93,16 +79,29 @@ test("text, voice, image, failure, and disabled consent share one pipeline", asy
   assert.equal(voiceResult.source, "openrouter");
   assert.equal(voiceResult.classification.urgency, "LOW");
 
+  const voiceImage = prepareAiInput({
+    text: "",
+    transcript: "Please bring a flashlight.",
+    hasImage: true,
+    metadata: { audioStatus: "transcribed" },
+  });
+  const voiceImageResult = await classifyPrepared(voiceImage, {
+    allowAI: true,
+    locale: "en",
+    classifyText: async (packet) => {
+      assert.equal(packet, "Voice transcript: Please bring a flashlight.");
+      return low;
+    },
+  });
+  assert.equal(voiceImageResult.source, "openrouter");
+
   const failed = await classifyPrepared(
-    prepareAiInput({ text: "Snack request", transcript: "", hasImage: false }),
+    prepareAiInput({ text: "Snack request", transcript: "", hasImage: true }),
     {
       allowAI: true,
       locale: "en",
       classifyText: async () => {
         throw new Error("OpenRouter 503");
-      },
-      classifyFallback: async () => {
-        throw new Error("Vision provider unavailable");
       },
     },
   );
@@ -120,15 +119,7 @@ test("text, voice, image, failure, and disabled consent share one pipeline", asy
     {
       allowAI: false,
       locale: "en",
-      describeImage: async () => {
-        calls += 1;
-        return "should not run";
-      },
       classifyText: async () => {
-        calls += 1;
-        return low;
-      },
-      classifyFallback: async () => {
         calls += 1;
         return low;
       },
@@ -137,7 +128,6 @@ test("text, voice, image, failure, and disabled consent share one pipeline", asy
   assert.equal(calls, 0);
   assert.equal(disabled.source, "fallback");
   assert.equal(disabled.classification.urgency, "NOT_ASSESSED");
-  assert.equal(disabled.imageAnalyzed, false);
 });
 
 test("OpenRouter text classification uses the configured model and retries once", async () => {
