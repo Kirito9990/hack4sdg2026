@@ -57,7 +57,7 @@ Optional backend support:
 
 - **Recorded audio:** set `DEEPGRAM_API_KEY` and enable AI processing to transcribe on submission. When the client does not provide a language, the optional adapter requests automatic language detection. Missing keys, provider errors and empty transcripts are shown honestly as unavailable. An accompanying typed description is used without claiming the recording was transcribed.
 
-Photos are previewed and resized in the browser, then independently validated and re-encoded on the server. A request needs typed text or a successful voice transcript. An image is an optional attachment and is not interpreted by a model.
+Photos are previewed and resized in the browser, then independently validated and re-encoded on the server. Accepted uploads are JPEG, PNG, WebP, HEIC, and HEIF. HEIC and HEIF are converted to JPEG before storage. A request needs typed text or a successful voice transcript. An image is an optional attachment and is not interpreted by a model.
 
 Existing optional adapters:
 

@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
+import { IMAGE_ACCEPT, isAcceptedImage } from "@/lib/image-accept";
 import { api, useApp } from "./providers";
 import type { RequestView } from "@/lib/types";
 function Microphone() {
@@ -245,7 +246,7 @@ export default function RequestForm({
             hidden
             className="sr-only"
             type="file"
-            accept="image/jpeg,image/png,image/webp"
+            accept={IMAGE_ACCEPT}
             aria-label={t("addPhoto")}
             disabled={busy}
             onChange={(e) => {
@@ -256,7 +257,7 @@ export default function RequestForm({
                 setError("fileTooLarge");
                 return;
               }
-              if (!["image/jpeg", "image/png", "image/webp"].includes(f.type)) {
+              if (!isAcceptedImage(f)) {
                 setError("invalidImage");
                 return;
               }

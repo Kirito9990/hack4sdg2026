@@ -630,9 +630,9 @@ export const messages = {
     "每个文件不可超过 8 MB。",
   ],
   invalidImage: [
-    "Use a valid JPEG, PNG or WebP photo.",
-    "請使用有效的 JPEG、PNG 或 WebP 相片。",
-    "请使用有效的 JPEG、PNG 或 WebP 照片。",
+    "Use a valid JPEG, PNG, WebP, HEIC or HEIF photo.",
+    "請使用有效的 JPEG、PNG、WebP、HEIC 或 HEIF 相片。",
+    "请使用有效的 JPEG、PNG、WebP、HEIC 或 HEIF 照片。",
   ],
   invalidAudio: [
     "Unsupported audio format.",

@@ -255,3 +255,7 @@ Additional user corrections this run: simplify login; phone examples belong in p
 ### 2026-10-02 — photos stay attachments
 
 - A request photo is validated and stored, and it is not described or classified. OpenRouter still classifies typed text and voice transcripts only. If that call fails, or AI consent is off, the request is saved as NOT_ASSESSED. Authentication and the database schema were not changed.
+
+### 2026-10-02 — mobile photo formats
+
+- JPEG, PNG, and WebP uploads still follow the previous resize, EXIF rotation, 8 MB, and 25 megapixel checks. HEIC and HEIF uploads are converted to JPEG before those checks so a browser can display them. The stored attachment stays `imageStatus: prepared` and is not sent to a model. An image with no text or transcript is still rejected. Authentication, classification, and the database schema were not changed.

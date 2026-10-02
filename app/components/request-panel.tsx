@@ -8,6 +8,7 @@ import LocationMap from "./location-map";
 import PriorityCard from "./priority-card";
 import ResidentVolunteerMap from "./resident-volunteer-map";
 import RequestProgress, { ProgressLink } from "./request-progress";
+import { IMAGE_ACCEPT, isAcceptedImage } from "@/lib/image-accept";
 import type { ChatMessage, RequestView } from "@/lib/types";
 
 function Photo({ src, label }: { src: string; label: string }) {
@@ -187,7 +188,7 @@ export function Conversation({ request: r }: { request: RequestView }) {
           <input
             ref={input}
             type="file"
-            accept="image/jpeg,image/png,image/webp"
+            accept={IMAGE_ACCEPT}
             className="sr-only"
             aria-label={t("addPhoto")}
             disabled={busy}
@@ -199,7 +200,7 @@ export function Conversation({ request: r }: { request: RequestView }) {
                 setError("fileTooLarge");
                 return;
               }
-              if (!["image/jpeg", "image/png", "image/webp"].includes(f.type)) {
+              if (!isAcceptedImage(f)) {
                 setError("invalidImage");
                 return;
               }

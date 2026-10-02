@@ -1,5 +1,6 @@
 import sharp from "sharp";
-import { chatImage } from "@/lib/chat-image";
+import { storedChatImage } from "@/lib/chat-image";
+import { rasterizeUpload } from "@/lib/heif-image";
 import { triageTextWithOpenRouter } from "@/lib/openrouter";
 import { classifyPrepared, prepareAiInput } from "@/lib/pipeline";
 import { effectiveRequestText } from "@/lib/request-content";
@@ -60,7 +61,10 @@ export async function POST(request: Request) {
     imageHeight: number | undefined;
   if (image) {
     try {
-      const pipeline = sharp(Buffer.from(await image.arrayBuffer()), {
+      const raster = await rasterizeUpload(
+        Buffer.from(await image.arrayBuffer()),
+      );
+      const pipeline = sharp(raster, {
         limitInputPixels: 25000000,
         failOn: "error",
       });
@@ -82,7 +86,7 @@ export async function POST(request: Request) {
         .toBuffer({ resolveWithObject: true });
       imageWidth = output.info.width;
       imageHeight = output.info.height;
-      imageData = await chatImage(image);
+      imageData = await storedChatImage(raster);
     } catch {
       return fail("invalidImage");
     }
