@@ -112,6 +112,10 @@ export const messages = {
     "姓名、联系信息及所选位置用于协调帮助；求助详情仅与匹配对象分享。电话分享和外部 AI 处理可在用户中心自行开启。求助与会话为临时存储；登录不会验证号码持有人。",
   ],
   useMyLocation: ["Use my location", "使用我的位置", "使用我的位置"],
+  requestLocationHint: ["Location is needed to find nearby help.", "需要位置以尋找附近的協助。", "需要位置以寻找附近的帮助。"],
+  locateToSend: ["Your draft is kept. Allow location access, then try again.", "已保留草稿。請允許定位後重試。", "已保留草稿。请允许定位后重试。"],
+  locationRetry: ["Your device could not locate you. Please try again.", "裝置未能取得位置。請重試。", "设备未能获取位置。请重试。"],
+  locationSecure: ["Location needs a secure connection. Open CareCall using HTTPS, then try again.", "定位需要安全連線。請使用 HTTPS 開啟 CareCall 後重試。", "定位需要安全连接。请使用 HTTPS 打开 CareCall 后重试。"],
   chooseLocation: ["Choose your location", "選擇求助位置", "选择求助位置"],
   pickLocationHint: [
     "Tap the map to set your location. The initial map is centred on Hong Kong, not your detected position.",

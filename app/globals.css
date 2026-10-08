@@ -1050,33 +1050,52 @@ body {
   gap: 10px;
   padding: 2px;
 }
+.simple-request-content > .field {
+  display: flex;
+  flex-direction: column;
+  flex: 1 0 180px;
+}
 .simple-request textarea {
-  min-height: 105px;
-  resize: vertical;
-  font-size: 17px;
+  flex: 1;
+  min-height: 180px;
+  resize: none;
+  padding: 18px;
+  font-size: 21px;
   line-height: 1.5;
 }
 .request-input-tools {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-shrink: 0;
 }
 .attachment-plus {
-  width: 48px;
-  height: 48px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  min-height: 96px;
+  padding: 12px 8px;
   border: 1px solid var(--line);
   border-radius: 14px;
   background: var(--surface);
-  font-size: 30px;
-  flex-shrink: 0;
+  font-size: 18px;
+  font-weight: 600;
 }
 .voice-control {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 10px;
-  min-height: 48px;
-  padding: 9px 18px;
+  flex: 1;
+  min-width: 0;
+  min-height: 96px;
+  padding: 12px 8px;
+  font-size: 18px;
   border: 1px solid var(--line);
   border-radius: 14px;
   background: var(--surface);
@@ -1085,6 +1104,17 @@ body {
 .voice-control.is-recording {
   background: var(--danger);
   color: white;
+}
+.composer-location {
+  flex-shrink: 0;
+}
+.composer-location .location-controls {
+  gap: 8px;
+}
+.composer-location .button {
+  font-size: 13px;
+  padding: 8px 10px;
+  flex-shrink: 0;
 }
 .selected-media {
   display: flex;

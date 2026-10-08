@@ -74,11 +74,13 @@ test("inline progress, one-time acceptance notices, compact chat and reduced mot
     await v.getByRole("button", { name: "View request progress", exact: true }).waitFor();
     // Completed records use the actual final status, never the ongoing animation.
     await rc.request.post(base + "/api/request/close", { data: { id: request.id } });
-    await v.getByText("The resident confirmed completion. Thank you for helping.", { exact: true }).waitFor();
-    await v.getByRole("button", { name: "Requests", exact: true }).click();
-    await v.getByRole("tab", { name: "Progress", exact: true }).click();
-    assert.equal(await v.locator(".activity-connection").count(), 0);
-    assert.equal(await v.locator(".journey-timeline time").count(), 3);
+    await v.locator('.bottom-tabs button').filter({hasText:"Requests"}).waitFor({state:"hidden"});
+    await v.getByRole("button",{name:"History",exact:true}).click();
+    assert.equal(await v.locator(".bottom-tabs button").count(),2);
+    await v.locator(".history-item").first().click();
+    await v.getByRole("region",{name:"Completed request",exact:true}).waitFor();
+    assert.equal(await v.locator(".activity-connection").count(),0);
+    assert.equal(await v.locator(".history-summary dd").count(),2);
     assert.deepEqual(errors, []);
   } finally {
     for (const c of contexts) await c.request.delete(base + "/api/account");

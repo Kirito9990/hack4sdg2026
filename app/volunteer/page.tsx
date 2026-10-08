@@ -31,14 +31,13 @@ export default function Volunteer() {
     [error, setError] = useState(""),
     [accepting, setAccepting] = useState(""),
     [tab, setTab] = useState("allTasks"),
-    [selected, setSelected] = useState(""),
     [shiftBusy, setShiftBusy] = useState(false);
   const available = !!user?.available,
     active = feed.requests.find((r) => r.status === "ACCEPTED");
-  const request =
-    feed.requests.find((r) => r.id === selected) || active || feed.requests[0];
+  const request = active;
   // An incoming or restored active assignment always opens the task workspace.
-  const actualTab = active && tab === "allTasks" ? "activity" : tab;
+  const actualTab = active && tab === "allTasks" ? "activity"
+    : !active && tab === "activity" ? "history" : tab;
   useEffect(() => {
     if (!geo.coords || !profile || !available) return;
     let live = true;
@@ -123,8 +122,7 @@ export default function Volunteer() {
           <button
             className="status-banner status-complete text-left"
             onClick={() => {
-              setSelected(feed.requests[0].id);
-              setTab("activity");
+              setTab("history");
             }}
           >
             <span aria-hidden>✓</span>
@@ -134,21 +132,6 @@ export default function Volunteer() {
       <div className="app-stage">
         {actualTab === "history" ? <HistoryList requests={feed.requests.filter(r=>r.status==="CLOSED")}/> : actualTab === "activity" ? (
           <div className="activity-stage">
-            {feed.requests.length > 1 && (
-              <select
-                className="request-picker"
-                aria-label={t("chooseRequest")}
-                value={request?.id || ""}
-                onChange={(e) => setSelected(e.target.value)}
-              >
-                {feed.requests.map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {t(r.status === "CLOSED" ? "closed" : "currentTask")} ·{" "}
-                    {t(r.category)} · {r.id.slice(0, 6)}
-                  </option>
-                ))}
-              </select>
-            )}
             {request ? (
               <RequestPanel
                 key={request.id}
@@ -207,7 +190,6 @@ export default function Volunteer() {
                               ...geo.coords,
                             });
                             await feed.refresh();
-                            setSelected(task.id);
                             setTab("activity");
                           } catch (e) {
                             setError((e as Error).message);
@@ -236,7 +218,7 @@ export default function Volunteer() {
           ["allTasks", "⌕"],
           ["activity", "◷"],
           ["history", "◴"],
-        ].map(([k, icon]) => (
+        ].filter(([k]) => k !== "activity" || !!active).map(([k, icon]) => (
           <button
             key={k}
             aria-current={actualTab === k ? "page" : undefined}

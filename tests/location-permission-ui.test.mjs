@@ -7,7 +7,7 @@ assert(["localhost", "127.0.0.1"].includes(new URL(base).hostname));
 
 test("location recovers from old denials without overwriting account consent", async () => {
   const browser = await chromium.launch({ channel: "msedge", headless: true });
-  const contexts = [], errors = [];
+  const contexts = [], errors = []; let nextPhone = 65000000;
   async function context(permission = "denied") {
     const c = await browser.newContext({ viewport: { width: 390, height: 844 }, userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_4 like Mac OS X) AppleWebKit/605.1.15 Version/18.4 Mobile/15E148 Safari/604.1" });
     contexts.push(c);
@@ -31,7 +31,7 @@ test("location recovers from old denials without overwriting account consent", a
     return { c, p };
   }
   async function create(c, role, allowLocation = false) {
-    const r = await c.request.post(base + "/api/auth", { data: { mode: "create", name: "Location recovery", phone: "61234567", role, allowLocation, privacyAccepted: true, password: "test-password-1" } });
+    const r = await c.request.post(base + "/api/auth", { data: { mode: "create", name: "Location recovery", phone: String(++nextPhone), role, allowLocation, privacyAccepted: true, password: "test-password-1" } });
     assert.equal(r.status(), 200);
   }
   try {

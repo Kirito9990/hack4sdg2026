@@ -6,7 +6,6 @@ import { useLocation, useRequests } from "@/lib/client-hooks";
 import RequestForm from "@/app/components/request-form";
 import RequestPanel from "@/app/components/request-panel";
 import HistoryList from "@/app/components/history-list";
-import LocationPicker from "@/app/components/location-picker";
 import AcceptanceNotice from "@/app/components/acceptance-notice";
 export default function Resident() {
   const { t } = useApp(),
@@ -15,12 +14,12 @@ export default function Resident() {
     feed = useRequests(!!profile);
   const [tab, setTab] = useState("activity"),
     [selected, setSelected] = useState("");
-  const request =
-    feed.requests.find((r) => r.id === selected) ||
-    feed.requests.find((r) => r.status !== "CLOSED") ||
-    feed.requests[0];
+  const ongoing = feed.requests.filter((r) => r.status !== "CLOSED");
+  const request = ongoing.find((r) => r.id === selected) || ongoing[0];
   const actualTab =
-    tab === "activity" && !feed.requests.length ? "newHelp" : tab;
+    tab === "activity" && !ongoing.length
+      ? feed.requests.length ? "history" : "newHelp"
+      : tab;
   if (!ready || !profile) return <main className="page">{t("loading")}</main>;
   return (
     <main className={"mobile-app" + (actualTab === "activity" && request?.status === "ACCEPTED" ? " active-task" : "")}>
@@ -53,14 +52,15 @@ export default function Resident() {
             coords={geo.coords}
             onLocate={geo.locate}
             location={
-              <LocationPicker
-                coords={geo.coords}
-                locating={geo.locating}
-                error={geo.error}
-                onLocate={geo.retry}
-                onPick={geo.pick}
-                compact
-              />
+              <section className="composer-location" aria-label={t("requestLocation")}>
+                <div className="location-controls">
+                  <span className="text-sm" role="status">{t(geo.coords ? "locationReady" : "requestLocationHint")}</span>
+                  <button type="button" className="button secondary" disabled={geo.locating} onClick={geo.retry}>
+                    {t(geo.locating ? "findingLocation" : "useMyLocation")}
+                  </button>
+                </div>
+                {geo.error && <p className="location-error" role="alert">{t(geo.error === "locationUnavailable" ? "locationRetry" : geo.error === "locationUnsupported" ? "locationSecure" : geo.error)}</p>}
+              </section>
             }
             onSent={async (saved) => {
               feed.add(saved);
@@ -74,14 +74,14 @@ export default function Resident() {
           <HistoryList requests={feed.requests.filter(r=>r.status==='CLOSED')}/>
         ) : actualTab === "activity" ? (
           <div className="activity-stage">
-            {feed.requests.length > 1 && (
+            {ongoing.length > 1 && (
               <select
                 className="request-picker"
                 aria-label={t("chooseRequest")}
                 value={request?.id || ""}
                 onChange={(e) => setSelected(e.target.value)}
               >
-                {feed.requests.map((r) => (
+                {ongoing.map((r) => (
                   <option key={r.id} value={r.id}>
                     {t(
                       r.status === "CLOSED"
@@ -110,7 +110,7 @@ export default function Resident() {
           ["newHelp", "＋"],
           ["activity", "◷"],
           ["history", "◴"],
-        ].map(([k, icon]) => (
+        ].filter(([k]) => k !== "activity" || ongoing.length > 0).map(([k, icon]) => (
           <button
             key={k}
             aria-current={actualTab === k ? "page" : undefined}

@@ -9,8 +9,8 @@ function Microphone() {
     <svg
       aria-hidden
       viewBox="0 0 24 24"
-      width="25"
-      height="25"
+      width="36"
+      height="36"
       fill="none"
       stroke="currentColor"
       strokeWidth="2"
@@ -199,7 +199,7 @@ export default function RequestForm({
         try {
           const point = coords || await onLocate();
           if (!point) {
-            setError("selectLocationToSend");
+            setError("locateToSend");
             return;
           }
           const body = new FormData();
@@ -231,7 +231,7 @@ export default function RequestForm({
         <label className="field">
           <span className="sr-only">{t("description")}</span>
           <textarea
-            rows={3}
+            rows={6}
             maxLength={4000}
             placeholder={t("describeTitle")}
             aria-label={t("description")}
@@ -274,7 +274,12 @@ export default function RequestForm({
             aria-label={t("addPhoto")}
             title={t("addPhoto")}
           >
-            ＋
+            <svg aria-hidden viewBox="0 0 32 32" width="36" height="36" fill="none" stroke="currentColor" strokeWidth="2">
+              <rect x="3" y="5" width="23" height="22" rx="4" />
+              <circle cx="10" cy="12" r="2" />
+              <path d="m4 23 7-7 5 5 4-4 6 6M25 2v8m-4-4h8" />
+            </svg>
+            <span>{t("addPhoto")}</span>
           </button>
           <button
             className={"voice-control " + (recording ? "is-recording" : "")}
