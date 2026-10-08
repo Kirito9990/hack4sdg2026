@@ -372,6 +372,7 @@ export default function RequestPanel({
               {(accepted || closed) && <RequestProgress request={r} />}
               <div className="request-summary">
               <h3>{t("taskSummary")}</h3>
+              {!resident && !!r.rewardQuote?.points && <p className="task-reward">✦ {r.rewardQuote.points} {t("rewardPending")}</p>}
               <PriorityCard {...r} />
               {r.transcript && r.transcript !== r.summary && (
                 <p className="whitespace-pre-wrap break-words">

@@ -124,10 +124,12 @@ test("session, matching, media and privacy integration", async (t) => {
           "lng",
           "requirements",
           "resources",
+          "rewardPoints",
           "source",
           "tools",
           "urgency_level",
         ]);
+        assert.equal(task.rewardPoints, 5);
         for (const key of [
           "residentName",
           "residentPhone",

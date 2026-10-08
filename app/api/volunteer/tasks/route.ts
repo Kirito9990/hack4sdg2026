@@ -1,5 +1,6 @@
 import { haversineMeters, store } from "@/lib/db";
 import { currentUser, fail, json, validCoords } from "@/lib/server";
+import { quoteReward } from "@/lib/rewards";
 export const runtime = "nodejs";
 export async function GET(request: Request) {
   const user = await currentUser();
@@ -32,6 +33,7 @@ export async function GET(request: Request) {
     )
     .map(({ r, distance }) => ({
       id: r.id,
+      rewardPoints: quoteReward(r, store().users.find(u => u.id === r.residentId), user).points,
       lat: Math.round(r.lat * 100) / 100,
       lng: Math.round(r.lng * 100) / 100,
       urgency_level: r.urgency_level,

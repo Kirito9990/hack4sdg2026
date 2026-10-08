@@ -6,13 +6,14 @@ import { RequestNeeds } from "./priority-card";
 import type { RequestView } from "@/lib/types";
 
 export default function HistoryList({ requests }: { requests: RequestView[] }) {
-  const { t, locale } = useApp();
+  const { t, locale, user } = useApp();
   const [selected, setSelected] = useState("");
   const [tab, setTab] = useState("historySummary");
   const r = requests.find(item => item.id === selected);
   if (r) return <section className="history-detail" aria-label={t("historyDetails")}>
     <button type="button" className="history-back" onClick={() => setSelected("")}>‹ {t("backToHistory")}</button>
     <div className="history-heading"><h2>{t(r.category)}</h2><p>{new Date(r.closedAt || r.createdAt).toLocaleDateString(locale)} · {t(r.closedReason === "completed" ? "completedTitle" : "closed")}</p></div>
+    {user?.role === "volunteer" && !!r.rewardEarnedPoints && <p className="reward-confirmation" role="status">✦ +{r.rewardEarnedPoints} {t("rewardEarned")}</p>}
     <div className="segmented" role="tablist" aria-label={t("historyDetails")}>
       {["historySummary", "conversation"].map(key => <button key={key} role="tab" aria-selected={tab === key} onClick={() => setTab(key)}>{t(key)}</button>)}
     </div>
@@ -28,5 +29,5 @@ export default function HistoryList({ requests }: { requests: RequestView[] }) {
       <p className="text-sm text-muted">{t("historySevenDays")}</p>
     </div>}
   </section>;
-  return <div className="stage-scroll history-list"><p className="text-sm text-muted">{t("historySevenDays")}</p>{requests.length ? requests.map(r => <button className="history-item" key={r.id} onClick={() => { setSelected(r.id); setTab("historySummary"); }}><span><strong>{t(r.category)}</strong><span className="block text-sm">{new Date(r.closedAt || r.createdAt).toLocaleDateString(locale)} · {t(r.closedReason === "completed" ? "completedTitle" : "closed")}</span></span><span aria-hidden>›</span></button>) : <div className="empty-state">{t("noHistory")}</div>}</div>;
+  return <div className="stage-scroll history-list"><p className="text-sm text-muted">{t("historySevenDays")}</p>{requests.length ? requests.map(r => <button className="history-item" key={r.id} onClick={() => { setSelected(r.id); setTab("historySummary"); }}><span><strong>{t(r.category)}</strong><span className="block text-sm">{new Date(r.closedAt || r.createdAt).toLocaleDateString(locale)} · {t(r.closedReason === "completed" ? "completedTitle" : "closed")}</span></span><span className="history-item-meta">{user?.role === "volunteer" && !!r.rewardEarnedPoints && <span className="history-reward">+{r.rewardEarnedPoints} {t("carePoints")}</span>}<span aria-hidden>›</span></span></button>) : <div className="empty-state">{t("noHistory")}</div>}</div>;
 }

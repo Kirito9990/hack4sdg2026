@@ -1,4 +1,5 @@
-import {loadSnapshot,writeSnapshot} from "./persistence.mjs";
+import {loadSnapshot,writeSnapshot,rewardForRequest} from "./persistence.mjs";
+import type { RewardEvent, BadgeUnlock } from "./rewards";
 import {historyVisible} from "./retention";
 import { sharedLocation } from "./volunteer-location";
 import type { ChatMessage, HelpRequest, Session, User } from "@/lib/types";
@@ -21,6 +22,13 @@ export function store():Store {
  return loaded;
 }
 export function persist(){writeSnapshot(store());}
+export function persistRequest(next: HelpRequest, reward?: RewardEvent, badges: BadgeUnlock[] = []) {
+ const data = store();
+ const updated = { ...data, requests: data.requests.map(r => r.id === next.id ? next : r) };
+ // Publish the new in-memory state only after both completion and rewards commit.
+ writeSnapshot(updated, reward, badges);
+ globalStore.__carecallV3 = updated;
+}
 export function chatReadable(r:HelpRequest){
  const data=store();
  return !!r.volunteerId && historyVisible(r) && !!data.users.find(u=>u.id===r.residentId)?.privacy.allowChat && !!data.users.find(u=>u.id===r.volunteerId)?.privacy.allowChat;
@@ -97,6 +105,7 @@ export function view(r: HelpRequest, user: User) {
       : null;
   return {
     ...record,
+    ...(user.role === "volunteer" ? { rewardEarnedPoints: rewardForRequest(r.id, user.id) } : {}),
     ...(closed
       ? {
           summary: redact(summary, people),

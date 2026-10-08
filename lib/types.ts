@@ -49,6 +49,7 @@ export type TriageFields = {
   resources?: string[];
 };
 export type HelpRequest = TriageFields & {
+  rewardQuote?: import("./rewards").RewardQuote;
   id: string;
   residentId: string;
   volunteerId?: string;
@@ -80,6 +81,7 @@ export type ChatMessage = {
 };
 export type SharedLocation = { lat: number; lng: number; accuracy: number; updatedAt: number };
 export type RequestView = Omit<HelpRequest, "lat" | "lng"> & {
+  rewardEarnedPoints?: number;
   lat?: number;
   lng?: number;
   imageHidden?: boolean;

@@ -1,4 +1,6 @@
-import { getRequest, member, persist, view } from "@/lib/db";
+import { getRequest, member, persistRequest, store, view } from "@/lib/db";
+import { completionReward, earnedBadges, type RewardEvent } from "@/lib/rewards";
+import { readRewards } from "@/lib/persistence.mjs";
 import { currentUser, fail, json, sameOrigin } from "@/lib/server";
 import { clearSharedLocation } from "@/lib/volunteer-location";
 export const runtime = "nodejs";
@@ -11,11 +13,10 @@ export async function POST(request: Request) {
   if (!found || !member(found, user)) return fail("notFound", 404);
   if (found.residentId !== user.id) return fail("residentOnlyFinish", 403);
   if (found.status === "CLOSED") return json(view(found, user));
-  found.closedReason = found.status === "ACCEPTED" ? "completed" : "cancelled";
-  found.closedAt = new Date().toISOString();
-  found.status = "CLOSED";
+  const reward = completionReward(found, user, store().users.find(u => u.id === found.volunteerId));
+  const next = { ...found, closedReason: found.status === "ACCEPTED" ? "completed" as const : "cancelled" as const, closedAt: reward?.earnedAt || new Date().toISOString(), status: "CLOSED" as const, chatExpiresAt: new Date(Date.now()+7*86400000).toISOString() };
+  const badges = reward ? earnedBadges([...(readRewards(reward.volunteerId) as RewardEvent[]), reward]) : [];
+  persistRequest(next, reward, badges);
   clearSharedLocation(found.id);
-  found.chatExpiresAt = new Date(Date.now()+7*86400000).toISOString();
-  persist();
-  return json(view(found, user));
+  return json(view(next, user));
 }

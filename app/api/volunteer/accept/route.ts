@@ -1,4 +1,5 @@
-import { getRequest, haversineMeters, store, persist, view } from "@/lib/db";
+import { getRequest, haversineMeters, store, persistRequest, view } from "@/lib/db";
+import { quoteReward } from "@/lib/rewards";
 import { currentUser, fail, json, sameOrigin, validCoords } from "@/lib/server";
 export const runtime = "nodejs";
 export async function POST(request: Request) {
@@ -24,10 +25,8 @@ export async function POST(request: Request) {
   if (haversineMeters(body.lat, body.lng, found.lat, found.lng) > 5000)
     return fail("outOfRange", 403);
   // Synchronous check and mutation: concurrent local accepts cannot overwrite this match.
-  found.volunteerId = user.id;
-  found.status = "ACCEPTED";
-  found.acceptedAt = new Date().toISOString();
-  delete found.chatExpiresAt;
-  persist();
-  return json(view(found, user));
+  const next = { ...found, volunteerId: user.id, status: "ACCEPTED" as const, acceptedAt: new Date().toISOString(), rewardQuote: quoteReward(found, store().users.find(u => u.id === found.residentId), user) };
+  delete next.chatExpiresAt;
+  persistRequest(next);
+  return json(view(next, user));
 }

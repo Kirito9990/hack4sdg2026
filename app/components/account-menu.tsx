@@ -50,6 +50,7 @@ export default function AccountMenu() {
           {(user
             ? [
                 ["profile", "profileTab"],
+                ...(user.role === "volunteer" ? [["impact", "myImpact"]] : []),
                 ["privacy", "privacy"],
                 ["manage", "manageTab"],
               ]

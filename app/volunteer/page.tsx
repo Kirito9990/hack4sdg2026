@@ -9,8 +9,10 @@ import RequestPanel from "@/app/components/request-panel";
 import PriorityCard from "@/app/components/priority-card";
 import VolunteerLocationSharing from "@/app/components/volunteer-location-sharing";
 import AcceptanceNotice from "@/app/components/acceptance-notice";
+import { ImpactSummary } from "@/app/components/impact";
 import type { RequestCategory, UrgencyLevel, User } from "@/lib/types";
 type Task = {
+  rewardPoints: number;
   id: string;
   lat: number;
   lng: number;
@@ -130,6 +132,7 @@ export default function Volunteer() {
           </button>
         )}
       <div className="app-stage">
+        {actualTab === "allTasks" && <ImpactSummary refreshKey={feed.requests.map(r => r.id + r.status).join(",")} />}
         {actualTab === "history" ? <HistoryList requests={feed.requests.filter(r=>r.status==="CLOSED")}/> : actualTab === "activity" ? (
           <div className="activity-stage">
             {request ? (
@@ -173,6 +176,7 @@ export default function Volunteer() {
                 {tasks.map((task) => (
                   <li key={task.id}>
                     <PriorityCard {...task} />
+                    {task.rewardPoints > 0 && <p className="task-reward">✦ {task.rewardPoints} {t("rewardOffer")}</p>}
                     <div className="flex items-center justify-between gap-3 p-3">
                       <span className="text-sm">
                         {t("approx")} {(task.distanceMeters / 1000).toFixed(1)}{" "}
