@@ -300,3 +300,15 @@ Additional user corrections this run: simplify login; phone examples belong in p
 - User approved committing after another review. Fetched origin and confirmed codex/CareCall matched GitHub before preparing the commit. Reviewed rewards, privacy, atomic completion, schema migration and UI changes; restored an unrelated accidental change to the existing Chinese completion message.
 - Final production build/TypeScript and ESLint passed. All 9 targeted reward, upgrade/restart, atomic rollback, duplicate completion, authorization, monthly/streak, responsive incentive UI and History/chat checks passed. The 12 database regression checks from the preceding review also passed.
 - Commit scope includes incentive code, additive database schema, English/Chinese UI, History point displays, regression coverage and documentation. Existing docs/IMPLEMENTATION_ROADMAP.md remains excluded. API keys, .env files, databases, synthetic demo data and screenshots remain excluded.
+
+### 2026-10-08 — responsive badge dialog centering
+
+- Reproduced the reported badge modal at x=0/y=0 in a 390x844 browser viewport. Tailwind Preflight resets margin to zero, overriding the dialog's browser-default centering. Added explicit fixed positioning, inset:0 and margin:auto to .award-dialog; retained bounded height and internal scrolling and contained scroll chaining.
+- Extended the incentive UI regression to check horizontal/vertical centering, at least 15px viewport clearance, no horizontal overflow and reachable close actions at 320x568, 360x740, 390x844, 430x932, 844x390 and 1280x800 in English, Traditional Chinese and Simplified Chinese. Covers locked, monthly and earned badge dialogs.
+- Production build/TypeScript, targeted ESLint and whitespace checks passed. The expanded incentive UI and History/chat checks passed. The resident composer/media/navigation check initially timed out after signup in the shared test run; it passed when rerun alone on a fresh isolated database. No application change was needed for that timeout.
+- Visually verified the centered mobile modal and saved ignored screenshots badge-dialog-mobile.jpg and badge-dialog-mobile-zh.jpg under local-artifacts/incentives-20261008. Testing used desktop Chromium with simulated viewports, not physical iOS/Android hardware. Viewport override was reset after capture; local preview remains available. No database changes, API-key reads, commit or push for this fix.
+
+### 2026-10-08 — authorized mobile-dialog deployment
+
+- User authorized commit and deployment of the tested badge dialog centering fix. Confirmed local codex/CareCall matches origin at 20122b8 before publishing. Scope is limited to the dialog CSS, responsive regression coverage and this log; existing roadmap, environment files, keys, databases and preview artifacts are excluded.
+- Publishing through the existing codex/CareCall -> Render service at carecall-djzc.onrender.com. Public health and deployed stylesheet verification follow the push; no Render environment values or billing settings are changed.

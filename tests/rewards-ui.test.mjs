@@ -16,12 +16,32 @@ test("volunteer impact is private, responsive and shows real confirmed rewards a
   for(const n of [100,200,300])assert.equal(await p.getByRole("button",{name:`${n} Helping Hands · Not yet earned`,exact:true}).count(),1);
   await p.getByRole("button",{name:"200 Helping Hands · Not yet earned",exact:true}).click();
   await p.getByRole("dialog").getByText("Complete 200 confirmed helps.",{exact:true}).waitFor();await p.keyboard.press("Escape");
+  const centeredDialog=async()=>{
+   const dialog=p.getByRole("dialog");await dialog.waitFor();
+   const box=await dialog.evaluate(el=>{const r=el.getBoundingClientRect();return {x:r.x,y:r.y,w:r.width,h:r.height,vw:document.documentElement.clientWidth,vh:innerHeight,sw:el.scrollWidth,cw:el.clientWidth};});
+   assert(Math.abs(box.x+box.w/2-box.vw/2)<=1,JSON.stringify(box));
+   assert(Math.abs(box.y+box.h/2-box.vh/2)<=1,JSON.stringify(box));
+   assert(box.x>=15&&box.y>=15&&box.x+box.w<=box.vw-15&&box.y+box.h<=box.vh-15,JSON.stringify(box));
+   assert(box.sw<=box.cw+1,'dialog must not overflow horizontally');
+  };
+  for(const size of [{width:320,height:568},{width:360,height:740},{width:390,height:844},{width:430,height:932},{width:844,height:390},{width:1280,height:800}]){
+   await p.setViewportSize(size);
+   for(const locale of ["en","zh-Hant","zh-Hans"]){
+    await p.locator("#language").selectOption(locale);
+    assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true);
+    await p.locator('.award-tile[aria-label^="200 "]').click();await centeredDialog();
+    // On short landscape screens the action must remain reachable by scrolling inside the dialog.
+    await p.getByRole("dialog").locator(".button").click();await p.getByRole("dialog").waitFor({state:"hidden"});
+    await p.locator(".challenge-card").first().click();await centeredDialog();await p.keyboard.press("Escape");
+   }
+  }
+  await p.setViewportSize({width:360,height:740});await p.locator("#language").selectOption("en");
   const r=await (await resident.request.post(base+"/api/triage",{multipart:{text:"Please help carry water",lat:"22.3",lng:"114.1"}})).json();
   await volunteer.request.patch(base+"/api/volunteer/shift",{data:{available:true}});
   await volunteer.request.post(base+"/api/volunteer/accept",{data:{id:r.id,lat:22.3,lng:114.1}});
   await resident.request.post(base+"/api/request/close",{data:{id:r.id}});
   await p.reload();await p.getByRole("button",{name:"First Helping Hand · Earned",exact:true}).waitFor();assert.equal(await p.locator(".impact-total").innerText(),"5");
-  await p.getByRole("button",{name:"First Helping Hand · Earned",exact:true}).click();await p.getByRole("dialog").waitFor();await p.keyboard.press("Escape");
+  await p.getByRole("button",{name:"First Helping Hand · Earned",exact:true}).click();await centeredDialog();await p.keyboard.press("Escape");
   for(const locale of ["zh-Hant","zh-Hans","en"]){await p.locator("#language").selectOption(locale);assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true);}
   await p.emulateMedia({reducedMotion:"reduce"});assert.equal(await p.locator(".award-tile.earned").count(),1);
   assert.equal(await p.getByRole("heading",{name:"Recent contributions",exact:true}).count(),0);
