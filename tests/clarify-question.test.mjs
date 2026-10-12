@@ -7,6 +7,8 @@ import {
   clarifyQuestionText,
   clarifySystemPrompt,
   DEFAULT_CLARIFY_MODEL,
+  DEFAULT_TRIAGE_MODEL,
+  triageModel,
 } from "../lib/clarify.ts";
 
 register("./alias-loader.mjs", import.meta.url);
@@ -15,13 +17,17 @@ test("follow-up questions use Qwen 3.7 Flash", () => {
   assert.equal(clarifyModel(undefined), DEFAULT_CLARIFY_MODEL);
   assert.equal(clarifyModel("nvidia/nemotron-3.5-lightning:free"), "qwen/qwen3.7-flash");
   assert.equal(clarifyModel("qwen/qwen3.7-max"), "qwen/qwen3.7-max");
+  assert.equal(triageModel(undefined), DEFAULT_TRIAGE_MODEL);
+  assert.equal(triageModel("openrouter/free"), "qwen/qwen3.7-flash");
+  assert.equal(triageModel("qwen/qwen3.7-max"), "qwen/qwen3.7-max");
   assert.equal(clarifyQuestionText('  "How many bottles?"  '), "How many bottles?");
   assert.equal(clarifyQuestionText(""), null);
   assert.equal(clarifyQuestionText("Please call 91234567 now"), null);
   assert.equal(clarifyQuestionText("x".repeat(241)), null);
+  assert.equal(clarifyQuestionText("What is your phone number?"), null);
   assert.match(clarifySystemPrompt("time", "zh-Hant"), /Traditional Chinese/);
-  assert.match(clarifySystemPrompt("need", "en"), /what kind of help/);
-  assert.match(clarifySystemPrompt("detail", "en", 2), /same point/);
+  assert.match(clarifySystemPrompt("need", "en"), /practical task or company/);
+  assert.match(clarifySystemPrompt("detail", "en"), /Do not ask when/);
   assert.deepEqual(askedSlots("need,nope,time"), ["need", "time"]);
 });
 

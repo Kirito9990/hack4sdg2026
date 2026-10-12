@@ -140,7 +140,7 @@ test("OpenRouter text classification uses the configured model and retries once"
     const body = JSON.parse(options.body);
     bodies.push(body);
     assert.equal(options.headers.Authorization, "Bearer test-key");
-    assert.equal(body.model, "openrouter/free");
+    assert.equal(body.model, "qwen/qwen3.7-flash");
     if (attempts === 1) throw new Error("timeout");
     return new Response(
       JSON.stringify({

@@ -394,3 +394,23 @@ Additional user corrections this run: simplify login; phone examples belong in p
 - A high-urgency result is saved immediately. A lower or unassessed result keeps asking while a step is missing. Qwen3.7 Flash writes the question; if it fails, the fixed shorter question is used.
 - English, Traditional Chinese, and Simplified Chinese.
 - Validation: node --test tests/clarify.test.mjs and tests/clarify-question.test.mjs passed. “幫忙” stays on the first step, “買米” moves to quantity, and “2 kg” moves to time. No live model call, no commit or push.
+
+### 2026-10-12 — follow-up questions only fill a clear request
+
+- Follow-up questions now exist only to make one request clear. At most two are asked, one at a time, and only for a missing essential item. A question is never repeated. If the task is still unclear after it was asked, the resident confirms instead of being asked how many. Buying or carrying something can ask for a quantity or floor; spending time together does not. A request that already says what and when skips the questions.
+- Before a non-urgent request is saved, the resident sees a short summary and can edit it. High urgency, AI switched off, and “Send request now” still save immediately. If the model returns nothing usable, or asks for a name, phone, or address, the fixed question is used.
+- English, Traditional Chinese, and Simplified Chinese.
+- Validation: node --test tests/clarify.test.mjs and tests/clarify-question.test.mjs passed. “今晚陪我聊天” asks nothing, “陪我聊天” asks only when, and “Please buy rice” asks for a quantity. No live model call, no commit or push.
+
+### 2026-10-12 — request classification uses Qwen3.7 Flash
+
+- Priority assessment now uses `qwen/qwen3.7-flash`. The free router had reached its daily limit, so new requests were saved as not assessed. An unset model and the old `openrouter/free` value both use Flash, including in the already running local server. A different `OPENROUTER_MODEL` is still honored.
+- The request already accepted tonight stays not assessed. No live model call, no commit or push.
+- Validation: node --test tests/clarify-question.test.mjs and tests/ai-pipeline.test.mjs passed.
+
+### 2026-10-13 — volunteers can preview partner redemption
+
+- The volunteer impact page now lists example shops CareCall could connect: a bakery coupon for 30 CarePoints, a grocery coupon for 50, and a pharmacy product VIP for 100. Redeeming spends only the available balance. Each offer can be redeemed once. Residents cannot redeem, and the 5/10/15 earning rules are unchanged.
+- Reaching 100, 500, or 1000 earned CarePoints still grants the existing award. Spending points does not remove it.
+- English, Traditional Chinese, and Simplified Chinese. These offers are not a live payment.
+- Validation: node --test tests/redeem.test.mjs passed. The open browser session was a resident, so the volunteer impact page was not opened and no points were spent. No model call, no commit or push.

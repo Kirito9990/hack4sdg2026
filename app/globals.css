@@ -1505,6 +1505,13 @@ body {
 .impact-next progress::-webkit-progress-bar { background: #ece8dc; }
 .impact-next progress::-webkit-progress-value { background: var(--impact-green); border-radius: 20px; }
 .impact-section { margin-top: 32px; }
+.partner-list { display: flex; flex-direction: column; gap: 12px; margin-top: 12px; }
+.partner-card { display: flex; flex-direction: column; gap: 8px; padding: 16px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); }
+.partner-card header { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.partner-card p { margin: 0; }
+.partner-kind { font-size: 12px; color: var(--muted); }
+.partner-card .button { align-self: flex-start; }
+.partner-card .button:disabled { opacity: .55; }
 .impact-section h2 { font-size: 19px; font-weight: 600; letter-spacing: -.3px; }
 .impact-section-heading { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 14px; }
 .impact-section-heading > span { font-size: 12px; color: var(--muted); }

@@ -2,12 +2,11 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import {
-  CLARIFY_AGAIN,
-  CLARIFY_LAYER_LIMIT,
   CLARIFY_LIMIT,
   CLARIFY_PROMPT,
   clarifiedText,
   nextClarifySlot,
+  requestSummary,
   type ClarifySlot,
   type ClarifyTurn,
 } from "@/lib/clarify";
@@ -97,6 +96,7 @@ export default function RequestForm({
     [asking, setAsking] = useState(false),
     [turns, setTurns] = useState<ClarifyTurn[]>([]),
     [pending, setPending] = useState<{ slot: ClarifySlot; question: string } | null>(null),
+    [summary, setSummary] = useState<string | null>(null),
     [draft, setDraft] = useState(""),
     [voiceTarget, setVoiceTarget] = useState<"request" | "answer">("request"),
     [clarifyPoint, setClarifyPoint] = useState<{
@@ -226,20 +226,24 @@ export default function RequestForm({
     setAsking(false);
     setTurns([]);
     setPending(null);
+    setSummary(null);
     setDraft("");
     lastAnswerTranscript.current = "";
     setClarifyPoint(null);
   }
-  async function deliver(nextTurns: ClarifyTurn[], clarify: boolean) {
+  async function deliver(nextTurns: ClarifyTurn[], clarify: boolean, confirmed?: string) {
     if (requestLock.current) return;
     if (recording || starting || transcribing) {
       setError(transcribing ? "transcribing" : "stopRecordingFirst");
       return;
     }
-    const message = clarifiedText(
-      text,
-      nextTurns.map((turn) => turn.answer),
-    );
+    const message =
+      confirmed !== undefined
+        ? confirmed.trim()
+        : clarifiedText(
+            text,
+            nextTurns.map((turn) => turn.answer),
+          );
     if (!message) {
       setError("emptyRequest");
       return;
@@ -247,7 +251,6 @@ export default function RequestForm({
     requestLock.current = true;
     setBusy(true);
     setError("");
-    let saveNow = false;
     try {
       const point = clarifyPoint || coords || (await onLocate());
       if (!point) {
@@ -265,16 +268,22 @@ export default function RequestForm({
       if (photo) body.set("image", photo);
       if (audio) body.set("audio", audio, "voice-note");
       const saved = await api<
-        RequestView | { needsClarification: true; slot?: string; question?: string }
+        | RequestView
+        | { needsClarification?: true; needsConfirmation?: true; slot?: string; question?: string }
       >(
         "/api/triage",
         { method: "POST", body },
       );
-      if (
-        clarify &&
-        "needsClarification" in saved &&
-        saved.needsClarification
-      ) {
+      if (clarify && saved && "needsConfirmation" in saved && saved.needsConfirmation) {
+        setClarifyPoint(point);
+        setTurns(nextTurns);
+        setPending(null);
+        setSummary(requestSummary(text, nextTurns.map((turn) => turn.answer)));
+        setDraft("");
+        setAsking(true);
+        return;
+      }
+      if (clarify && saved && "needsClarification" in saved && saved.needsClarification) {
         const localSlot =
           nextTurns.length < CLARIFY_LIMIT
             ? nextClarifySlot(
@@ -286,22 +295,24 @@ export default function RequestForm({
           saved.slot === "need" || saved.slot === "detail" || saved.slot === "time"
             ? saved.slot
             : localSlot;
-        const askedCount = slot ? nextTurns.filter((turn) => turn.slot === slot).length : 0;
-        if (slot && askedCount < CLARIFY_LAYER_LIMIT && nextTurns.length < CLARIFY_LIMIT) {
+        if (slot && !nextTurns.some((turn) => turn.slot === slot) && nextTurns.length < CLARIFY_LIMIT) {
           setClarifyPoint(point);
           setTurns(nextTurns);
+          setSummary(null);
           setPending({
             slot,
-            question:
-              saved.question?.trim() ||
-              t(askedCount > 0 ? CLARIFY_AGAIN[slot] : CLARIFY_PROMPT[slot]),
+            question: saved.question?.trim() || t(CLARIFY_PROMPT[slot]),
           });
           setDraft("");
           lastAnswerTranscript.current = "";
           setAsking(true);
           return;
         }
-        saveNow = true;
+        setClarifyPoint(point);
+        setTurns(nextTurns);
+        setPending(null);
+        setSummary(requestSummary(text, nextTurns.map((turn) => turn.answer)));
+        setAsking(true);
         return;
       }
       if (!("id" in saved)) return;
@@ -313,7 +324,6 @@ export default function RequestForm({
       requestLock.current = false;
       setBusy(false);
     }
-    if (saveNow) await deliver(nextTurns, false);
   }
   async function applyTranscript(blob: Blob, target: "request" | "answer") {
     if (!user?.privacy.allowAI) {
@@ -358,6 +368,10 @@ export default function RequestForm({
       className={"simple-request" + (asking ? " is-clarifying" : "")}
       onSubmit={(e) => {
         e.preventDefault();
+        if (summary !== null) {
+          void deliver([], false, summary);
+          return;
+        }
         const answer = draft.trim();
         void deliver(
           asking
@@ -379,7 +393,7 @@ export default function RequestForm({
             aria-label={t("description")}
             value={text}
             onChange={(e) => setText(e.target.value)}
-            disabled={busy || transcribing}
+            disabled={busy || transcribing || summary !== null}
           />
         </label>
         <div className="request-input-tools">
@@ -504,7 +518,7 @@ export default function RequestForm({
           </div>
         )}
         {location}
-        {asking && (
+        {asking && summary === null && (
           <section
             className="clarify-chat"
             aria-label={t("clarifyLog")}
@@ -589,11 +603,28 @@ export default function RequestForm({
                 const answer = draft.trim();
                 if (!answer || !pending) return;
                 const next = [...turns, { slot: pending.slot, question: pending.question, answer }];
-                void deliver(next, next.length < CLARIFY_LIMIT);
+                void deliver(next, true);
               }}
             >
               {t(busy ? "clarifyChecking" : "clarifySend")}
             </button>
+          </section>
+        )}
+        {summary !== null && (
+          <section className="request-summary" aria-label={t("taskSummary")}>
+            <h2>{t("taskSummary")}</h2>
+            <p className="text-sm text-muted">{t("confirmRequest")}</p>
+            <label className="field">
+              <span className="sr-only">{t("taskSummary")}</span>
+              <textarea
+                rows={4}
+                maxLength={4000}
+                value={summary}
+                aria-label={t("taskSummary")}
+                onChange={(e) => setSummary(e.target.value)}
+                disabled={busy}
+              />
+            </label>
           </section>
         )}
       </div>
@@ -604,18 +635,20 @@ export default function RequestForm({
       )}
       <button
         className="button w-full"
-        disabled={busy || recording || starting || transcribing}
+        disabled={busy || recording || starting || transcribing || (summary !== null && !summary.trim())}
       >
         {t(
           busy
-            ? asking
+            ? summary !== null || asking
               ? "clarifyChecking"
               : "sending"
             : transcribing
               ? "transcribing"
-              : asking
-                ? "clarifySkip"
-                : "sendRequest",
+              : summary !== null
+                ? "sendRequest"
+                : asking
+                  ? "clarifySkip"
+                  : "sendRequest",
         )}
       </button>
     </form>

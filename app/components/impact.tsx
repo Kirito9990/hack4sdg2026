@@ -1,20 +1,26 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { api, useApp } from "./providers";
+import { api, post, useApp } from "./providers";
 import type { Award, RewardSummary } from "@/lib/rewards";
+import type { PartnerKind } from "@/lib/redeem";
+
+type RewardsView = RewardSummary & {
+  spendable: number;
+  offers: { id: string; merchant: string; kind: PartnerKind; cost: number; redeemed: boolean }[];
+};
 
 function useRewards(refreshKey = "") {
   const { user } = useApp();
-  const [data, setData] = useState<RewardSummary | null>(null), [error, setError] = useState("");
+  const [data, setData] = useState<RewardsView | null>(null), [error, setError] = useState(""), [tick, setTick] = useState(0);
   useEffect(() => {
     if (user?.role !== "volunteer") return;
     let live = true;
-    const update = async () => { try { const result = await api<RewardSummary>("/api/volunteer/rewards"); if (live) { setData(result); setError(""); } } catch (e) { if (live) setError((e as Error).message); } };
+    const update = async () => { try { const result = await api<RewardsView>("/api/volunteer/rewards"); if (live) { setData(result); setError(""); } } catch (e) { if (live) setError((e as Error).message); } };
     void update(); const timer = setInterval(() => void update(), 15000);
     return () => { live = false; clearInterval(timer); };
-  }, [user?.id, user?.role, refreshKey]);
-  return { data, error };
+  }, [user?.id, user?.role, refreshKey, tick]);
+  return { data, error, reload: () => setTick((value) => value + 1) };
 }
 
 export function Medal({ award }: { award: Award }) {
@@ -41,8 +47,8 @@ export function ImpactSummary({ refreshKey }: { refreshKey: string }) {
 }
 
 export default function Impact() {
-  const { t, locale } = useApp(), { data, error } = useRewards();
-  const [selected, setSelected] = useState<Award | null>(null), dialog = useRef<HTMLDialogElement>(null);
+  const { t, locale } = useApp(), { data, error, reload } = useRewards();
+  const [selected, setSelected] = useState<Award | null>(null), [redeeming, setRedeeming] = useState(""), [redeemError, setRedeemError] = useState(""), dialog = useRef<HTMLDialogElement>(null);
   const monthName = (month: string) => new Date(month + "-01T12:00:00Z").toLocaleDateString(locale, { month: "long", year: "numeric", timeZone: "Asia/Hong_Kong" });
   const date = (value: string) => new Date(value).toLocaleDateString(locale, { timeZone: "Asia/Hong_Kong", year: "numeric", month: "short", day: "numeric" });
   const label = (award: Award) => award.kind === "monthly" ? t("challenge_" + award.metric) : award.kind === "helps" && award.target === 1 ? t("firstHelpingHand") : `${award.target} ${t(award.kind === "helps" ? "helpingHands" : award.kind === "points" ? "carePoints" : "dayStreak")}`;
@@ -56,6 +62,43 @@ export default function Impact() {
       <p className="impact-total-label">{t("carePoints")}</p><p className="impact-total">{data.points.toLocaleString(locale)}</p>
       <div className="impact-stats"><div><strong>{data.helps}</strong><span>{t("helpsCompleted")}</span></div><div><strong>{data.currentStreak}</strong><span>{t("currentStreak")}</span></div><div><strong>{data.longestStreak}</strong><span>{t("bestStreak")}</span></div></div>
       {data.nextMilestone && <div className="impact-next"><span>{t("nextMilestone").replace("{n}", String(data.nextMilestone))}</span><strong>{data.helps} / {data.nextMilestone}</strong><progress value={data.helps} max={data.nextMilestone} aria-label={t("helpingHands")} /></div>}
+    </section>
+    <section className="impact-section" aria-labelledby="partner-heading">
+      <div className="impact-section-heading"><h2 id="partner-heading">{t("partnerRewards")}</h2><span>{data.spendable} {t("availablePoints")}</span></div>
+      <p className="text-sm text-muted">{t("partnerHint")}</p>
+      <p className="text-sm">{(() => { const next = data.badges.find((award) => award.kind === "points" && !award.earnedAt); return next ? t("pointAwardHint").replace("{n}", String(next.target)) : t("pointAwardDone"); })()}</p>
+      {redeemError && <p className="error text-sm" role="alert">{t(redeemError)}</p>}
+      <div className="partner-list">
+        {data.offers.map((offer) => (
+          <article className="partner-card" key={offer.id}>
+            <header>
+              <strong>{t(offer.merchant)}</strong>
+              <span className="partner-kind">{t(offer.kind === "vip" ? "productVip" : "coupon")}</span>
+            </header>
+            <p>{offer.cost} {t("carePoints")}</p>
+            <button
+              className="button"
+              type="button"
+              disabled={!!redeeming || offer.redeemed || data.spendable < offer.cost}
+              onClick={async () => {
+                if (!confirm(t("redeemConfirm").replace("{n}", String(offer.cost)))) return;
+                setRedeeming(offer.id);
+                setRedeemError("");
+                try {
+                  await post("/api/volunteer/rewards/redeem", { offerId: offer.id });
+                  reload();
+                } catch (e) {
+                  setRedeemError((e as Error).message);
+                } finally {
+                  setRedeeming("");
+                }
+              }}
+            >
+              {t(offer.redeemed ? "redeemed" : redeeming === offer.id ? "saving" : "redeemOffer")}
+            </button>
+          </article>
+        ))}
+      </div>
     </section>
     <section aria-labelledby="monthly-heading" className="impact-section"><div className="impact-section-heading"><h2 id="monthly-heading">{t("monthlyChallenges")}</h2><span>{monthName(data.month)}</span></div>
       <div className="challenge-list">{data.challenges.map(award => <button className="challenge-card" key={award.code} onClick={() => open(award)}><Ring value={Math.min(award.progress, award.target)} target={award.target} /><span><strong>{label(award)}</strong><span>{requirement(award)}</span><b>{Math.min(award.progress, award.target)} / {award.target} · {t(award.earnedAt ? "awardEarned" : "inProgress")}</b></span><span className="challenge-arrow" aria-hidden>›</span></button>)}</div>

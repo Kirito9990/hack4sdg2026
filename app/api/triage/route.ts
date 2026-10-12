@@ -2,7 +2,7 @@ import sharp from "sharp";
 import { storedChatImage } from "@/lib/chat-image";
 import { rasterizeUpload } from "@/lib/heif-image";
 import { triageTextWithOpenRouter, clarifyQuestion } from "@/lib/openrouter";
-import { askedSlots, holdForClarification, nextClarifySlot } from "@/lib/clarify";
+import { askedSlots, holdForClarification, nextClarifySlot, readyToConfirm } from "@/lib/clarify";
 import { classifyPrepared, prepareAiInput } from "@/lib/pipeline";
 import { effectiveRequestText } from "@/lib/request-content";
 import {
@@ -178,27 +178,22 @@ export async function POST(request: Request) {
   };
   const asked = askedSlots(form.get("asked"));
   const slot = nextClarifySlot(redact(typed) || safeText, asked);
-  if (
-    holdForClarification({
-      clarify: form.get("clarify") === "1",
-      allowAI: user.privacy.allowAI === true,
-      urgency: triage.urgency_level,
-      slot,
-    })
-  ) {
+  const gate = {
+    clarify: form.get("clarify") === "1",
+    allowAI: user.privacy.allowAI === true,
+    urgency: triage.urgency_level,
+    slot,
+  };
+  if (holdForClarification(gate)) {
     const question = slot
-      ? await clarifyQuestion({
-          text: redact(typed) || safeText,
-          slot,
-          locale,
-          attempt: asked.filter((item) => item === slot).length + 1,
-        })
+      ? await clarifyQuestion({ text: redact(typed) || safeText, slot, locale })
       : null;
     return json({
       needsClarification: true,
       ...(slot ? { slot, ...(question ? { question } : {}) } : {}),
     });
   }
+  if (readyToConfirm(gate)) return json({ needsConfirmation: true });
   store().requests.push(saved);
   persist();
   return json(view(saved, user), 201);
