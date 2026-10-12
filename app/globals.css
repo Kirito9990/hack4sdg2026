@@ -182,9 +182,16 @@ body {
   border-radius: 10px;
   padding: 7px 10px;
 }
-.segmented button[aria-selected="true"] {
+.segmented button[aria-selected="true"],
+.segmented button[aria-checked="true"] {
   background: white;
   box-shadow: 0 2px 5px #163b3412;
+}
+.spoken-language button {
+  min-height: 40px;
+  font-size: 13px;
+  padding: 6px 4px;
+  white-space: nowrap;
 }
 .wizard-content {
   flex: 1;
@@ -1104,6 +1111,37 @@ body {
 .voice-control.is-recording {
   background: var(--danger);
   color: white;
+}
+.simple-request.is-clarifying .simple-request-content > .field {
+  flex: 0 0 auto;
+}
+.simple-request.is-clarifying .simple-request-content > .field textarea {
+  min-height: 72px;
+  flex: none;
+  font-size: 16px;
+  padding: 12px;
+}
+.clarify-chat {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  padding: 10px;
+}
+.clarify-log {
+  display: flex;
+  flex-direction: column;
+  max-height: 220px;
+  overflow-y: auto;
+}
+.clarify-chat textarea {
+  flex: none;
+  min-height: 72px;
+  font-size: 16px;
+  padding: 10px 12px;
 }
 .composer-location {
   flex-shrink: 0;

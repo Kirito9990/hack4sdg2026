@@ -1,9 +1,21 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
+import {
+  CLARIFY_LIMIT,
+  CLARIFY_PROMPTS,
+  clarifiedText,
+} from "@/lib/clarify";
 import { IMAGE_ACCEPT, isAcceptedImage } from "@/lib/image-accept";
+import { spokenToDeepgram } from "@/lib/speech";
 import { api, useApp } from "./providers";
 import type { RequestView } from "@/lib/types";
+
+function defaultSpoken(locale: string): "en" | "zh" | "yue" {
+  if (locale === "zh-Hant") return "yue";
+  if (locale === "zh-Hans") return "zh";
+  return "en";
+}
 function Microphone() {
   return (
     <svg
@@ -42,7 +54,16 @@ export default function RequestForm({
     [transcribing, setTranscribing] = useState(false),
     [transcriptNote, setTranscriptNote] = useState(false),
     [busy, setBusy] = useState(false),
-    [error, setError] = useState("");
+    [error, setError] = useState(""),
+    [asking, setAsking] = useState(false),
+    [answers, setAnswers] = useState<string[]>([]),
+    [draft, setDraft] = useState(""),
+    [clarifyPoint, setClarifyPoint] = useState<{
+      lat: number;
+      lng: number;
+    } | null>(null),
+    [spoken, setSpoken] = useState<"en" | "zh" | "yue">(defaultSpoken(locale));
+  const spokenTouched = useRef(false);
   const lastTranscript = useRef("");
   const file = useRef<HTMLInputElement>(null),
     recorder = useRef<MediaRecorder | null>(null),
@@ -51,6 +72,10 @@ export default function RequestForm({
     generation = useRef(0),
     requestLock = useRef(false),
     recLock = useRef(false);
+  useEffect(() => {
+    if (spokenTouched.current) return;
+    setSpoken(defaultSpoken(locale));
+  }, [locale]);
   useEffect(() => {
     if (!photo) return;
     const url = URL.createObjectURL(photo);
@@ -145,6 +170,72 @@ export default function RequestForm({
       setStarting(false);
     }
   }
+  function resetDraft() {
+    setText("");
+    setPhoto(null);
+    setAudio(null);
+    setTranscriptNote(false);
+    lastTranscript.current = "";
+    setAsking(false);
+    setAnswers([]);
+    setDraft("");
+    setClarifyPoint(null);
+  }
+  async function deliver(nextAnswers: string[], clarify: boolean) {
+    if (requestLock.current) return;
+    if (recording || starting || transcribing) {
+      setError(transcribing ? "transcribing" : "stopRecordingFirst");
+      return;
+    }
+    const message = clarifiedText(text, nextAnswers);
+    if (!message) {
+      setError("emptyRequest");
+      return;
+    }
+    requestLock.current = true;
+    setBusy(true);
+    setError("");
+    try {
+      const point = clarifyPoint || coords || (await onLocate());
+      if (!point) {
+        setError("locateToSend");
+        return;
+      }
+      const body = new FormData();
+      body.set("lat", String(point.lat));
+      body.set("lng", String(point.lng));
+      body.set("text", message);
+      body.set("locale", locale);
+      body.set("language", spokenToDeepgram(spoken, locale));
+      if (clarify) body.set("clarify", "1");
+      if (photo) body.set("image", photo);
+      if (audio) body.set("audio", audio, "voice-note");
+      const saved = await api<RequestView | { needsClarification: true }>(
+        "/api/triage",
+        { method: "POST", body },
+      );
+      if (
+        clarify &&
+        "needsClarification" in saved &&
+        saved.needsClarification &&
+        nextAnswers.length < CLARIFY_LIMIT
+      ) {
+        setClarifyPoint(point);
+        setAnswers(nextAnswers);
+        setDraft("");
+        setAsking(true);
+        return;
+      }
+      if (!("id" in saved)) return;
+      await onSent(saved);
+      resetDraft();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      requestLock.current = false;
+      setBusy(false);
+    }
+  }
   async function applyTranscript(blob: Blob) {
     if (!user?.privacy.allowAI) {
       setTranscriptNote(false);
@@ -157,21 +248,21 @@ export default function RequestForm({
     try {
       const body = new FormData();
       body.set("audio", blob, "voice-note");
-      body.set("language", "auto");
+      body.set("language", spokenToDeepgram(spoken, locale));
       const result = await api<{ transcript: string }>("/api/speech", {
         method: "POST",
         body,
       });
-      const spoken = result.transcript.trim();
-      if (!spoken) throw new Error("audioUnavailable");
+      const transcript = result.transcript.trim();
+      if (!transcript) throw new Error("audioUnavailable");
       setText((current) => {
         const previous = lastTranscript.current;
-        if (!current.trim() || current === previous) return spoken;
+        if (!current.trim() || current === previous) return transcript;
         if (previous && current.endsWith(previous))
-          return (current.slice(0, -previous.length) + spoken).trim();
-        return (current.trim() + "\n" + spoken).slice(0, 4000);
+          return (current.slice(0, -previous.length) + transcript).trim();
+        return (current.trim() + "\n" + transcript).slice(0, 4000);
       });
-      lastTranscript.current = spoken;
+      lastTranscript.current = transcript;
       setTranscriptNote(true);
     } catch (e) {
       setError((e as Error).message);
@@ -181,57 +272,20 @@ export default function RequestForm({
   }
   return (
     <form
-      className="simple-request"
-      onSubmit={async (e) => {
+      className={"simple-request" + (asking ? " is-clarifying" : "")}
+      onSubmit={(e) => {
         e.preventDefault();
-        if (requestLock.current) return;
-        if (recording || starting || transcribing) {
-          setError(transcribing ? "transcribing" : "stopRecordingFirst");
-          return;
-        }
-        if (!text.trim()) {
-          setError("emptyRequest");
-          return;
-        }
-        requestLock.current = true;
-        setBusy(true);
-        setError("");
-        try {
-          const point = coords || await onLocate();
-          if (!point) {
-            setError("locateToSend");
-            return;
-          }
-          const body = new FormData();
-          body.set("lat", String(point.lat));
-          body.set("lng", String(point.lng));
-          body.set("text", text);
-          body.set("locale", locale);
-          if (photo) body.set("image", photo);
-          if (audio) body.set("audio", audio, "voice-note");
-          const saved = await api<RequestView>("/api/triage", {
-            method: "POST",
-            body,
-          });
-          await onSent(saved);
-          setText("");
-          setPhoto(null);
-          setAudio(null);
-          setTranscriptNote(false);
-          lastTranscript.current = "";
-        } catch (e) {
-          setError((e as Error).message);
-        } finally {
-          requestLock.current = false;
-          setBusy(false);
-        }
+        void deliver(
+          asking ? [...answers, ...(draft.trim() ? [draft.trim()] : [])] : [],
+          !asking,
+        );
       }}
     >
       <div className="simple-request-content">
         <label className="field">
           <span className="sr-only">{t("description")}</span>
           <textarea
-            rows={6}
+            rows={asking ? 2 : 6}
             maxLength={4000}
             placeholder={t("describeTitle")}
             aria-label={t("description")}
@@ -240,6 +294,33 @@ export default function RequestForm({
             disabled={busy || transcribing}
           />
         </label>
+        <div
+          className="segmented spoken-language"
+          role="radiogroup"
+          aria-label={t("speechLanguage")}
+        >
+          {(
+            [
+              ["en", "english"],
+              ["zh", "mandarin"],
+              ["yue", "cantonese"],
+            ] as const
+          ).map(([value, key]) => (
+            <button
+              key={value}
+              type="button"
+              role="radio"
+              aria-checked={spoken === value}
+              disabled={busy || recording || transcribing}
+              onClick={() => {
+                spokenTouched.current = true;
+                setSpoken(value);
+              }}
+            >
+              {t(key)}
+            </button>
+          ))}
+        </div>
         <div className="request-input-tools">
           <input
             ref={file}
@@ -346,6 +427,52 @@ export default function RequestForm({
           </div>
         )}
         {location}
+        {asking && (
+          <section
+            className="clarify-chat"
+            aria-label={t("clarifyLog")}
+            ref={(node) => node?.scrollIntoView({ block: "nearest" })}
+          >
+            <div className="clarify-log" role="log">
+              {answers.map((answer, index) => (
+                <div key={CLARIFY_PROMPTS[index]}>
+                  <p className="bubble received">{t(CLARIFY_PROMPTS[index])}</p>
+                  <p className="bubble sent">{answer}</p>
+                </div>
+              ))}
+              {answers.length < CLARIFY_LIMIT && (
+                <p className="bubble received">
+                  {t(CLARIFY_PROMPTS[answers.length])}
+                </p>
+              )}
+            </div>
+            <label className="field">
+              <span className="sr-only">{t("clarifyAnswer")}</span>
+              <textarea
+                rows={2}
+                maxLength={4000}
+                placeholder={t("clarifyAnswer")}
+                aria-label={t("clarifyAnswer")}
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                disabled={busy}
+              />
+            </label>
+            <button
+              className="button w-full"
+              type="button"
+              disabled={busy || !draft.trim()}
+              onClick={() => {
+                const answer = draft.trim();
+                if (!answer) return;
+                const next = [...answers, answer];
+                void deliver(next, next.length < CLARIFY_LIMIT);
+              }}
+            >
+              {t(busy ? "clarifyChecking" : "clarifySend")}
+            </button>
+          </section>
+        )}
       </div>
       {error && (
         <p className="error text-sm" role="alert">
@@ -356,7 +483,17 @@ export default function RequestForm({
         className="button w-full"
         disabled={busy || recording || starting || transcribing}
       >
-        {t(busy ? "sending" : transcribing ? "transcribing" : "sendRequest")}
+        {t(
+          busy
+            ? asking
+              ? "clarifyChecking"
+              : "sending"
+            : transcribing
+              ? "transcribing"
+              : asking
+                ? "clarifySkip"
+                : "sendRequest",
+        )}
       </button>
     </form>
   );

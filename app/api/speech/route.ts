@@ -1,4 +1,8 @@
-import { audioContentType, transcribeWithDeepgram } from "@/lib/speech";
+import {
+  acceptedDeepgramLanguage,
+  audioContentType,
+  transcribeWithDeepgram,
+} from "@/lib/speech";
 import { redact } from "@/lib/db";
 import { currentUser, fail, json, sameOrigin } from "@/lib/server";
 
@@ -33,9 +37,7 @@ export async function POST(request: Request) {
     ].includes(audioContentType(audio.type))
   )
     return fail("invalidAudio");
-  const language = ["en", "zh-HK", "zh-CN"].includes(String(form.get("language")))
-    ? String(form.get("language"))
-    : "auto";
+  const language = acceptedDeepgramLanguage(String(form.get("language")));
   try {
     const transcript = redact(
       await transcribeWithDeepgram(

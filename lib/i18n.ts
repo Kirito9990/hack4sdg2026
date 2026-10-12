@@ -351,9 +351,9 @@ export const messages = {
     "允许外部 AI 处理我提交的媒体及文字",
   ],
   aiPrivacy: [
-    "Off by default. When enabled, configured speech and vision providers may receive your media and redacted text. Contact fields are not sent.",
-    "預設關閉。啟用後，已設定的語音及圖像服務可能接收媒體和已遮蔽聯絡資料的文字；不會傳送帳戶聯絡欄位。",
-    "默认关闭。启用后，已配置的语音及图像服务可能接收媒体和已隐藏联系信息的文字；不会发送账户联系字段。",
+    "On by default. Configured speech and vision providers may receive your media and redacted text. Contact fields are not sent. You can turn this off in privacy settings.",
+    "預設開啟。已設定的語音及圖像服務可能接收媒體和已遮蔽聯絡資料的文字；不會傳送帳戶聯絡欄位。你可以在私隱設定關閉。",
+    "默认开启。已配置的语音及图像服务可能接收媒体和已隐藏联系信息的文字；不会发送账户联系字段。你可以在隐私设置中关闭。",
   ],
   privacyInfo: ["Your matched partner can read messages while chat sharing is enabled. Finished chats are read-only for 7 days, then archived on the server.","開啟聊天分享時，配對對象可查看對話。完成後只能查看7天，之後在伺服器歸檔。","开启聊天分享时，匹配对象可查看对话。完成后只能查看7天，之后在服务器归档。"],
   demo: [
@@ -567,6 +567,21 @@ export const messages = {
     "請加入文字描述或語音轉錄。只上傳相片並不足夠。",
     "请添加文字描述或语音转写。只上传照片不够。",
   ],
+  clarifyWhat: [
+    "I need a little more detail before this can be matched. What happened, and what should a neighbour do?",
+    "配對前需要多一點資料。發生了什麼事，鄰居可以怎樣幫忙？",
+    "匹配前需要多一点资料。发生了什么，邻居可以怎样帮忙？",
+  ],
+  clarifyWhen: [
+    "How soon is this needed, and is anyone hurt or in danger?",
+    "需要多快處理？有沒有人受傷或處於危險？",
+    "需要多快处理？有没有人受伤或处于危险？",
+  ],
+  clarifyAnswer: ["Add a detail", "補充資料", "补充资料"],
+  clarifySend: ["Send answer", "送出回答", "发送回答"],
+  clarifySkip: ["Send request now", "立即送出請求", "立即提交请求"],
+  clarifyChecking: ["Checking…", "正在判斷…", "正在判断…"],
+  clarifyLog: ["Follow-up questions", "補充問題", "补充问题"],
   invalidName: [
     "Enter a name with 2–80 characters.",
     "請輸入 2–80 字的姓名。",

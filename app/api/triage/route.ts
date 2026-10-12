@@ -2,9 +2,14 @@ import sharp from "sharp";
 import { storedChatImage } from "@/lib/chat-image";
 import { rasterizeUpload } from "@/lib/heif-image";
 import { triageTextWithOpenRouter } from "@/lib/openrouter";
+import { holdForClarification } from "@/lib/clarify";
 import { classifyPrepared, prepareAiInput } from "@/lib/pipeline";
 import { effectiveRequestText } from "@/lib/request-content";
-import { audioContentType, transcribeWithDeepgram } from "@/lib/speech";
+import {
+  acceptedDeepgramLanguage,
+  audioContentType,
+  transcribeWithDeepgram,
+} from "@/lib/speech";
 import { redact, store, persist, view } from "@/lib/db";
 import { currentUser, fail, json, sameOrigin, validCoords } from "@/lib/server";
 import type { HelpRequest, TriageFields } from "@/lib/types";
@@ -30,11 +35,7 @@ export async function POST(request: Request) {
   )
     ? String(form.get("locale"))
     : "en";
-  const language = ["en", "zh-HK", "zh-CN"].includes(
-    String(form.get("language")),
-  )
-    ? String(form.get("language"))
-    : "auto";
+  const language = acceptedDeepgramLanguage(String(form.get("language")));
   const audio = upload(form.get("audio")),
     image = upload(form.get("image"));
   const typed = String(form.get("text") || "").trim();
@@ -170,6 +171,14 @@ export async function POST(request: Request) {
     imageHeight,
     imageData,
   };
+  if (
+    holdForClarification({
+      clarify: form.get("clarify") === "1",
+      allowAI: user.privacy.allowAI === true,
+      urgency: triage.urgency_level,
+    })
+  )
+    return json({ needsClarification: true });
   store().requests.push(saved);
   persist();
   return json(view(saved, user), 201);

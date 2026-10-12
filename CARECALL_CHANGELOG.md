@@ -10,7 +10,7 @@ Read this file before changing CareCall. Append one entry after each run; preser
 - English / 繁體中文 / 简体中文 throughout.
 - Request submission must remain actionable. Explain missing location and offer explicit GPS permission request plus manual map selection.
 - A visible + attachment control must open the photo picker.
-- Resident voice input: microphone, tap to start/stop. No language selector, browser dictation, or speech-consent workflow; language/transcription belongs to the future LLM integration.
+- Resident voice input: microphone, tap to start/stop, plus English / Mandarin / Cantonese. No browser dictation or speech-consent workflow. Deepgram gets an explicit Nova-3 code: en, zh-CN (zh-Hant when the interface is Traditional Chinese), or zh-HK. Automatic detection cannot select Cantonese.
 - Account button opens a sidebar with vertically arranged account options leading to sections/pages.
 - Preserve requested matched chat/photos/calls, resident completion and volunteer shift behavior while correcting the UI.
 - Never include .env.local, secrets, or the local test-call destination in Git.
@@ -21,7 +21,7 @@ Read this file before changing CareCall. Append one entry after each run; preser
 - Render: https://carecall-djzc.onrender.com ; dashboard service srv-dar78s0u01pc738fn950.
 - Actual Render service auto-deploys pushes to codex/CareCall even though render.yaml says autoDeployTrigger: off (manually created service).
 - HTTPS is managed by Render. Local unpushed edits do not update production.
-- Current LOCAL code uses single-process SQLite. Accounts and privacy settings are rows in carecall_users and carecall_privacy. Sessions, requests, and messages are read from carecall_sessions, carecall_requests, and carecall_messages; those tables are the runtime source of truth. The JSON snapshot in carecall_state is a backup written on save. The local file is .carecall-data/carecall.sqlite and is git-ignored. Use CARECALL_DB_PATH on a durable disk. Render free disk is ephemeral, so this local file does not make the public website durable. No verified phone authentication or account recovery. AI consent off, or a failed classification, saves urgency NOT_ASSESSED rather than HIGH.
+- Current LOCAL code uses single-process SQLite. Accounts and privacy settings are rows in carecall_users and carecall_privacy. Sessions, requests, and messages are read from carecall_sessions, carecall_requests, and carecall_messages; those tables are the runtime source of truth. The JSON snapshot in carecall_state is a backup written on save. The local file is .carecall-data/carecall.sqlite and is git-ignored. Use CARECALL_DB_PATH on a durable disk. Render free disk is ephemeral, so this local file does not make the public website durable. No verified phone authentication or account recovery. New accounts allow AI processing of submitted text. A resident can turn that off. AI consent off, or a failed classification, saves urgency NOT_ASSESSED rather than HIGH. Pending neighbourhood requests and medical requests, including emergency medical, are listed for an on-shift volunteer within 5 km.
 - Calls are native tel links, not browser VoIP.
 - Local app uses port 47291. Test servers must use separate ports and synthetic users.
 
@@ -312,3 +312,27 @@ Additional user corrections this run: simplify login; phone examples belong in p
 
 - User authorized commit and deployment of the tested badge dialog centering fix. Confirmed local codex/CareCall matches origin at 20122b8 before publishing. Scope is limited to the dialog CSS, responsive regression coverage and this log; existing roadmap, environment files, keys, databases and preview artifacts are excluded.
 - Publishing through the existing codex/CareCall -> Render service at carecall-djzc.onrender.com. Public health and deployed stylesheet verification follow the push; no Render environment values or billing settings are changed.
+
+### 2026-10-12 — follow-up questions only when text is not assessed
+
+- After Send, the resident request is classified as before. HIGH, MEDIUM, or LOW saves immediately and does not open a chat. When AI processing is allowed and the result is NOT_ASSESSED, the request is not saved yet. A two-question chat asks what happened and how soon help is needed. Each answer is added to the original text and classified again. A successful classification stops the questions and saves the request. After both answers, or if the resident presses Send request now, the combined text is saved even if it is still NOT_ASSESSED. AI consent off still saves immediately as NOT_ASSESSED, because another question cannot be classified.
+- English, Traditional Chinese, and Simplified Chinese. Original cream palette. The composer shrinks while the chat is open so the question stays on screen.
+- Validation: node --test tests/clarify.test.mjs passed 3/3. ESLint passed on the changed TypeScript files. Browser check on an isolated server at 127.0.0.1:47311 with no model key: AI off sent "Please bring water upstairs." with no chat; AI on held "hello", showed the first question, kept the request unsaved, then showed the second question after an answer; Send request now saved the combined text as awaiting assessment. The question, answer box, and both actions fit at 390x740 with no horizontal overflow. Traditional and Simplified Chinese strings rendered. No live OpenRouter call, so the skip-on-success path was checked in the unit test rather than against a model. Synthetic test database deleted. No commit or push.
+
+### 2026-10-12 — AI text processing on for new accounts; medical requests reach volunteers
+
+- New accounts start with AI processing of submitted text turned on. The privacy setting still controls it, and a resident can turn it off. Accounts created earlier keep the setting already saved. English, Traditional Chinese, and Simplified Chinese privacy copy now says the setting starts on.
+- Pending medical requests are included on the volunteer nearby list and can be accepted. That covers emergency medical dispatch and any request whose category is medical. The volunteer must still be on shift and within 5 km. Emergency medical requests still earn no CarePoints. The call-999 control remains on an open emergency request.
+- Validation: node --test tests/volunteer-receive.test.mjs passed. ESLint passed on the changed TypeScript files. On the running local server, a new account returned allowAI true, and an on-shift volunteer at the pending requests' location received all 8 pending tasks, including the 3 medical ones. Browser check: a new volunteer account showed the AI processing checkbox checked and the privacy notice saying it starts on; after going on shift, the nearby list showed Medical / High cards with Accept. The temporary account was deleted. No request was accepted. No commit or push.
+
+### 2026-10-12 — Mandarin and Cantonese voice transcription
+
+- The resident composer now has English, Mandarin, and Cantonese next to the microphone. The choice follows the interface until the resident picks one: English, Cantonese for Traditional Chinese, Mandarin for Simplified Chinese. A manual choice stays when the interface language changes.
+- Deepgram Nova-3 now receives an explicit language: en, zh-CN, zh-Hant, or zh-HK. Open detection was labeling Cantonese as English and returning an empty transcript. detect_language=zh-HK is rejected by the API. The unused automatic fallback is limited to English and Mandarin.
+- Validation: node --test tests/speech-language.test.mjs passed. ESLint passed on the speech route, triage route, speech helper, and request form. Live Nova-3 calls with synthesized speech: Cantonese with zh-HK returned 我行唔倒落樓梯需要一支電筒同樽裝水; the same clip with English or automatic detection was empty. Mandarin with zh-CN returned simplified text and with zh-Hant returned traditional text; English mode was empty. Browser check on the local server: the three choices rendered, Traditional Chinese selected 廣東話, Simplified Chinese selected 普通话, and a manual Cantonese choice stayed selected after switching the interface to English. At 360×740 the page did not overflow; the text box stayed above 180px and the photo and microphone controls stayed large. The temporary account was deleted. No commit or push.
+
+### 2026-10-12 — voice recording no longer reports a failed connection
+
+- Stopping a recording threw before the audio was sent. The transcript variable reused the name of the spoken-language state, so reading the language inside that block failed. The unknown error was shown as “Connection failed. Please retry.” and /api/speech was never called.
+- The transcript now uses its own name, so the selected English, Mandarin, or Cantonese code is sent with the clip.
+- Validation: a browser recording on the local server reached POST /api/speech (400 after 4.4s for a test tone with no speech) and showed the transcription-unavailable message instead of a failed connection. The temporary account was deleted. No commit or push.

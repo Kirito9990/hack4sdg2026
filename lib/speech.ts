@@ -10,6 +10,42 @@ export function audioContentType(type: string) {
   return type.split(";")[0]?.trim().toLowerCase() || "";
 }
 
+const DEEPGRAM_LANGUAGE: Record<string, string> = {
+  en: "en",
+  zh: "zh",
+  "zh-CN": "zh-CN",
+  "zh-Hans": "zh-Hans",
+  "zh-TW": "zh-TW",
+  "zh-Hant": "zh-Hant",
+  "zh-HK": "zh-HK",
+};
+
+export function spokenToDeepgram(spoken: "en" | "zh" | "yue", locale: string) {
+  if (spoken === "yue") return "zh-HK";
+  if (spoken === "zh") return locale === "zh-Hant" ? "zh-Hant" : "zh-CN";
+  return "en";
+}
+
+export function acceptedDeepgramLanguage(value: string) {
+  return DEEPGRAM_LANGUAGE[value] ? value : "auto";
+}
+
+export function listenSearchParams(language: string) {
+  const params = new URLSearchParams();
+  params.set("model", process.env.DEEPGRAM_MODEL || "nova-3");
+  params.set("smart_format", "true");
+  params.set("punctuate", "true");
+  const code = DEEPGRAM_LANGUAGE[language];
+  if (code) params.set("language", code);
+  else {
+    // Cantonese is not detectable: detect_language=zh-HK is rejected, and an
+    // open detector often labels that speech as English. Callers should send zh-HK.
+    params.append("detect_language", "en");
+    params.append("detect_language", "zh");
+  }
+  return params;
+}
+
 function deepgramContentType(mimeType: string) {
   const base = audioContentType(mimeType);
   if (base === "audio/webm" || base === "video/webm") return "audio/webm";
@@ -25,11 +61,8 @@ export async function transcribeWithDeepgram(
   const key = process.env.DEEPGRAM_API_KEY?.trim();
   if (!key) throw new Error("DEEPGRAM_API_KEY is not set");
   const url = new URL("https://api.deepgram.com/v1/listen");
-  url.searchParams.set("model", process.env.DEEPGRAM_MODEL || "nova-3");
-  url.searchParams.set("smart_format", "true");
-  url.searchParams.set("punctuate", "true");
-  if (language === "auto") url.searchParams.set("detect_language", "true");
-  else url.searchParams.set("language", language);
+  for (const [name, value] of listenSearchParams(language))
+    url.searchParams.append(name, value);
   const response = await fetch(url, {
     method: "POST",
     headers: {

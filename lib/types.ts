@@ -4,6 +4,16 @@ export type UrgencyLevel = "HIGH" | "MEDIUM" | "LOW" | "NOT_ASSESSED";
 export type RequestCategory = "MEDICAL" | "NON_MEDICAL" | "MOBILITY" | "OTHER";
 export type DispatchAction =
   "EMERGENCY_medical" | "EMERGENCY_nonmedical" | "NEIGHBORHOOD_VOLUNTEER";
+export function volunteerCanReceive(request: {
+  dispatch_action: string;
+  category?: string;
+}) {
+  return (
+    request.dispatch_action === "NEIGHBORHOOD_VOLUNTEER" ||
+    request.dispatch_action === "EMERGENCY_medical" ||
+    request.category === "MEDICAL"
+  );
+}
 export type RequestStatus = "PENDING" | "ACCEPTED" | "CLOSED";
 export type Privacy = {
   allowCalls: boolean;

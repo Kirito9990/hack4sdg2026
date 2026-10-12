@@ -1,6 +1,7 @@
 import { getRequest, haversineMeters, store, persistRequest, view } from "@/lib/db";
 import { quoteReward } from "@/lib/rewards";
 import { currentUser, fail, json, sameOrigin, validCoords } from "@/lib/server";
+import { volunteerCanReceive } from "@/lib/types";
 export const runtime = "nodejs";
 export async function POST(request: Request) {
   if (!sameOrigin(request)) return fail("forbidden", 403);
@@ -10,7 +11,7 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
   if (!body || !validCoords(body.lat, body.lng)) return fail("locationError");
   const found = getRequest(body.id);
-  if (!found || found.dispatch_action !== "NEIGHBORHOOD_VOLUNTEER")
+  if (!found || !volunteerCanReceive(found))
     return fail("notFound", 404);
   if (found.status === "ACCEPTED" && found.volunteerId === user.id)
     return json(view(found, user));

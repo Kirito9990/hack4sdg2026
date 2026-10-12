@@ -54,8 +54,13 @@ test("request usability: large composer, GPS retry, conditional tabs, photos, re
   const photo=await sharp({create:{width:500,height:350,channels:3,background:"#bcab88"}}).png().toBuffer();
   await fileChooser.setFiles({name:"supplies.png",mimeType:"image/png",buffer:photo});
   await p.getByAltText("Photo preview",{exact:true}).waitFor();
-  // Voice recording uses only one tap-to-start/stop control and no language selector.
+  // Voice recording stays tap-to-start/stop. Spoken language is a button group, not a menu.
   assert.equal(await p.locator('main select').count(),0);
+  const spoken=p.getByRole("radiogroup",{name:"Spoken language",exact:true});
+  assert.equal(await spoken.getByRole("radio",{name:"English",exact:true}).getAttribute("aria-checked"),"true");
+  await spoken.getByRole("radio",{name:"Cantonese",exact:true}).click();
+  assert.equal(await spoken.getByRole("radio",{name:"Cantonese",exact:true}).getAttribute("aria-checked"),"true");
+  await spoken.getByRole("radio",{name:"Mandarin",exact:true}).click();
   await p.getByRole("button",{name:"Tap to speak",exact:true}).click();
   await p.getByRole("button",{name:"Tap to stop",exact:true}).waitFor();
   await p.waitForTimeout(300);

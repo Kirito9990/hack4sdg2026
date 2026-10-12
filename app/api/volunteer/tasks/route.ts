@@ -1,6 +1,7 @@
 import { haversineMeters, store } from "@/lib/db";
 import { currentUser, fail, json, validCoords } from "@/lib/server";
 import { quoteReward } from "@/lib/rewards";
+import { volunteerCanReceive } from "@/lib/types";
 export const runtime = "nodejs";
 export async function GET(request: Request) {
   const user = await currentUser();
@@ -22,7 +23,7 @@ export async function GET(request: Request) {
     .requests.filter(
       (r) =>
         r.status === "PENDING" &&
-        r.dispatch_action === "NEIGHBORHOOD_VOLUNTEER",
+        volunteerCanReceive(r),
     )
     .map((r) => ({ r, distance: haversineMeters(lat, lng, r.lat, r.lng) }))
     .filter(({ distance }) => distance <= 5000)

@@ -53,11 +53,11 @@ Implemented boundaries:
 
 ## Speech and image processing
 
-The resident voice control only records audio: tap once to start and again to stop. There is no browser dictation or language selector. Language interpretation and transcription are left to server-side model/provider integration.
+The resident voice control records audio: tap once to start and again to stop. A spoken-language choice selects English, Mandarin, or Cantonese before the clip is sent. There is no browser dictation.
 
 Optional backend support:
 
-- **Recorded audio:** set `DEEPGRAM_API_KEY` and enable AI processing to transcribe on submission. When the client does not provide a language, the optional adapter requests automatic language detection. Missing keys, provider errors and empty transcripts are shown honestly as unavailable. An accompanying typed description is used without claiming the recording was transcribed.
+- **Recorded audio:** set `DEEPGRAM_API_KEY` and enable AI processing to transcribe after the resident stops recording. English is `en`, Mandarin is `zh-CN` (or `zh-Hant` when the interface is Traditional Chinese), and Cantonese is `zh-HK`, on Nova-3. Automatic detection is only a fallback, and it can tell English from Mandarin; it cannot select Cantonese. Missing keys, provider errors and empty transcripts are shown honestly as unavailable. An accompanying typed description is used without claiming the recording was transcribed.
 
 Photos are previewed and resized in the browser, then independently validated and re-encoded on the server. Accepted uploads are JPEG, PNG, WebP, HEIC, and HEIF. HEIC and HEIF are converted to JPEG before storage. A request needs typed text or a successful voice transcript. An image is an optional attachment and is not interpreted by a model.
 
