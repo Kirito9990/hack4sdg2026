@@ -336,3 +336,61 @@ Additional user corrections this run: simplify login; phone examples belong in p
 - Stopping a recording threw before the audio was sent. The transcript variable reused the name of the spoken-language state, so reading the language inside that block failed. The unknown error was shown as “Connection failed. Please retry.” and /api/speech was never called.
 - The transcript now uses its own name, so the selected English, Mandarin, or Cantonese code is sent with the clip.
 - Validation: a browser recording on the local server reached POST /api/speech (400 after 4.4s for a test tone with no speech) and showed the transcription-unavailable message instead of a failed connection. The temporary account was deleted. No commit or push.
+
+### 2026-10-12 — GitHub version kept, login password eye retained
+
+- Fast-forwarded local codex/CareCall to origin 9c3cdc1 and dropped the overlapping local clarification, model, and changelog edits. The working tree now matches that commit except the login password visibility control.
+- Login still has the show/hide password button, cream styling, and English / Traditional Chinese / Simplified Chinese labels. No commit or push.
+
+### 2026-10-12 — follow-up asks one missing item, and the chat can be spoken
+
+- Follow-up questions are no longer the same two prompts. Each question asks for the first gap still missing, in order: what help is needed, one practical detail, then when the resident hopes it will be done. A gap already present in the draft, or already asked, is skipped. At most two questions are asked. A classified result, a complete draft, or Send request now still saves immediately.
+- Each chatbot question is spoken with the browser voice for the current interface language, and can be replayed. The follow-up box has its own microphone; a transcript is added to the answer, using the selected English, Mandarin, or Cantonese recognition. No extra speech provider was added.
+- Validation: node --test tests/clarify.test.mjs tests/speech-language.test.mjs passed 6/6. ESLint passed on the changed files. Browser check on the local server, with triage intercepted so no model was called: “Please buy rice.” asked only for one detail and spoke that question; answering “2 kg” then asked when it should be done. Traditional Chinese showed both questions, the replay control, and the answer microphone. At a 390px-wide viewport the page did not scroll sideways. The temporary browser interception was removed and the earlier saved position was restored. No commit or push.
+
+### 2026-10-12 — volunteer can cancel an accepted request
+
+- The assigned volunteer now has Cancel this request on an accepted task. Cancelling closes it as cancelled, stops location sharing, and earns no CarePoints. Another volunteer cannot cancel it, and a resident still cannot use this action. Confirming completion stays with the resident; a volunteer calling the completion route is still refused.
+- English, Traditional Chinese, and Simplified Chinese. The button asks for confirmation before closing.
+- Validation: node --test tests/volunteer-cancel.test.mjs passed against the local server. A fictional request was accepted, volunteer completion was refused, volunteer cancel closed it with no points, and a later resident confirmation still awarded 5 CarePoints. Temporary accounts were deleted. The open resident browser session was not switched. No model call, no commit or push.
+
+### 2026-10-12 — voice note after acceptance, police report button, transcription follows language
+
+- A resident voice recording is stored with the request. The resident can play it. A volunteer receives the playable recording only after accepting; it is not included on the nearby list, and completed records hide it.
+- Nearby requests, the open request, and history each have Report malicious act to police. The button opens the phone app at 999. CareCall does not contact the police.
+- Voice transcription no longer has a separate language picker. English uses English, Traditional Chinese uses Cantonese, and Simplified Chinese uses Mandarin.
+- Validation: node --test tests/voice-note.test.mjs and tests/speech-language.test.mjs passed. On the local volunteer nearby list, the report control was a tel:999 link, the Traditional Chinese label was 向警方報告惡意行為, and the page did not scroll sideways. No request was accepted, so the in-task player was not opened against a live request. No model call, no commit or push.
+
+### 2026-10-12 — credibility ratings after a completed request
+
+- After a request is completed, the resident and the volunteer can each leave one rating from 1 to 5. A cancelled request cannot be rated, and a second different rating is refused. CarePoints are unchanged.
+- A person is flagged as low credibility when at least two completed-request ratings average 2 out of 5 or below. One low rating is not enough. The matched partner sees the average. A nearby volunteer sees only the flag, not the score. The flag also appears on an accepted request.
+- English, Traditional Chinese, and Simplified Chinese.
+- Validation: node --test tests/ratings.test.mjs passed. The local API test completed two fictional requests, recorded 1 and 2 point ratings both ways, flagged both people, showed the flag on the next nearby listing, kept CarePoints at 10, and rejected a rating on a cancelled request. Temporary accounts were deleted. The open volunteer history only contained cancelled requests, so the rating form correctly stayed hidden there. No model call, no commit or push.
+
+### 2026-10-12 — friends after a completed request, community tab
+
+- After a request is completed, the resident and the volunteer can each accept a friendship. They become friends only when both accept. One decline blocks that request. Cancelling a request cannot start a friendship. A later completed request between the same two people stays friends without asking again. CarePoints are unchanged.
+- Community, on both the resident and volunteer tabs, lists friends by name and opens a text chat. Phone numbers in messages are masked. If either person turns chat off, the thread cannot be read. Incoming friend requests also appear there, without the other person's phone number.
+- English, Traditional Chinese, and Simplified Chinese.
+- Validation: node --test tests/friends.test.mjs and tests/friends-api.test.mjs passed. The local API test used fictional requests: one acceptance did not create a friendship, both acceptances did, chat worked both ways, a phone number in a message was masked, a decline did not add a friend, a cancelled request was refused, and CarePoints stayed at 10. Temporary accounts were deleted. The open volunteer account was not switched; its history is cancelled, so the add-friend control was not shown there. The Community tab opened and showed no friends. No model call, no commit or push.
+
+### 2026-10-12 — nearby requests ranked by urgency, waiting time, then distance
+
+- A volunteer's nearby list now orders pending requests by urgency, then by how long they have waited, then by distance. High comes before medium, low, and not assessed. Within the same urgency, the older request comes first even if it is farther away. CarePoints and matching distance limit are unchanged.
+- Each card shows its place in that order, the urgency, and the waiting time.
+- English, Traditional Chinese, and Simplified Chinese.
+- Validation: node --test tests/request-priority.test.mjs passed. The open volunteer nearby list showed one low request as priority 1 with a waiting time, in English and Traditional Chinese, without sideways scrolling. That request was not accepted. No model call, no commit or push.
+
+### 2026-10-12 — follow-up questions use Qwen3.7 Flash
+
+- Follow-up questions now come from OpenRouter model `qwen/qwen3.7-flash`. Request classification still uses `OPENROUTER_MODEL`. The question still fills only the first missing item, in order: need, one detail, then desired time, and still stops after two questions.
+- If the model times out, returns nothing usable, or includes a phone number, the existing fixed question is shown and the resident can still send the request directly.
+- Validation: node --test tests/clarify-question.test.mjs and tests/clarify.test.mjs passed. No live OpenRouter call was made. No commit or push.
+
+### 2026-10-12 — follow-up questions stay on a layer until the answer is specific
+
+- A vague answer no longer skips ahead. The questions move in order: what help is needed, then how many or which floor, then when. If the answer is still too general, the same step is asked once more in shorter words. A step already answered is skipped. At most four questions are asked, and the resident can still send the request at any time.
+- A high-urgency result is saved immediately. A lower or unassessed result keeps asking while a step is missing. Qwen3.7 Flash writes the question; if it fails, the fixed shorter question is used.
+- English, Traditional Chinese, and Simplified Chinese.
+- Validation: node --test tests/clarify.test.mjs and tests/clarify-question.test.mjs passed. “幫忙” stays on the first step, “買米” moves to quantity, and “2 kg” moves to time. No live model call, no commit or push.

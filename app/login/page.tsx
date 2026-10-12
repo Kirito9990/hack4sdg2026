@@ -6,6 +6,26 @@ import PrivacyNotice from "@/app/components/privacy-notice";
 import { requestLocation, rememberPoint } from "@/lib/location-client";
 import type { User, UserRole } from "@/lib/types";
 
+function PasswordEye({ hidden }: { hidden: boolean }) {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2">
+      {hidden ? (
+        <>
+          <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z" />
+          <circle cx="12" cy="12" r="2.5" />
+        </>
+      ) : (
+        <>
+          <path d="M3 3l18 18" />
+          <path d="M10.5 6.2A10 10 0 0 1 12 6c6.5 0 10 6 10 6a18 18 0 0 1-3.2 3.8" />
+          <path d="M6.1 6.8C3.5 8.6 2 12 2 12s3.5 6 10 6c1.6 0 3-.3 4.2-.9" />
+          <path d="M9.9 9.9a2.5 2.5 0 0 0 3.2 3.2" />
+        </>
+      )}
+    </svg>
+  );
+}
+
 export default function Login() {
   const { t, setUser } = useApp(),
     router = useRouter();
@@ -13,6 +33,7 @@ export default function Login() {
     [name, setName] = useState(""),
     [phone, setPhone] = useState(""),
     [password, setPassword] = useState(""),
+    [passwordVisible, setPasswordVisible] = useState(false),
     [role, setRole] = useState<UserRole>("resident"),
     [agreed, setAgreed] = useState(false),
     [busy, setBusy] = useState(false),
@@ -21,6 +42,7 @@ export default function Login() {
   function switchMode(next: "login" | "create") {
     setMode(next);
     setError("");
+    setPasswordVisible(false);
   }
   return (
     <main className="mobile-app login-workspace">
@@ -99,18 +121,30 @@ export default function Login() {
             onChange={(e) => setPhone(e.target.value)}
           />
         </label>
-        <label className="field">
-          {t("password")}
-          <input
-            required
-            type="password"
-            autoComplete={mode === "create" ? "new-password" : "current-password"}
-            minLength={8}
-            maxLength={72}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-        </label>
+        <div className="field">
+          <label htmlFor="account-password">{t("password")}</label>
+          <div className="password-field">
+            <input
+              id="account-password"
+              required
+              type={passwordVisible ? "text" : "password"}
+              autoComplete={mode === "create" ? "new-password" : "current-password"}
+              minLength={8}
+              maxLength={72}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            <button
+              type="button"
+              className="password-toggle"
+              aria-pressed={passwordVisible}
+              aria-label={t(passwordVisible ? "hidePassword" : "showPassword")}
+              onClick={() => setPasswordVisible((visible) => !visible)}
+            >
+              <PasswordEye hidden={!passwordVisible} />
+            </button>
+          </div>
+        </div>
         <div className="grid grid-cols-2 gap-3">
           {(["resident", "volunteer"] as const).map((r) => (
             <button

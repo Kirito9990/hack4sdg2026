@@ -76,6 +76,7 @@ export type HelpRequest = TriageFields & {
   source: "openrouter" | "gemini" | "fallback";
   classification?: SafetyClassification;
   audioStatus: "none" | "transcribed" | "provided" | "unavailable";
+  audioData?: string;
   imageStatus: "none" | "prepared" | "analyzed";
   imageWidth?: number;
   imageHeight?: number;
@@ -95,6 +96,7 @@ export type RequestView = Omit<HelpRequest, "lat" | "lng"> & {
   lat?: number;
   lng?: number;
   imageHidden?: boolean;
+  audioHidden?: boolean;
   volunteerLocationSharing?: boolean;
   volunteerLocation?: SharedLocation;
   residentName: string;
@@ -105,6 +107,10 @@ export type RequestView = Omit<HelpRequest, "lat" | "lng"> & {
   callPhone: string | null;
   testCall: boolean;
   distanceMeters?: number;
+  partnerCredibility?: { average: number; count: number; flagged: boolean };
+  myRating?: number;
+  friendStatus?: "none" | "outgoing" | "incoming" | "friends" | "declined";
+  friendshipId?: string;
 };
 export function isTriageFields(value: unknown): value is TriageFields {
   if (!value || typeof value !== "object") return false;

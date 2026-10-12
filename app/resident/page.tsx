@@ -6,6 +6,7 @@ import { useLocation, useRequests } from "@/lib/client-hooks";
 import RequestForm from "@/app/components/request-form";
 import RequestPanel from "@/app/components/request-panel";
 import HistoryList from "@/app/components/history-list";
+import Community from "@/app/components/community";
 import AcceptanceNotice from "@/app/components/acceptance-notice";
 export default function Resident() {
   const { t } = useApp(),
@@ -33,7 +34,9 @@ export default function Resident() {
                 ? "requestHelp"
                 : actualTab === "history"
                   ? "history"
-                  : "activity",
+                  : actualTab === "community"
+                    ? "community"
+                    : "activity",
             )}
           </h1>
         </div>
@@ -70,7 +73,9 @@ export default function Resident() {
             }}
           />
         </div>
-        {actualTab === "history" ? (
+        {actualTab === "community" ? (
+          <Community />
+        ) : actualTab === "history" ? (
           <HistoryList requests={feed.requests.filter(r=>r.status==='CLOSED')}/>
         ) : actualTab === "activity" ? (
           <div className="activity-stage">
@@ -109,6 +114,7 @@ export default function Resident() {
         {[
           ["newHelp", "＋"],
           ["activity", "◷"],
+          ["community", "☺"],
           ["history", "◴"],
         ].filter(([k]) => k !== "activity" || ongoing.length > 0).map(([k, icon]) => (
           <button

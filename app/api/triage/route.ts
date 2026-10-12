@@ -1,13 +1,13 @@
 import sharp from "sharp";
 import { storedChatImage } from "@/lib/chat-image";
 import { rasterizeUpload } from "@/lib/heif-image";
-import { triageTextWithOpenRouter } from "@/lib/openrouter";
-import { holdForClarification } from "@/lib/clarify";
+import { triageTextWithOpenRouter, clarifyQuestion } from "@/lib/openrouter";
+import { askedSlots, holdForClarification, nextClarifySlot } from "@/lib/clarify";
 import { classifyPrepared, prepareAiInput } from "@/lib/pipeline";
 import { effectiveRequestText } from "@/lib/request-content";
 import {
-  acceptedDeepgramLanguage,
   audioContentType,
+  transcriptionLanguage,
   transcribeWithDeepgram,
 } from "@/lib/speech";
 import { redact, store, persist, view } from "@/lib/db";
@@ -35,7 +35,7 @@ export async function POST(request: Request) {
   )
     ? String(form.get("locale"))
     : "en";
-  const language = acceptedDeepgramLanguage(String(form.get("language")));
+  const language = transcriptionLanguage(locale);
   const audio = upload(form.get("audio")),
     image = upload(form.get("image"));
   const typed = String(form.get("text") || "").trim();
@@ -96,6 +96,10 @@ export async function POST(request: Request) {
     ? Buffer.from(await audio.arrayBuffer())
     : undefined;
   let audioStatus: HelpRequest["audioStatus"] = audio ? "unavailable" : "none";
+  const audioType = audio ? audioContentType(audio.type) || "audio/webm" : "";
+  const audioData = audioBuffer
+    ? "data:" + audioType + ";base64," + audioBuffer.toString("base64")
+    : undefined;
   if (audio && typed) audioStatus = "provided";
   if (
     audioBuffer &&
@@ -166,19 +170,35 @@ export async function POST(request: Request) {
     source,
     transcript: safeText || undefined,
     audioStatus,
+    audioData,
     imageStatus,
     imageWidth,
     imageHeight,
     imageData,
   };
+  const asked = askedSlots(form.get("asked"));
+  const slot = nextClarifySlot(redact(typed) || safeText, asked);
   if (
     holdForClarification({
       clarify: form.get("clarify") === "1",
       allowAI: user.privacy.allowAI === true,
       urgency: triage.urgency_level,
+      slot,
     })
-  )
-    return json({ needsClarification: true });
+  ) {
+    const question = slot
+      ? await clarifyQuestion({
+          text: redact(typed) || safeText,
+          slot,
+          locale,
+          attempt: asked.filter((item) => item === slot).length + 1,
+        })
+      : null;
+    return json({
+      needsClarification: true,
+      ...(slot ? { slot, ...(question ? { question } : {}) } : {}),
+    });
+  }
   store().requests.push(saved);
   persist();
   return json(view(saved, user), 201);

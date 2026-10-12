@@ -1,8 +1,12 @@
-import {loadSnapshot,writeSnapshot,rewardForRequest} from "./persistence.mjs";
+import {loadSnapshot,writeSnapshot,rewardForRequest,ratingsFor,ratingFrom,friendOffer,friendshipBetween} from "./persistence.mjs";
+export { ratingsFor };
 import type { RewardEvent, BadgeUnlock } from "./rewards";
 import {historyVisible} from "./retention";
 import { sharedLocation } from "./volunteer-location";
 import type { ChatMessage, HelpRequest, Session, User } from "@/lib/types";
+import { shareVoiceNote } from "@/lib/request-content";
+import { credibilitySummary } from "@/lib/ratings";
+import { offerState, type FriendDecision } from "@/lib/friends";
 type Store = {
   users: User[];
   sessions: Session[];
@@ -88,6 +92,7 @@ export function view(r: HelpRequest, user: User) {
     transcript,
     summary,
     imageData,
+    audioData,
     requirements,
     tools,
     resources,
@@ -97,6 +102,8 @@ export function view(r: HelpRequest, user: User) {
   const redactLines = (items?: string[]) =>
     items?.map((item) => redact(item, people)).filter((item) => item.trim());
   const testPhone = process.env.CARECALL_TEST_CALL_PHONE?.trim();
+  const partnerId = user.id === r.residentId ? r.volunteerId : r.residentId;
+  const mine = ratingFrom(r.id, user.id);
   const callPhone =
     active && other?.privacy.allowCalls
       ? user.role === "volunteer" && testPhone
@@ -114,6 +121,7 @@ export function view(r: HelpRequest, user: User) {
           tools: redactLines(tools),
           resources: redactLines(resources),
           imageHidden: !!imageData,
+          audioHidden: !!audioData,
         }
       : {
           lat,
@@ -121,6 +129,15 @@ export function view(r: HelpRequest, user: User) {
           transcript,
           summary,
           imageData,
+          ...(shareVoiceNote({
+            status: r.status,
+            audioData,
+            userId: user.id,
+            residentId: r.residentId,
+            volunteerId: r.volunteerId,
+          })
+            ? { audioData }
+            : {}),
           requirements,
           tools,
           resources,
@@ -134,5 +151,28 @@ export function view(r: HelpRequest, user: User) {
     chatAvailable: chatOpen(r),
     callPhone,
     testCall: !!(callPhone && testPhone && user.role === "volunteer"),
+    ...(partnerId
+      ? {
+          partnerCredibility: credibilitySummary(ratingsFor(partnerId)),
+        }
+      : {}),
+    ...(typeof mine === "number" ? { myRating: mine } : {}),
+    ...(r.closedReason === "completed" && partnerId && partnerId !== user.id
+      ? friendFields(r.id, user.id, partnerId)
+      : {}),
+  };
+}
+function knownDecision(value: unknown): FriendDecision | null {
+  return value === "accept" || value === "decline" ? value : null;
+}
+function friendFields(requestId: string, userId: string, partnerId: string) {
+  const friendship = friendshipBetween(userId, partnerId);
+  return {
+    friendStatus: offerState(
+      knownDecision(friendOffer(requestId, userId)),
+      knownDecision(friendOffer(requestId, partnerId)),
+      !!friendship,
+    ),
+    ...(friendship ? { friendshipId: friendship.id } : {}),
   };
 }

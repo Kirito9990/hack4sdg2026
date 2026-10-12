@@ -1,7 +1,9 @@
-import { haversineMeters, store } from "@/lib/db";
+import { haversineMeters, ratingsFor, store } from "@/lib/db";
+import { credibilitySummary } from "@/lib/ratings";
 import { currentUser, fail, json, validCoords } from "@/lib/server";
 import { quoteReward } from "@/lib/rewards";
 import { volunteerCanReceive } from "@/lib/types";
+import { compareRequestPriority } from "@/lib/request-priority";
 export const runtime = "nodejs";
 export async function GET(request: Request) {
   const user = await currentUser();
@@ -13,12 +15,6 @@ export async function GET(request: Request) {
   const lat = Number(params.get("lat")),
     lng = Number(params.get("lng"));
   if (!validCoords(lat, lng)) return fail("locationError");
-  const rank: Record<string, number> = {
-    HIGH: 0,
-    MEDIUM: 1,
-    LOW: 2,
-    NOT_ASSESSED: 3,
-  };
   const tasks = store()
     .requests.filter(
       (r) =>
@@ -27,10 +23,11 @@ export async function GET(request: Request) {
     )
     .map((r) => ({ r, distance: haversineMeters(lat, lng, r.lat, r.lng) }))
     .filter(({ distance }) => distance <= 5000)
-    .sort(
-      (a, b) =>
-        (rank[a.r.urgency_level] ?? 3) - (rank[b.r.urgency_level] ?? 3) ||
-        a.distance - b.distance,
+    .sort((a, b) =>
+      compareRequestPriority(
+        { urgency: a.r.urgency_level, createdAt: a.r.createdAt, distance: a.distance, id: a.r.id },
+        { urgency: b.r.urgency_level, createdAt: b.r.createdAt, distance: b.distance, id: b.r.id },
+      ),
     )
     .map(({ r, distance }) => ({
       id: r.id,
@@ -45,6 +42,7 @@ export async function GET(request: Request) {
       resources: r.resources || [],
       distanceMeters: Math.round(distance / 500) * 500,
       createdAt: r.createdAt,
+      residentFlagged: credibilitySummary(ratingsFor(r.residentId)).flagged,
     }));
   return json({ tasks });
 }

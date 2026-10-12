@@ -3,6 +3,9 @@ import { useState } from "react";
 import { useApp } from "./providers";
 import { Conversation } from "./request-panel";
 import { RequestNeeds } from "./priority-card";
+import ReportPolice from "./report-police";
+import { CredibilitySummary, RatePartner } from "./credibility";
+import { FriendOffer } from "./community";
 import type { RequestView } from "@/lib/types";
 
 export default function HistoryList({ requests }: { requests: RequestView[] }) {
@@ -25,6 +28,11 @@ export default function HistoryList({ requests }: { requests: RequestView[] }) {
       <RequestNeeds requirements={r.requirements} tools={r.tools} resources={r.resources} />
       {r.transcript && r.transcript !== r.summary && <p className="whitespace-pre-wrap break-words"><span className="font-semibold">{t("whatTheySaid")} </span>{r.transcript}</p>}
       {r.imageHidden && <p>{t("historyPhotoHidden")}</p>}
+      {r.audioHidden && <p>{t("voiceNoteHidden")}</p>}
+      <CredibilitySummary credibility={r.partnerCredibility} />
+      <RatePartner request={r} />
+      <FriendOffer request={r} />
+      <ReportPolice />
       <p className="text-sm text-muted">{t("historyPrivacy")}</p>
       <p className="text-sm text-muted">{t("historySevenDays")}</p>
     </div>}

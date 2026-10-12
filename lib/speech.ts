@@ -20,6 +20,19 @@ const DEEPGRAM_LANGUAGE: Record<string, string> = {
   "zh-HK": "zh-HK",
 };
 
+export function messageVoiceLang(locale: string) {
+  if (locale === "zh-Hans") return "zh-CN";
+  if (locale === "zh-Hant") return "zh-HK";
+  return "en";
+}
+
+/** Transcription follows the interface language: English, Cantonese for Traditional Chinese, Mandarin for Simplified Chinese. */
+export function transcriptionLanguage(locale: string) {
+  if (locale === "zh-Hans") return "zh-CN";
+  if (locale === "zh-Hant") return "zh-HK";
+  return "en";
+}
+
 export function spokenToDeepgram(spoken: "en" | "zh" | "yue", locale: string) {
   if (spoken === "yue") return "zh-HK";
   if (spoken === "zh") return locale === "zh-Hant" ? "zh-Hant" : "zh-CN";

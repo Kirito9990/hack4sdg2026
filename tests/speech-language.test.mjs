@@ -4,7 +4,15 @@ import {
   acceptedDeepgramLanguage,
   listenSearchParams,
   spokenToDeepgram,
+  transcriptionLanguage,
 } from "../lib/speech.ts";
+
+test("voice transcription follows the interface language", () => {
+  assert.equal(transcriptionLanguage("en"), "en");
+  assert.equal(transcriptionLanguage("zh-Hans"), "zh-CN");
+  assert.equal(transcriptionLanguage("zh-Hant"), "zh-HK");
+  assert.equal(transcriptionLanguage("fr"), "en");
+});
 
 test("mandarin and cantonese use explicit nova-3 language codes", () => {
   assert.equal(spokenToDeepgram("en", "en"), "en");

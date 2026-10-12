@@ -5,11 +5,13 @@ import { useRoleProfile } from "@/lib/profile";
 import { useLocation, useRequests } from "@/lib/client-hooks";
 import LocationPicker from "@/app/components/location-picker";
 import HistoryList from "@/app/components/history-list";
+import Community from "@/app/components/community";
 import RequestPanel from "@/app/components/request-panel";
 import PriorityCard from "@/app/components/priority-card";
 import VolunteerLocationSharing from "@/app/components/volunteer-location-sharing";
 import AcceptanceNotice from "@/app/components/acceptance-notice";
 import { ImpactSummary } from "@/app/components/impact";
+import { waitingParts } from "@/lib/request-priority";
 import type { RequestCategory, UrgencyLevel, User } from "@/lib/types";
 type Task = {
   rewardPoints: number;
@@ -23,7 +25,15 @@ type Task = {
   tools?: string[];
   resources?: string[];
   distanceMeters: number;
+  createdAt?: string;
+  residentFlagged?: boolean;
 };
+function waitingLabel(createdAt: string | undefined, t: (key: string) => string) {
+  if (!createdAt) return "";
+  const parts = waitingParts(createdAt);
+  if (parts.key === "waitingNow") return t("waitingNow");
+  return t("waitingFor") + " " + parts.count + " " + t(parts.key);
+}
 export default function Volunteer() {
   const { t, user, setUser } = useApp(),
     { ready, profile } = useRoleProfile("volunteer"),
@@ -79,7 +89,9 @@ export default function Volunteer() {
                 ? "currentTask"
                 : actualTab === "history"
                   ? "history"
-                  : "nearby",
+                  : actualTab === "community"
+                    ? "community"
+                    : "nearby",
             )}
           </h1>
         </div>
@@ -133,7 +145,7 @@ export default function Volunteer() {
         )}
       <div className="app-stage">
         {actualTab === "allTasks" && <ImpactSummary refreshKey={feed.requests.map(r => r.id + r.status).join(",")} />}
-        {actualTab === "history" ? <HistoryList requests={feed.requests.filter(r=>r.status==="CLOSED")}/> : actualTab === "activity" ? (
+        {actualTab === "community" ? <Community /> : actualTab === "history" ? <HistoryList requests={feed.requests.filter(r=>r.status==="CLOSED")}/> : actualTab === "activity" ? (
           <div className="activity-stage">
             {request ? (
               <RequestPanel
@@ -171,17 +183,33 @@ export default function Volunteer() {
         ) : (
           <div className="stage-scroll">
             <p className="text-sm text-muted mb-3">{t("nearbyHint")}</p>
+            <p className="text-sm text-muted mb-3">{t("priorityOrder")}</p>
             {tasks.length ? (
               <ul className="task-list">
-                {tasks.map((task) => (
+                {tasks.map((task, index) => (
                   <li key={task.id}>
-                    <PriorityCard {...task} />
+                    <PriorityCard {...task} rank={index + 1} />
+                    {task.residentFlagged && (
+                      <p className="credibility-flag" role="status">
+                        {t("lowCredibility")}
+                      </p>
+                    )}
                     {task.rewardPoints > 0 && <p className="task-reward">✦ {task.rewardPoints} {t("rewardOffer")}</p>}
-                    <div className="flex items-center justify-between gap-3 p-3">
+                    <div className="flex flex-wrap items-center justify-between gap-3 p-3">
                       <span className="text-sm">
+                        {task.createdAt ? (
+                          <span className="waiting-time">{waitingLabel(task.createdAt, t)}</span>
+                        ) : null}
+                        {task.createdAt ? " · " : ""}
                         {t("approx")} {(task.distanceMeters / 1000).toFixed(1)}{" "}
                         {t("km")}
                       </span>
+                      <a
+                        className="report-link"
+                        href={"tel:" + (process.env.NEXT_PUBLIC_EMERGENCY_NUMBER || "999")}
+                      >
+                        {t("reportPolice")}
+                      </a>
                       <button
                         className="button"
                         disabled={!!accepting}
@@ -221,6 +249,7 @@ export default function Volunteer() {
         {[
           ["allTasks", "⌕"],
           ["activity", "◷"],
+          ["community", "☺"],
           ["history", "◴"],
         ].filter(([k]) => k !== "activity" || !!active).map(([k, icon]) => (
           <button

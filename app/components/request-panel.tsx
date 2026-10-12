@@ -10,6 +10,8 @@ import ResidentVolunteerMap from "./resident-volunteer-map";
 import RequestProgress, { ProgressLink } from "./request-progress";
 import { IMAGE_ACCEPT, isAcceptedImage } from "@/lib/image-accept";
 import type { ChatMessage, RequestView } from "@/lib/types";
+import ReportPolice from "./report-police";
+import { CredibilityFlag } from "./credibility";
 
 function Photo({ src, label }: { src: string; label: string }) {
   return (
@@ -94,6 +96,12 @@ export function Conversation({ request: r }: { request: RequestView }) {
           <div className="bubble received">
             <p className="mb-2 text-xs">{t("requestPhoto")}</p>
             <Photo src={r.imageData} label={t("requestPhoto")} />
+          </div>
+        )}
+        {r.audioData && (
+          <div className="bubble received voice-note">
+            <p className="mb-2 text-xs">{t("voiceNote")}</p>
+            <audio controls src={r.audioData} />
           </div>
         )}
         {!r.chatReadable ? (
@@ -268,8 +276,22 @@ export default function RequestPanel({
       setBusy(false);
     }
   }
+  async function volunteerCancel() {
+    if (!confirm(t("volunteerCancelConfirm"))) return;
+    setBusy(true);
+    setError("");
+    try {
+      await post("/api/request/cancel", { id: r.id });
+      await refresh();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
   return (
     <article className="request-workspace" id={"request-" + r.id}>
+      <CredibilityFlag credibility={r.partnerCredibility} />
       {pending ? (
         <details className="pending-card">
           <summary className="pending-card-summary" aria-label={t("pendingSummaryToggle")}>
@@ -290,6 +312,12 @@ export default function RequestPanel({
             )}
             {r.imageData && (
               <Photo src={r.imageData} label={t("requestPhoto")} />
+            )}
+            {r.audioData && (
+              <div className="voice-note">
+                <p className="text-sm font-semibold">{t("voiceNote")}</p>
+                <audio controls src={r.audioData} />
+              </div>
             )}
             {r.imageHidden && <p className="text-sm text-muted">{t("historyPhotoHidden")}</p>}
             {r.residentAddress && <div><strong>{t("defaultAddress")}</strong><p className="whitespace-pre-line">{r.residentAddress}</p></div>}
@@ -395,14 +423,6 @@ export default function RequestPanel({
           {t(error)}
         </p>
       )}
-      {!closed && r.dispatch_action.startsWith("EMERGENCY") && (
-        <a
-          className="button bg-danger"
-          href={"tel:" + (process.env.NEXT_PUBLIC_EMERGENCY_NUMBER || "999")}
-        >
-          {t("emergencyCall")} 999
-        </a>
-      )}
       {!closed &&
         (resident ? (
           <button
@@ -414,7 +434,24 @@ export default function RequestPanel({
           >
             {t(busy ? "saving" : accepted ? "finishHelp" : "cancelRequest")}
           </button>
+        ) : accepted ? (
+          <button
+            className="button secondary w-full"
+            disabled={busy}
+            onClick={() => void volunteerCancel()}
+          >
+            {t(busy ? "saving" : "volunteerCancel")}
+          </button>
         ) : null)}
+      {!closed && r.dispatch_action.startsWith("EMERGENCY") && (
+        <a
+          className="button bg-danger"
+          href={"tel:" + (process.env.NEXT_PUBLIC_EMERGENCY_NUMBER || "999")}
+        >
+          {t("emergencyCall")} 999
+        </a>
+      )}
+      <ReportPolice />
     </article>
   );
 }

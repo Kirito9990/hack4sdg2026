@@ -46,6 +46,7 @@ export default function PriorityCard({
   requirements,
   tools,
   resources,
+  rank,
 }: {
   urgency_level: UrgencyLevel;
   category: RequestCategory;
@@ -54,6 +55,7 @@ export default function PriorityCard({
   requirements?: string[];
   tools?: string[];
   resources?: string[];
+  rank?: number;
 }) {
   const { t } = useApp();
   const assessed = source !== "fallback";
@@ -65,7 +67,15 @@ export default function PriorityCard({
       }
     >
       <div className="flex items-center justify-between gap-3">
-        <strong>{t(category)}</strong>
+        <strong className="priority-title">
+          {rank ? (
+            <span className="priority-rank">
+              <span className="sr-only">{t("priorityRank")} </span>
+              {rank}
+            </span>
+          ) : null}
+          {t(category)}
+        </strong>
         <span className="priority-pill">
           {t(assessed ? urgency_level : "notAssessed")}
         </span>
