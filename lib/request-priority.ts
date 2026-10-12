@@ -26,6 +26,14 @@ function waitedAt(createdAt: string) {
   return Number.isFinite(time) ? time : Number.POSITIVE_INFINITY;
 }
 
+/** The first poll records what is already nearby. Later polls return only new ids. */
+export function unseenTasks<T extends { id: string }>(seen: ReadonlySet<string> | null, tasks: readonly T[]) {
+  const next = new Set(seen ?? []);
+  const fresh = seen ? tasks.filter((task) => !seen.has(task.id)) : [];
+  for (const task of tasks) next.add(task.id);
+  return { seen: next, fresh };
+}
+
 export function waitingParts(createdAt: string, now = Date.now()) {
   const started = Date.parse(createdAt);
   const elapsed = Number.isFinite(started) ? Math.max(0, now - started) : 0;

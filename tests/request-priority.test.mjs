@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { compareRequestPriority, waitingParts } from "../lib/request-priority.ts";
+import { compareRequestPriority, unseenTasks, waitingParts } from "../lib/request-priority.ts";
 
 const item = (over) => ({
   urgency: "LOW",
@@ -30,6 +30,14 @@ test("distance breaks a tie on urgency and waiting time", () => {
   const far = item({ distance: 2000, id: "far" });
   assert.ok(compareRequestPriority(near, far) < 0);
   assert.equal(compareRequestPriority(item({ id: "a" }), item({ id: "b" })), "a".localeCompare("b"));
+});
+
+test("the first nearby list does not pop up, and a later request does", () => {
+  const first = unseenTasks(null, [{ id: "old" }]);
+  assert.deepEqual(first.fresh, []);
+  const next = unseenTasks(first.seen, [{ id: "old" }, { id: "new" }]);
+  assert.deepEqual(next.fresh.map((task) => task.id), ["new"]);
+  assert.deepEqual(unseenTasks(next.seen, [{ id: "old" }, { id: "new" }]).fresh, []);
 });
 
 test("waiting time uses minutes, then hours, then days", () => {

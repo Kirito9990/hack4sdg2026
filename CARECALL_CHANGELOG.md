@@ -414,3 +414,9 @@ Additional user corrections this run: simplify login; phone examples belong in p
 - Reaching 100, 500, or 1000 earned CarePoints still grants the existing award. Spending points does not remove it.
 - English, Traditional Chinese, and Simplified Chinese. These offers are not a live payment.
 - Validation: node --test tests/redeem.test.mjs passed. The open browser session was a resident, so the volunteer impact page was not opened and no points were spent. No model call, no commit or push.
+
+### 2026-10-13 — volunteers see a popup for a new nearby request
+
+- An on-shift volunteer now gets a popup when a request appears nearby after the list has already loaded. The first list does not pop up. The popup shows the category, urgency, and approximate distance, and can open the nearby list. It does not show the resident's name, phone, or address.
+- English, Traditional Chinese, and Simplified Chinese.
+- Validation: node --test tests/request-priority.test.mjs passed. A later live check created one nearby test request with AI off. The open volunteer page popped up “Other · Not assessed · Approx. 0.0 km” without changing the request already in progress. No model call, no commit or push.

@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api, post, useApp } from "@/app/components/providers";
 import { useRoleProfile } from "@/lib/profile";
 import { useLocation, useRequests } from "@/lib/client-hooks";
@@ -11,7 +11,7 @@ import PriorityCard from "@/app/components/priority-card";
 import VolunteerLocationSharing from "@/app/components/volunteer-location-sharing";
 import AcceptanceNotice from "@/app/components/acceptance-notice";
 import { ImpactSummary } from "@/app/components/impact";
-import { waitingParts } from "@/lib/request-priority";
+import { unseenTasks, waitingParts } from "@/lib/request-priority";
 import type { RequestCategory, UrgencyLevel, User } from "@/lib/types";
 type Task = {
   rewardPoints: number;
@@ -43,7 +43,10 @@ export default function Volunteer() {
     [error, setError] = useState(""),
     [accepting, setAccepting] = useState(""),
     [tab, setTab] = useState("allTasks"),
-    [shiftBusy, setShiftBusy] = useState(false);
+    [shiftBusy, setShiftBusy] = useState(false),
+    [incoming, setIncoming] = useState<{ task: Task; count: number } | null>(null);
+  const seenTasks = useRef<Set<string> | null>(null),
+    incomingDialog = useRef<HTMLDialogElement>(null);
   const available = !!user?.available,
     active = feed.requests.find((r) => r.status === "ACCEPTED");
   const request = active;
@@ -62,6 +65,9 @@ export default function Volunteer() {
             geo.coords!.lng,
         );
         if (live) {
+          const arrival = unseenTasks(seenTasks.current, b.tasks);
+          seenTasks.current = arrival.seen;
+          if (arrival.fresh.length) setIncoming({ task: arrival.fresh[0], count: arrival.fresh.length });
           setTasks(b.tasks);
           setError("");
         }
@@ -76,10 +82,49 @@ export default function Volunteer() {
       clearInterval(id);
     };
   }, [geo.coords, profile, available]);
+  useEffect(() => {
+    const node = incomingDialog.current;
+    if (!node) return;
+    if (incoming && !node.open) node.showModal();
+    if (!incoming && node.open) node.close();
+  }, [incoming]);
   if (!ready || !profile) return <main className="page">{t("loading")}</main>;
   return (
     <main className={"mobile-app" + (actualTab === "activity" && active ? " active-task" : "")}>
       <AcceptanceNotice requests={feed.requests} />
+      <dialog
+        ref={incomingDialog}
+        className="incoming-request-dialog"
+        aria-labelledby="incoming-request-title"
+        onClose={() => setIncoming(null)}
+        onClick={(e) => {
+          if (e.target === e.currentTarget) incomingDialog.current?.close();
+        }}
+      >
+        {incoming && (
+          <>
+            <button className="drawer-close" aria-label={t("closeMenu")} onClick={() => incomingDialog.current?.close()}>×</button>
+            <p className="eyebrow">{t("newRequestTitle")}</p>
+            <h2 id="incoming-request-title">{t(incoming.task.category)}</h2>
+            <p>
+              <span className="priority-pill">{t(incoming.task.source === "fallback" ? "notAssessed" : incoming.task.urgency_level)}</span>
+              {" · "}
+              {t("approx")} {(incoming.task.distanceMeters / 1000).toFixed(1)} {t("km")}
+            </p>
+            {incoming.count > 1 && <p>{t("newRequestMore").replace("{n}", String(incoming.count))}</p>}
+            <button
+              className="button w-full"
+              type="button"
+              onClick={() => {
+                setTab("allTasks");
+                incomingDialog.current?.close();
+              }}
+            >
+              {t("viewRequests")}
+            </button>
+          </>
+        )}
+      </dialog>
       <div className="workspace-heading">
         <div>
           <p className="eyebrow">{t("volunteer")}</p>

@@ -518,6 +518,9 @@ export const messages = {
     "附近列表显示大概位置；接单志愿者才可看到精确求助位置。",
   ],
   nearby: ["Nearby requests", "附近請求", "附近请求"],
+  newRequestTitle: ["New request nearby", "附近有新的求助", "附近有新的求助"],
+  newRequestMore: ["{n} new requests are nearby.", "附近有 {n} 項新求助。", "附近有 {n} 项新求助。"],
+  viewRequests: ["View requests", "查看求助", "查看求助"],
   nearbyHint: [
     "Within 5 km · approximate pins before acceptance",
     "5 公里內 · 接單前顯示大概位置",
