@@ -57,13 +57,13 @@ The resident voice control records audio: tap once to start and again to stop. A
 
 Optional backend support:
 
-- **Recorded audio:** set `DEEPGRAM_API_KEY` and enable AI processing to transcribe after the resident stops recording. English is `en`, Mandarin is `zh-CN` (or `zh-Hant` when the interface is Traditional Chinese), and Cantonese is `zh-HK`, on Nova-3. Automatic detection is only a fallback, and it can tell English from Mandarin; it cannot select Cantonese. Missing keys, provider errors and empty transcripts are shown honestly as unavailable. An accompanying typed description is used without claiming the recording was transcribed.
+- **Recorded audio:** set `OPENROUTER_API_KEY` and enable AI processing to transcribe after the resident stops recording. The same `qwen/qwen3.8-omni-flash` model writes the transcript, the follow-up question, and the priority classification. English stays English, Mandarin is written in Simplified Chinese, and Cantonese is written in Traditional Chinese. Browser recordings are converted to 16 kHz WAV before upload. Missing keys, provider errors and empty transcripts are shown honestly as unavailable. An accompanying typed description is used without claiming the recording was transcribed.
 
 Photos are previewed and resized in the browser, then independently validated and re-encoded on the server. Accepted uploads are JPEG, PNG, WebP, HEIC, and HEIF. HEIC and HEIF are converted to JPEG before storage. A request needs typed text or a successful voice transcript. An image is an optional attachment and is not interpreted by a model.
 
 Existing optional adapters:
 
-- `OPENROUTER_API_KEY`: structured text triage.
+- `OPENROUTER_API_KEY`: speech transcription, follow-up questions, and structured text triage.
 - Photos are optional request attachments. They are stored with the request and are not sent to a model.
 - Model names can be configured in the environment.
 
@@ -143,7 +143,7 @@ The teammate built the Next.js resident/volunteer foundation, voice/photo submis
 
 ### Important remaining limits
 
-- Deepgram and OpenRouter need configured keys and account consent. A photo is stored as an attachment and is not classified. Image resizing and EXIF removal work without an LLM. Recording alone does not mean speech was transcribed.
+- OpenRouter needs a configured key and account consent. A photo is stored as an attachment and is not classified. Image resizing and EXIF removal work without an LLM. Recording alone does not mean speech was transcribed.
 - Calls use the device phone app. CareCall does not yet implement browser VoIP, WebRTC, a PSTN provider, or call recording. No live call was placed during tests.
 - Location permission belongs to the browser and can be revoked. Database persistence remembers account preferences; it cannot make browser permission permanent.
 - SQLite currently supports one server process. Render's free filesystem is ephemeral, so deploying this code does not guarantee preservation across redeploys or instance replacement. Use a persistent disk or managed database for durable production history.

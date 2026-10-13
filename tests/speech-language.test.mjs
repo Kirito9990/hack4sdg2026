@@ -2,8 +2,9 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   acceptedDeepgramLanguage,
-  listenSearchParams,
+  openRouterAudioFormat,
   spokenToDeepgram,
+  transcriptInstruction,
   transcriptionLanguage,
 } from "../lib/speech.ts";
 
@@ -14,7 +15,7 @@ test("voice transcription follows the interface language", () => {
   assert.equal(transcriptionLanguage("fr"), "en");
 });
 
-test("mandarin and cantonese use explicit nova-3 language codes", () => {
+test("mandarin and cantonese stay explicit for the transcription prompt", () => {
   assert.equal(spokenToDeepgram("en", "en"), "en");
   assert.equal(spokenToDeepgram("zh", "en"), "zh-CN");
   assert.equal(spokenToDeepgram("zh", "zh-Hans"), "zh-CN");
@@ -23,16 +24,14 @@ test("mandarin and cantonese use explicit nova-3 language codes", () => {
   assert.equal(spokenToDeepgram("yue", "zh-Hans"), "zh-HK");
   assert.equal(spokenToDeepgram("yue", "zh-Hant"), "zh-HK");
 
-  for (const code of ["en", "zh-CN", "zh-Hant", "zh-HK"]) {
+  for (const code of ["en", "zh-CN", "zh-Hant", "zh-HK"])
     assert.equal(acceptedDeepgramLanguage(code), code);
-    const params = listenSearchParams(code);
-    assert.equal(params.get("language"), code);
-    assert.equal(params.get("detect_language"), null);
-    assert.equal(params.get("model"), process.env.DEEPGRAM_MODEL || "nova-3");
-  }
-
-  const detected = listenSearchParams("auto");
-  assert.equal(detected.get("language"), null);
-  assert.deepEqual(detected.getAll("detect_language"), ["en", "zh"]);
   assert.equal(acceptedDeepgramLanguage("zh-HK-extra"), "auto");
+  assert.match(transcriptInstruction("zh-HK"), /Cantonese/);
+  assert.match(transcriptInstruction("zh-CN"), /Mandarin/);
+  assert.equal(transcriptInstruction("en"), "English");
+  assert.equal(openRouterAudioFormat("audio/wav"), "wav");
+  assert.equal(openRouterAudioFormat("audio/webm;codecs=opus"), "");
+  assert.equal(openRouterAudioFormat("audio/mp4"), "m4a");
+  assert.equal(openRouterAudioFormat("audio/ogg"), "ogg");
 });

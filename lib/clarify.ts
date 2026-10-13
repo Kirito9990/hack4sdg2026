@@ -3,19 +3,24 @@ export const CLARIFY_SLOTS = ["need", "detail", "time"] as const;
 export type ClarifySlot = (typeof CLARIFY_SLOTS)[number];
 export type ClarifyTurn = { slot: ClarifySlot; answer: string; question: string };
 
-export const DEFAULT_CLARIFY_MODEL = "qwen/qwen3.7-flash";
-export const DEFAULT_TRIAGE_MODEL = "qwen/qwen3.7-flash";
+export const DEFAULT_CLARIFY_MODEL = "qwen/qwen3.8-omni-flash";
+export const DEFAULT_TRIAGE_MODEL = "qwen/qwen3.8-omni-flash";
 
+function configuredModel(value: string | undefined, fallback: string) {
+  const trimmed = value?.trim();
+  if (!trimmed || trimmed === "openrouter/free" || trimmed.endsWith(":free"))
+    return fallback;
+  return trimmed;
+}
+
+/** Follow-up questions. A free router is treated as unset. */
 export function clarifyModel(configured = process.env.OPENROUTER_CLARIFY_MODEL) {
-  const value = configured?.trim();
-  return value?.startsWith("qwen/") ? value : DEFAULT_CLARIFY_MODEL;
+  return configuredModel(configured, DEFAULT_CLARIFY_MODEL);
 }
 
 /** Classification model. The exhausted free router is treated as unset. */
 export function triageModel(configured = process.env.OPENROUTER_MODEL) {
-  const value = configured?.trim();
-  if (!value || value === "openrouter/free") return DEFAULT_TRIAGE_MODEL;
-  return value;
+  return configuredModel(configured, DEFAULT_TRIAGE_MODEL);
 }
 
 export function askedSlots(value: unknown): ClarifySlot[] {

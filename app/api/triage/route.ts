@@ -1,15 +1,15 @@
 import sharp from "sharp";
 import { storedChatImage } from "@/lib/chat-image";
 import { rasterizeUpload } from "@/lib/heif-image";
-import { triageTextWithOpenRouter, clarifyQuestion } from "@/lib/openrouter";
+import {
+  triageTextWithOpenRouter,
+  clarifyQuestion,
+  transcribeWithOpenRouter,
+} from "@/lib/openrouter";
 import { askedSlots, holdForClarification, nextClarifySlot, readyToConfirm } from "@/lib/clarify";
 import { classifyPrepared, prepareAiInput } from "@/lib/pipeline";
 import { effectiveRequestText } from "@/lib/request-content";
-import {
-  audioContentType,
-  transcriptionLanguage,
-  transcribeWithDeepgram,
-} from "@/lib/speech";
+import { audioContentType, transcriptionLanguage } from "@/lib/speech";
 import { redact, store, persist, view } from "@/lib/db";
 import { currentUser, fail, json, sameOrigin, validCoords } from "@/lib/server";
 import type { HelpRequest, TriageFields } from "@/lib/types";
@@ -105,11 +105,11 @@ export async function POST(request: Request) {
     audioBuffer &&
     !typed &&
     user.privacy.allowAI &&
-    process.env.DEEPGRAM_API_KEY
+    process.env.OPENROUTER_API_KEY
   ) {
     try {
       spoken = (
-        await transcribeWithDeepgram(audioBuffer, audio!.type, language)
+        await transcribeWithOpenRouter(audioBuffer, audio!.type, language)
       ).trim();
       transcript = spoken;
       audioStatus = "transcribed";

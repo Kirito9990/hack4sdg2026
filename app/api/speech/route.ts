@@ -1,8 +1,8 @@
+import { transcribeWithOpenRouter } from "@/lib/openrouter";
 import {
   acceptedDeepgramLanguage,
   audioContentType,
   transcriptionLanguage,
-  transcribeWithDeepgram,
 } from "@/lib/speech";
 import { redact } from "@/lib/db";
 import { currentUser, fail, json, sameOrigin } from "@/lib/server";
@@ -19,7 +19,7 @@ export async function POST(request: Request) {
   if (!user) return fail("sessionExpired", 401);
   if (user.role !== "resident") return fail("forbidden", 403);
   if (!user.privacy.allowAI) return fail("speechNeedsConsent", 403);
-  if (!process.env.DEEPGRAM_API_KEY) return fail("audioUnavailable");
+  if (!process.env.OPENROUTER_API_KEY) return fail("audioUnavailable");
   if (Number(request.headers.get("content-length")) > 9 * 1024 * 1024)
     return fail("fileTooLarge", 413);
   const form = await request.formData().catch(() => null);
@@ -44,7 +44,7 @@ export async function POST(request: Request) {
     : acceptedDeepgramLanguage(String(form.get("language")));
   try {
     const transcript = redact(
-      await transcribeWithDeepgram(
+      await transcribeWithOpenRouter(
         Buffer.from(await audio.arrayBuffer()),
         audio.type,
         language,

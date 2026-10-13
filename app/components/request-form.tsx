@@ -12,6 +12,7 @@ import {
 } from "@/lib/clarify";
 import { IMAGE_ACCEPT, isAcceptedImage } from "@/lib/image-accept";
 import { messageVoiceLang, transcriptionLanguage } from "@/lib/speech";
+import { recordingToWav } from "@/lib/wav";
 import { api, useApp } from "./providers";
 import type { RequestView } from "@/lib/types";
 
@@ -186,14 +187,8 @@ export default function RequestForm({
         recLock.current = false;
         if (token !== generation.current) return;
         setRecording(false);
-        const blob = new Blob(chunks, { type: r.mimeType });
-        if (!blob.size) setError("micError");
-        else if (blob.size > 8 * 1024 * 1024) setError("fileTooLarge");
-        else {
-          const target = recordTarget.current;
-          if (target === "request") setAudio(blob);
-          void applyTranscript(blob, target);
-        }
+        const blob = new Blob(chunks, { type: r.mimeType || "audio/webm" });
+        void finishRecording(blob, token);
       };
       r.onerror = () => {
         media.getTracks().forEach((t) => t.stop());
@@ -216,6 +211,25 @@ export default function RequestForm({
     } finally {
       setStarting(false);
     }
+  }
+  async function finishRecording(blob: Blob, token: number) {
+    if (!blob.size) {
+      setError("micError");
+      return;
+    }
+    if (blob.size > 8 * 1024 * 1024) {
+      setError("fileTooLarge");
+      return;
+    }
+    const wav = await recordingToWav(blob);
+    if (token !== generation.current) return;
+    if (wav.size > 8 * 1024 * 1024) {
+      setError("fileTooLarge");
+      return;
+    }
+    const target = recordTarget.current;
+    if (target === "request") setAudio(wav);
+    void applyTranscript(wav, target);
   }
   function resetDraft() {
     setText("");

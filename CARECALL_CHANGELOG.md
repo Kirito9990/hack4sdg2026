@@ -10,7 +10,7 @@ Read this file before changing CareCall. Append one entry after each run; preser
 - English / 繁體中文 / 简体中文 throughout.
 - Request submission must remain actionable. Explain missing location and offer explicit GPS permission request plus manual map selection.
 - A visible + attachment control must open the photo picker.
-- Resident voice input: microphone, tap to start/stop, plus English / Mandarin / Cantonese. No browser dictation or speech-consent workflow. Deepgram gets an explicit Nova-3 code: en, zh-CN (zh-Hant when the interface is Traditional Chinese), or zh-HK. Automatic detection cannot select Cantonese.
+- Resident voice input: microphone, tap to start/stop, plus English / Mandarin / Cantonese. No browser dictation or speech-consent workflow. OpenRouter `qwen/qwen3.8-omni-flash` transcribes the recording, asks the follow-up question, and classifies the request. The interface language is sent in the prompt: English, Mandarin in Simplified Chinese, or Cantonese in Traditional Chinese. Browser webm is converted to 16 kHz WAV before upload.
 - Account button opens a sidebar with vertically arranged account options leading to sections/pages.
 - Preserve requested matched chat/photos/calls, resident completion and volunteer shift behavior while correcting the UI.
 - Never include .env.local, secrets, or the local test-call destination in Git.
@@ -420,3 +420,14 @@ Additional user corrections this run: simplify login; phone examples belong in p
 - An on-shift volunteer now gets a popup when a request appears nearby after the list has already loaded. The first list does not pop up. The popup shows the category, urgency, and approximate distance, and can open the nearby list. It does not show the resident's name, phone, or address.
 - English, Traditional Chinese, and Simplified Chinese.
 - Validation: node --test tests/request-priority.test.mjs passed. A later live check created one nearby test request with AI off. The open volunteer page popped up “Other · Not assessed · Approx. 0.0 km” without changing the request already in progress. No model call, no commit or push.
+
+### 2026-10-13 — one OpenRouter model handles speech, follow-up, and classification
+
+- Transcription, follow-up questions, and priority classification now use OpenRouter `google/gemini-2.5-flash-lite`. Deepgram is no longer called. An unset model and `openrouter/free` both use this Gemini model. A different explicit model is still honored.
+- Browser recordings are converted to 16 kHz WAV before upload, because the chat audio input does not accept webm. English, Mandarin in Simplified Chinese, and Cantonese in Traditional Chinese are still chosen from the interface language.
+- Validation: model-selection, transcription-request, clarify, speech-language, and ai-pipeline tests passed. Auth, request validation, image formats, friends, credibility, rewards, and volunteer cancel passed against a temporary local server. No `OPENROUTER_API_KEY` was present, so no live model call was made. No commit or push.
+
+### 2026-10-13 — local OpenRouter key, Qwen Omni because Gemini is region-blocked
+
+- The teammate's OpenRouter key is in gitignored `.env.local`. The Deepgram key is stored there too, and the app does not call Deepgram.
+- A live call to `google/gemini-2.5-flash-lite` returned HTTP 403, model unavailable in this region. `qwen/qwen3.8-omni-flash` answered from the same network: a text ping, an empty transcript for a tone with no speech, one follow-up question, and a JSON priority. Transcription, follow-up, and classification now default to that model.
