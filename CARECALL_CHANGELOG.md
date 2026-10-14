@@ -518,3 +518,31 @@ Additional user corrections this run: simplify login; phone examples belong in p
 
 - `next build` stopped in TypeScript because `lib/pipeline.ts` imported `./clarify.ts`. Production typecheck does not allow a `.ts` extension. The emergency check now lives in `lib/emergency-triage.mjs`, which both the app and the tests can load.
 - Validation: `npx next build` completed, including TypeScript, and `node scripts/prepare-standalone.mjs` prepared the standalone assets. `node --test tests/clarify.test.mjs tests/ai-pipeline.test.mjs` passed. User reported the Render deploy failed. This fix is published on codex/CareCall. Render auto-deploys that branch.
+
+### 2026-10-15 — prototype corner check
+
+- Library tests for clarification, speech language, priority, friends, rewards, navigation and voice notes passed. An isolated server walk covered duplicate signup, a wrong password, photo-only and missing-location rejection, English and Chinese questions to the assistant, vague help, a bare yes, a place that is not a place, confirmation before posting, medical and fire emergencies, the 5 km limit, one active task at a time, chat before and after completion, phone masking, one-sided and mutual friends, cancelling an unmatched request, a volunteer leaving an accepted request, AI turned off, and account deletion.
+- Going back from a follow-up and editing the original words used to reopen the old question. Editing the request now starts again, and the button returns to Send request.
+- Browser check at 390×844 on the isolated server: account creation did not wait for location, a vague request opened the follow-up page, Back returned to the request, editing the words restored Send request, and Community and History showed their empty explanations in Traditional Chinese. The isolated database was removed.
+- Before publish, `npx next build` finished TypeScript with no errors, and `node scripts/prepare-standalone.mjs` prepared the standalone assets. User asked to publish this follow-up reset on codex/CareCall. Render auto-deploys that branch.
+
+### 2026-10-15 — CareCall editable pitch redesign
+
+- Produced local-artifacts/pitch-20261015/output/CareCall_Pitch_Redesigned_Editable.pptx: 10 main slides with five-minute English speaker notes plus 7 hidden Q&A slides. Screenshot/video slots intentionally remain empty at the user's explicit request. No prototype capture, video recording, app edit, commit, push or deployment.
+- Used the user-confirmed everyday-favour/social-connection narrative and cream/espresso/terracotta editorial style. Created an illustrative Hong Kong community image, labelled as illustrative. Text, media placeholder frames and two tables are native editable objects.
+- Extracted ppt-master v6.7.0 under this task's local skills folder and used its planning principles. Export/validation used the installed Presentations artifact-tool workflow; no claim of executing ppt-master's separate SVG pipeline or globally installing it.
+- Claims use the checked b1caf91 baseline, not another editor's later uncommitted changes. Preserved unvalidated outcomes, no external-user-research status, mutual friendship evidence, stored audio and default-on AI boundaries. Replaced obsolete precise cost totals with a cost framework and explicitly hypothetical 100-resident capacity arithmetic.
+- Visually reviewed all 17 slides after typography and cover-crop corrections. Final package/layout/font checks passed without findings, two native tables verified and exact final PPTX reimported successfully. Not tested in native PowerPoint. Original source PPTX unchanged.
+
+### 2026-10-15 — Pitch screenshot space revision
+
+- Created CareCall_Pitch_Redesigned_Editable_v2.pptx with seven portrait screenshot placeholders across main slides 4–7: request sent/accepted, input/AI follow-up, community invitation/friendship chat, and privacy settings. Slide 4 retains a 16:9 video space. Main presentation remains 10 slides plus 7 hidden appendix slides.
+- Reflowed text and reserved approximately phone-shaped frames rather than adding screenshots to occupied layouts. Screenshot and video capture remain deferred as requested. No application edits or deployment.
+- Visually checked the four revised slides, corrected placeholder label wrapping, and passed package, geometry, font and exact final PPTX reimport checks with no findings. Native PowerPoint not tested.
+
+### 2026-10-15 — Pitch revision after external simulated judging
+
+- Produced CareCall_Pitch_Redesigned_Editable_v3.pptx, retaining 10 main slides, 7 hidden appendices, seven main screenshot placeholders and the video placeholder. Added complementary service positioning, clearer AI value, implemented browser question playback/voice replies, evidence-led validation and a small accompanied synthetic-task walkthrough proposal.
+- Distinguished existing privacy controls from proposed screening, consent, retention and operational gates. No NGO agreement, new test result, recruitment or achieved social impact was invented. Kept rewards secondary in appendix and updated English speaker notes.
+- Historical tests remain tied to b1caf91. Supplemental source inspection of current local request-form.tsx confirmed speech synthesis and voice-answer controls; it does not establish device compatibility or retest current HEAD d093321. No prototype edits, capture, recording, commit, push or deployment.
+- Visually reviewed revised slides and passed package, layout, font and exact PPTX reimport checks. Native PowerPoint was not tested. Earlier deck versions preserved.

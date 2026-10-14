@@ -238,6 +238,14 @@ export default function RequestForm({
     setAudio(wav);
     void applyTranscript(wav, target);
   }
+  function abandonFollowUp() {
+    setAsking(false);
+    setFollowPage(false);
+    setTurns([]);
+    setPending(null);
+    setSummary(null);
+    setDraft("");
+  }
   function resetDraft() {
     setText("");
     setPhoto(null);
@@ -412,6 +420,7 @@ export default function RequestForm({
           mergeTranscript(current, lastTranscript.current, transcript),
         );
         lastTranscript.current = transcript;
+        if (asking) abandonFollowUp();
       }
       setTranscriptNote(true);
     } catch (e) {
@@ -767,6 +776,7 @@ export default function RequestForm({
             onChange={(e) => {
               setText(e.target.value);
               setCounsel("");
+              if (asking) abandonFollowUp();
             }}
             disabled={busy || transcribing}
           />
