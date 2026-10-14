@@ -464,3 +464,20 @@ Additional user corrections this run: simplify login; phone examples belong in p
 - Bottom tabs no longer use the small symbols. The words are 15px and the current tab is the existing dark ink on cream, so the selected page is obvious. The tiny uppercase role label above the page title is hidden.
 - Waiting and pending notices use warm sand instead of the cold blue. Completed and emergency colors stay as they were. On a new request, “Use my location” is a full-width 48px button and stays with Send, instead of a small control beside the hint.
 - Validation: ESLint passed. On the local server at 390×844, a temporary resident saw New request, Community, and History without clipped labels, and the request screen did not scroll. At 375×667 the location button and Send stayed on screen; the writing box can scroll inside itself. The temporary account was deleted. User asked to publish this navigation layout on codex/CareCall. Render auto-deploys that branch.
+
+### 2026-10-14 — follow-up answers on their own page
+
+- Phone tabs and waiting colors are back to the previous version. A new request no longer shows “Use my location” or “Location ready”. Location is still requested when the resident sends, and a denied location keeps the draft with the existing retry message.
+- A follow-up question now opens its own page, with a large question and answer area, a Back control, and the same photo and voice controls together. The resident can send the answer or send the request immediately. Checking the wording before posting uses that same page.
+- Validation: ESLint passed on the changed files. On the local server at 390×844, the request screen had no location labels and did not scroll. Sending “Can someone help carry my shopping?” opened the follow-up page with the question, a larger answer box, Add photo, and Tap to speak, without page scrolling. The temporary account was deleted. User asked to publish these follow-up and sent-request changes on codex/CareCall. Render auto-deploys that branch.
+
+### 2026-10-14 — follow-up asks the task, then the current place
+
+- The first follow-up asks what help is needed when that is still unclear. The second asks where the resident is now. A request that already contains both skips the questions. High urgency still posts immediately.
+- On the place question, a resident who has not allowed device location sees a reminder and can turn that privacy setting on. The browser permission is requested then, and the choice is saved.
+- Validation: `node --test tests/clarify.test.mjs tests/clarify-question.test.mjs` passed. User asked to publish these follow-up and sent-request changes on codex/CareCall. Render auto-deploys that branch.
+
+### 2026-10-15 — sent request shows category and priority
+
+- After a request is sent, the waiting card no longer has an expand control. The category and priority are shown immediately under “Request sent successfully”. The map stays, and it can still open full screen.
+- Validation: on the local server at 390×844, a temporary resident’s sent request showed Mobility and Low without an expand control, with the map still underneath. The temporary account was deleted. User asked to publish these follow-up and sent-request changes on codex/CareCall. Render auto-deploys that branch.

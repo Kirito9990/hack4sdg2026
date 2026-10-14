@@ -27,10 +27,10 @@ test("follow-up questions use Qwen3.8 Omni Flash", () => {
   assert.equal(clarifyQuestionText("Please call 91234567 now"), null);
   assert.equal(clarifyQuestionText("x".repeat(241)), null);
   assert.equal(clarifyQuestionText("What is your phone number?"), null);
-  assert.match(clarifySystemPrompt("time", "zh-Hant"), /Traditional Chinese/);
+  assert.match(clarifySystemPrompt("place", "zh-Hant"), /Traditional Chinese/);
   assert.match(clarifySystemPrompt("need", "en"), /practical task or company/);
-  assert.match(clarifySystemPrompt("detail", "en"), /Do not ask when/);
-  assert.deepEqual(askedSlots("need,nope,time"), ["need", "time"]);
+  assert.match(clarifySystemPrompt("place", "en"), /where they are right now/);
+  assert.deepEqual(askedSlots("need,nope,place"), ["need", "place"]);
 });
 
 test("speech transcription uses the same Qwen Omni model and wav audio", async () => {
@@ -88,7 +88,7 @@ test("a failed follow-up model falls back instead of throwing", async () => {
       );
     };
     assert.equal(
-      await clarifyQuestion({ text: "Please buy rice.", slot: "detail", locale: "en" }),
+      await clarifyQuestion({ text: "Please buy rice.", slot: "place", locale: "en" }),
       "How many packs of rice?",
     );
     assert.equal(model, "qwen/qwen3.8-omni-flash");
@@ -96,7 +96,7 @@ test("a failed follow-up model falls back instead of throwing", async () => {
       throw new Error("timeout");
     };
     assert.equal(
-      await clarifyQuestion({ text: "Please buy rice.", slot: "detail", locale: "en" }),
+      await clarifyQuestion({ text: "Please buy rice.", slot: "place", locale: "en" }),
       null,
     );
   } finally {

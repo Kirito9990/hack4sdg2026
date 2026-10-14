@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { useApp } from "@/app/components/providers";
 import { useRoleProfile } from "@/lib/profile";
 import { useLocation, useRequests } from "@/lib/client-hooks";
@@ -14,7 +14,9 @@ export default function Resident() {
     geo = useLocation(!!profile),
     feed = useRequests(!!profile);
   const [tab, setTab] = useState("activity"),
-    [selected, setSelected] = useState("");
+    [selected, setSelected] = useState(""),
+    [composer, setComposer] = useState<"write" | "follow">("write");
+  const onStage = useCallback((stage: "write" | "follow") => setComposer(stage), []);
   const ongoing = feed.requests.filter((r) => r.status !== "CLOSED");
   const request = ongoing.find((r) => r.id === selected) || ongoing[0];
   const actualTab =
@@ -31,7 +33,9 @@ export default function Resident() {
           <h1>
             {t(
               actualTab === "newHelp"
-                ? "requestHelp"
+                ? composer === "follow"
+                  ? "clarifyLog"
+                  : "requestHelp"
                 : actualTab === "history"
                   ? "history"
                   : actualTab === "community"
@@ -54,17 +58,7 @@ export default function Resident() {
           <RequestForm
             coords={geo.coords}
             onLocate={geo.locate}
-            location={
-              <section className="composer-location" aria-label={t("requestLocation")}>
-                <div className="location-controls">
-                  <span className="text-sm" role="status">{t(geo.coords ? "locationReady" : "requestLocationHint")}</span>
-                  <button type="button" className="button secondary" disabled={geo.locating} onClick={geo.retry}>
-                    {t(geo.locating ? "findingLocation" : "useMyLocation")}
-                  </button>
-                </div>
-                {geo.error && <p className="location-error" role="alert">{t(geo.error === "locationUnavailable" ? "locationRetry" : geo.error === "locationUnsupported" ? "locationSecure" : geo.error)}</p>}
-              </section>
-            }
+            onStage={onStage}
             onSent={async (saved) => {
               feed.add(saved);
               setSelected(saved.id);
@@ -110,19 +104,25 @@ export default function Resident() {
           </div>
         ) : null}
       </div>
+      {composer === "follow" && actualTab === "newHelp" ? null : (
       <nav className="bottom-tabs" aria-label={t("home")}>
-        {["newHelp", "activity", "community", "history"]
-          .filter((k) => k !== "activity" || ongoing.length > 0)
-          .map((k) => (
+        {[
+          ["newHelp", "＋"],
+          ["activity", "◷"],
+          ["community", "☺"],
+          ["history", "◴"],
+        ].filter(([k]) => k !== "activity" || ongoing.length > 0).map(([k, icon]) => (
           <button
             key={k}
             aria-current={actualTab === k ? "page" : undefined}
             onClick={() => setTab(k)}
           >
+            <span aria-hidden>{icon}</span>
             {t(k)}
           </button>
         ))}
       </nav>
+      )}
     </main>
   );
 }

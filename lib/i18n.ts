@@ -646,15 +646,15 @@ export const messages = {
     "你需要什麼幫助？例如買東西，或者有人陪你。",
     "你需要什么帮助？例如买东西，或者有人陪你。",
   ],
-  clarifyDetail: [
-    "How many do you need, or which floor?",
-    "你需要多少，或者在哪一層？",
-    "你需要多少，或者在哪一层？",
+  clarifyPlace: [
+    "Where are you now?",
+    "你而家喺邊？",
+    "你现在在哪里？",
   ],
-  clarifyTime: [
-    "When do you hope this will happen?",
-    "你希望什麼時候？",
-    "你希望什么时候？",
+  locationPrivacyPrompt: [
+    "Allow location so a nearby neighbour can find you.",
+    "請允許定位，附近的鄰居先搵到你。",
+    "请允许定位，附近的邻居才能找到你。",
   ],
   confirmRequest: [
     "Check this request. You can edit it before sending.",

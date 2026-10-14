@@ -17,7 +17,7 @@ test("a high-urgency request is saved, and a missing layer is still asked", () =
     false,
   );
   assert.equal(
-    holdForClarification({ clarify: true, allowAI: true, urgency: "LOW", slot: "detail" }),
+    holdForClarification({ clarify: true, allowAI: true, urgency: "LOW", slot: "place" }),
     true,
   );
   assert.equal(
@@ -78,21 +78,19 @@ test("follow-up answers are added to the text that will be classified again", ()
 test("one essential question is asked, and a clear or repeated gap stops", () => {
   assert.equal(nextClarifySlot("hello"), "need");
   assert.equal(nextClarifySlot("需要幫忙"), "need");
-  assert.equal(nextClarifySlot("Please buy rice."), "detail");
-  assert.equal(nextClarifySlot("請買米"), "detail");
-  assert.equal(nextClarifySlot("Please buy 2 bottles of water."), "time");
-  assert.equal(nextClarifySlot("請買兩包米"), "time");
-  assert.equal(nextClarifySlot("今晚要買米"), "detail");
-  assert.equal(nextClarifySlot("Please buy 2 kg of rice tonight."), null);
-  assert.equal(nextClarifySlot("今晚陪我聊天"), null);
-  assert.equal(nextClarifySlot("陪我聊天"), "time");
-  assert.equal(nextClarifySlot("chat with me tonight"), null);
-  assert.equal(nextClarifySlot("hello\n幫忙", ["need"]), null);
-  assert.equal(nextClarifySlot("hello\n買米", ["need"]), "detail");
-  assert.equal(nextClarifySlot("Please buy rice.\nsome", ["detail"]), "time");
-  assert.equal(nextClarifySlot("Please buy rice.\n2 kg", ["detail"]), "time");
-  assert.equal(nextClarifySlot("Please buy rice.\n2 kg tonight", ["detail"]), null);
-  assert.equal(nextClarifySlot("hello", ["need", "detail"]), null);
+  assert.equal(nextClarifySlot("Please buy rice."), "place");
+  assert.equal(nextClarifySlot("請買米"), "place");
+  assert.equal(nextClarifySlot("Please buy 2 bottles of water downstairs."), null);
+  assert.equal(nextClarifySlot("我喺屋企，請買兩包米"), null);
+  assert.equal(nextClarifySlot("今晚要買米"), "place");
+  assert.equal(nextClarifySlot("Please buy 2 kg of rice tonight."), "place");
+  assert.equal(nextClarifySlot("今晚喺屋企陪我聊天"), null);
+  assert.equal(nextClarifySlot("陪我聊天"), "place");
+  assert.equal(nextClarifySlot("chat with me at home"), null);
+  assert.equal(nextClarifySlot("hello\n幫忙", ["need"]), "place");
+  assert.equal(nextClarifySlot("hello\n買米", ["need"]), "place");
+  assert.equal(nextClarifySlot("Please buy rice.\nI am at home", ["need"]), null);
+  assert.equal(nextClarifySlot("hello", ["need", "place"]), null);
 });
 
 test("chatbot speech follows the interface language", () => {

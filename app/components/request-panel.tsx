@@ -291,15 +291,14 @@ export default function RequestPanel({
   return (
     <article className="request-workspace" id={"request-" + r.id}>
       {pending ? (
-        <details className="pending-card">
-          <summary className="pending-card-summary" aria-label={t("pendingSummaryToggle")}>
+        <section className="pending-card" role="status">
+          <div className="pending-card-summary">
             <span className="status-symbol" aria-hidden>↗</span>
             <span className="pending-card-heading">
               <h2>{t("requestSent")}</h2>
               <small>{t("waitingHint")}</small>
             </span>
-            <span className="pending-card-caret" aria-hidden>⌄</span>
-          </summary>
+          </div>
           <div className="pending-card-body">
             <PriorityCard {...r} />
             {r.transcript && r.transcript !== r.summary && (
@@ -320,7 +319,7 @@ export default function RequestPanel({
             {r.imageHidden && <p className="text-sm text-muted">{t("historyPhotoHidden")}</p>}
             {r.residentAddress && <div><strong>{t("defaultAddress")}</strong><p className="whitespace-pre-line">{r.residentAddress}</p></div>}
           </div>
-        </details>
+        </section>
       ) : (
         !accepted && <div
           role="status"

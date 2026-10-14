@@ -13,8 +13,9 @@ import {
 import { IMAGE_ACCEPT, isAcceptedImage } from "@/lib/image-accept";
 import { messageVoiceLang, transcriptionLanguage } from "@/lib/speech";
 import { recordingToWav } from "@/lib/wav";
+import { rememberPoint, requestLocation } from "@/lib/location-client";
 import { api, useApp } from "./providers";
-import type { RequestView } from "@/lib/types";
+import type { RequestView, User } from "@/lib/types";
 
 function speakMessage(message: string, locale: string) {
   if (typeof window === "undefined" || !window.speechSynthesis) return;
@@ -75,14 +76,14 @@ export default function RequestForm({
   coords,
   onSent,
   onLocate,
-  location,
+  onStage,
 }: {
   coords: { lat: number; lng: number } | null;
   onSent: (r: RequestView) => Promise<void>;
   onLocate: () => Promise<{ lat: number; lng: number } | null>;
-  location: React.ReactNode;
+  onStage?: (stage: "write" | "follow") => void;
 }) {
-  const { t, locale, user } = useApp();
+  const { t, locale, user, setUser } = useApp();
   const [text, setText] = useState(""),
     [photo, setPhoto] = useState<File | null>(null),
     [photoUrl, setPhotoUrl] = useState(""),
@@ -99,14 +100,16 @@ export default function RequestForm({
     [pending, setPending] = useState<{ slot: ClarifySlot; question: string } | null>(null),
     [summary, setSummary] = useState<string | null>(null),
     [draft, setDraft] = useState(""),
-    [voiceTarget, setVoiceTarget] = useState<"request" | "answer">("request"),
+    [voiceTarget, setVoiceTarget] = useState<"request" | "answer" | "summary">("request"),
+    [followPage, setFollowPage] = useState(false),
+    [locatingPrivacy, setLocatingPrivacy] = useState(false),
     [clarifyPoint, setClarifyPoint] = useState<{
       lat: number;
       lng: number;
     } | null>(null);
   const lastTranscript = useRef("");
   const lastAnswerTranscript = useRef("");
-  const recordTarget = useRef<"request" | "answer">("request");
+  const recordTarget = useRef<"request" | "answer" | "summary">("request");
   const file = useRef<HTMLInputElement>(null),
     recorder = useRef<MediaRecorder | null>(null),
     stream = useRef<MediaStream | null>(null),
@@ -114,6 +117,9 @@ export default function RequestForm({
     generation = useRef(0),
     requestLock = useRef(false),
     recLock = useRef(false);
+  useEffect(() => {
+    onStage?.(followPage ? "follow" : "write");
+  }, [followPage, onStage]);
   useEffect(() => {
     if (!asking || !pending) return;
     speakMessage(pending.question, locale);
@@ -147,7 +153,7 @@ export default function RequestForm({
     },
     [],
   );
-  async function toggleRecording(target: "request" | "answer" = "request") {
+  async function toggleRecording(target: "request" | "answer" | "summary" = "request") {
     if (recorder.current?.state === "recording") {
       recorder.current.stop();
       return;
@@ -228,7 +234,7 @@ export default function RequestForm({
       return;
     }
     const target = recordTarget.current;
-    if (target === "request") setAudio(wav);
+    setAudio(wav);
     void applyTranscript(wav, target);
   }
   function resetDraft() {
@@ -238,6 +244,7 @@ export default function RequestForm({
     setTranscriptNote(false);
     lastTranscript.current = "";
     setAsking(false);
+    setFollowPage(false);
     setTurns([]);
     setPending(null);
     setSummary(null);
@@ -295,6 +302,7 @@ export default function RequestForm({
         setSummary(requestSummary(text, nextTurns.map((turn) => turn.answer)));
         setDraft("");
         setAsking(true);
+        setFollowPage(true);
         return;
       }
       if (clarify && saved && "needsClarification" in saved && saved.needsClarification) {
@@ -306,7 +314,7 @@ export default function RequestForm({
               )
             : null;
         const slot =
-          saved.slot === "need" || saved.slot === "detail" || saved.slot === "time"
+          saved.slot === "need" || saved.slot === "place"
             ? saved.slot
             : localSlot;
         if (slot && !nextTurns.some((turn) => turn.slot === slot) && nextTurns.length < CLARIFY_LIMIT) {
@@ -320,6 +328,7 @@ export default function RequestForm({
           setDraft("");
           lastAnswerTranscript.current = "";
           setAsking(true);
+          setFollowPage(true);
           return;
         }
         setClarifyPoint(point);
@@ -327,6 +336,7 @@ export default function RequestForm({
         setPending(null);
         setSummary(requestSummary(text, nextTurns.map((turn) => turn.answer)));
         setAsking(true);
+        setFollowPage(true);
         return;
       }
       if (!("id" in saved)) return;
@@ -339,7 +349,7 @@ export default function RequestForm({
       setBusy(false);
     }
   }
-  async function applyTranscript(blob: Blob, target: "request" | "answer") {
+  async function applyTranscript(blob: Blob, target: "request" | "answer" | "summary") {
     if (!user?.privacy.allowAI) {
       setTranscriptNote(false);
       setError("speechNeedsConsent");
@@ -359,10 +369,11 @@ export default function RequestForm({
       });
       const transcript = result.transcript.trim();
       if (!transcript) throw new Error("audioUnavailable");
-      if (target === "answer") {
-        setDraft((current) =>
-          mergeTranscript(current, lastAnswerTranscript.current, transcript),
-        );
+      if (target === "answer" || target === "summary") {
+        const write = (current: string) =>
+          mergeTranscript(current, lastAnswerTranscript.current, transcript);
+        if (target === "summary") setSummary((current) => write(current || ""));
+        else setDraft((current) => write(current));
         lastAnswerTranscript.current = transcript;
       } else {
         setText((current) =>
@@ -377,166 +388,200 @@ export default function RequestForm({
       setTranscribing(false);
     }
   }
-  return (
-    <form
-      className={"simple-request" + (asking ? " is-clarifying" : "")}
-      onSubmit={(e) => {
-        e.preventDefault();
-        if (summary !== null) {
-          void deliver([], false, summary);
-          return;
-        }
-        const answer = draft.trim();
-        void deliver(
-          asking
-            ? answer && pending
-              ? [...turns, { slot: pending.slot, question: pending.question, answer }]
-              : turns
-            : [],
-          !asking,
-        );
-      }}
-    >
-      <div className="simple-request-content">
-        <label className="field">
-          <span className="sr-only">{t("description")}</span>
-          <textarea
-            rows={asking ? 2 : 6}
-            maxLength={4000}
-            placeholder={t("describeTitle")}
-            aria-label={t("description")}
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            disabled={busy || transcribing || summary !== null}
-          />
-        </label>
-        <div className="request-input-tools">
-          <input
-            ref={file}
-            hidden
-            className="sr-only"
-            type="file"
-            accept={IMAGE_ACCEPT}
-            aria-label={t("addPhoto")}
-            disabled={busy}
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              e.target.value = "";
-              if (!f) return;
-              if (f.size > 8 * 1024 * 1024) {
-                setError("fileTooLarge");
-                return;
-              }
-              if (!isAcceptedImage(f)) {
-                setError("invalidImage");
-                return;
-              }
-              setPhotoUrl("");
-              setPhoto(f);
-              setError("");
-            }}
-          />
-          <button
-            className="attachment-plus"
-            type="button"
-            onClick={() => file.current?.click()}
-            disabled={busy}
-            aria-label={t("addPhoto")}
-            title={t("addPhoto")}
-          >
-            <svg aria-hidden viewBox="0 0 32 32" width="36" height="36" fill="none" stroke="currentColor" strokeWidth="2">
-              <rect x="3" y="5" width="23" height="22" rx="4" />
-              <circle cx="10" cy="12" r="2" />
-              <path d="m4 23 7-7 5 5 4-4 6 6M25 2v8m-4-4h8" />
-            </svg>
-            <span>{t("addPhoto")}</span>
-          </button>
-          <button
-            className={
-              "voice-control " +
-              (recording && voiceTarget === "request" ? "is-recording" : "")
+  async function authorizeLocation() {
+    if (!user) return;
+    setLocatingPrivacy(true);
+    setError("");
+    try {
+      const result = await requestLocation();
+      if (!result.point) {
+        setError(result.error || "locationDenied");
+        return;
+      }
+      rememberPoint(user.id, result.point);
+      setClarifyPoint(result.point);
+      const body = await api<{ user: User }>("/api/account/location", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ allowed: true }),
+      });
+      setUser(body.user);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setLocatingPrivacy(false);
+    }
+  }
+  const voiceFor = followPage ? (summary !== null ? "summary" : "answer") : "request";
+  const attachments = (
+    <>
+      <div className="request-input-tools">
+        <input
+          ref={file}
+          hidden
+          className="sr-only"
+          type="file"
+          accept={IMAGE_ACCEPT}
+          aria-label={t("addPhoto")}
+          disabled={busy}
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            e.target.value = "";
+            if (!f) return;
+            if (f.size > 8 * 1024 * 1024) {
+              setError("fileTooLarge");
+              return;
             }
-            type="button"
-            disabled={
-              busy ||
-              starting ||
-              transcribing ||
-              (recording && voiceTarget !== "request")
+            if (!isAcceptedImage(f)) {
+              setError("invalidImage");
+              return;
             }
-            onClick={() => void toggleRecording("request")}
-            aria-label={t(
-              recording && voiceTarget === "request" ? "tapStop" : "tapSpeak",
+            setPhotoUrl("");
+            setPhoto(f);
+            setError("");
+          }}
+        />
+        <button
+          className="attachment-plus"
+          type="button"
+          onClick={() => file.current?.click()}
+          disabled={busy}
+          aria-label={t("addPhoto")}
+          title={t("addPhoto")}
+        >
+          <svg aria-hidden viewBox="0 0 32 32" width="36" height="36" fill="none" stroke="currentColor" strokeWidth="2">
+            <rect x="3" y="5" width="23" height="22" rx="4" />
+            <circle cx="10" cy="12" r="2" />
+            <path d="m4 23 7-7 5 5 4-4 6 6M25 2v8m-4-4h8" />
+          </svg>
+          <span>{t("addPhoto")}</span>
+        </button>
+        <button
+          className={
+            "voice-control " +
+            (recording && voiceTarget === voiceFor ? "is-recording" : "")
+          }
+          type="button"
+          disabled={
+            busy ||
+            starting ||
+            transcribing ||
+            (recording && voiceTarget !== voiceFor)
+          }
+          onClick={() => void toggleRecording(voiceFor)}
+          aria-label={t(
+            recording && voiceTarget === voiceFor ? "tapStop" : "tapSpeak",
+          )}
+          aria-pressed={recording && voiceTarget === voiceFor}
+        >
+          <Microphone />
+          <span>
+            {t(
+              starting && voiceTarget === voiceFor
+                ? "loading"
+                : recording && voiceTarget === voiceFor
+                  ? "tapStop"
+                  : "tapSpeak",
             )}
-            aria-pressed={recording && voiceTarget === "request"}
+          </span>
+        </button>
+      </div>
+      {recording && (
+        <p role="status" className="text-sm">
+          {t("recording")} · {t("recordLimit")}
+        </p>
+      )}
+      {transcribing && (
+        <p role="status" className="text-sm">
+          {t("transcribing")}
+        </p>
+      )}
+      {transcriptNote && !transcribing && (
+        <p role="status" className="text-sm">
+          {t("transcriptReady")}
+        </p>
+      )}
+      {photo && (
+        <div className="selected-media">
+          {photoUrl && (
+            <Image
+              unoptimized
+              src={photoUrl}
+              width={100}
+              height={70}
+              alt={t("photoPreview")}
+            />
+          )}
+          <span>{t("photoTab")}</span>
+          <button
+            type="button"
+            onClick={() => setPhoto(null)}
+            aria-label={t("removePhoto")}
           >
-            <Microphone />
-            <span>
-              {t(
-                starting && voiceTarget === "request"
-                  ? "loading"
-                  : recording && voiceTarget === "request"
-                    ? "tapStop"
-                    : "tapSpeak",
-              )}
-            </span>
+            ×
           </button>
         </div>
-        {recording && (
-          <p role="status" className="text-sm">
-            {t("recording")} · {t("recordLimit")}
-          </p>
-        )}
-        {transcribing && (
-          <p role="status" className="text-sm">
-            {t("transcribing")}
-          </p>
-        )}
-        {transcriptNote && !transcribing && (
-          <p role="status" className="text-sm">
-            {t("transcriptReady")}
-          </p>
-        )}
-        {photo && (
-          <div className="selected-media">
-            {photoUrl && (
-              <Image
-                unoptimized
-                src={photoUrl}
-                width={100}
-                height={70}
-                alt={t("photoPreview")}
-              />
-            )}
-            <span>{t("photoTab")}</span>
-            <button
-              type="button"
-              onClick={() => setPhoto(null)}
-              aria-label={t("removePhoto")}
-            >
-              ×
-            </button>
-          </div>
-        )}
-        {audio && (
-          <div className="selected-media">
-            {audioUrl && <audio controls src={audioUrl} />}
-            <button
-              type="button"
-              onClick={() => {
-                setAudio(null);
-              }}
-              aria-label={t("removeAudio")}
-            >
-              ×
-            </button>
-          </div>
-        )}
-        {asking && summary === null && (
-          <section
-            className="clarify-chat"
-            aria-label={t("clarifyLog")}
-            ref={(node) => node?.scrollIntoView({ block: "nearest" })}
+      )}
+      {audio && (
+        <div className="selected-media">
+          {audioUrl && <audio controls src={audioUrl} />}
+          <button
+            type="button"
+            onClick={() => {
+              setAudio(null);
+            }}
+            aria-label={t("removeAudio")}
           >
+            ×
+          </button>
+        </div>
+      )}
+    </>
+  );
+  if (followPage && asking) {
+    return (
+      <form
+        className="follow-up-page"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (summary !== null) {
+            void deliver([], false, summary);
+            return;
+          }
+          const answer = draft.trim();
+          void deliver(
+            answer && pending
+              ? [...turns, { slot: pending.slot, question: pending.question, answer }]
+              : turns,
+            true,
+          );
+        }}
+      >
+        <button
+          className="button secondary follow-up-back"
+          type="button"
+          onClick={() => setFollowPage(false)}
+        >
+          {t("back")}
+        </button>
+        {summary !== null ? (
+          <section className="request-summary" aria-label={t("taskSummary")}>
+            <h2>{t("taskSummary")}</h2>
+            <p>{t("confirmRequest")}</p>
+            <label className="field">
+              <span className="sr-only">{t("taskSummary")}</span>
+              <textarea
+                rows={6}
+                maxLength={4000}
+                value={summary}
+                aria-label={t("taskSummary")}
+                onChange={(e) => setSummary(e.target.value)}
+                disabled={busy}
+              />
+            </label>
+          </section>
+        ) : (
+          <section className="clarify-chat" aria-label={t("clarifyLog")}>
             <div className="clarify-log" role="log">
               {turns.map((turn) => (
                 <div key={turn.slot}>
@@ -546,9 +591,7 @@ export default function RequestForm({
                       type="button"
                       className="bubble-speak"
                       aria-label={t("playMessage")}
-                      onClick={() =>
-                        speakMessage(turn.question, locale)
-                      }
+                      onClick={() => speakMessage(turn.question, locale)}
                     >
                       <Speaker />
                     </button>
@@ -563,85 +606,114 @@ export default function RequestForm({
                     type="button"
                     className="bubble-speak"
                     aria-label={t("playMessage")}
-                    onClick={() =>
-                      speakMessage(pending.question, locale)
-                    }
+                    onClick={() => speakMessage(pending.question, locale)}
                   >
                     <Speaker />
                   </button>
                 </div>
               )}
             </div>
-            <div className="clarify-compose">
-              <label className="field">
-                <span className="sr-only">{t("clarifyAnswer")}</span>
-                <textarea
-                  rows={2}
-                  maxLength={4000}
-                  placeholder={t("clarifyAnswer")}
-                  aria-label={t("clarifyAnswer")}
-                  value={draft}
-                  onChange={(e) => setDraft(e.target.value)}
-                  disabled={busy || transcribing}
-                />
-              </label>
-              <button
-                className={
-                  "clarify-voice " +
-                  (recording && voiceTarget === "answer" ? "is-recording" : "")
-                }
-                type="button"
-                disabled={
-                  busy ||
-                  starting ||
-                  transcribing ||
-                  (recording && voiceTarget !== "answer")
-                }
-                onClick={() => void toggleRecording("answer")}
-                aria-label={t(
-                  recording && voiceTarget === "answer" ? "tapStop" : "tapSpeak",
-                )}
-                aria-pressed={recording && voiceTarget === "answer"}
-              >
-                <Microphone />
-              </button>
-            </div>
-            <button
-              className="button w-full"
-              type="button"
-              disabled={
-                busy || recording || starting || transcribing || !draft.trim()
-              }
-              onClick={() => {
-                const answer = draft.trim();
-                if (!answer || !pending) return;
-                const next = [...turns, { slot: pending.slot, question: pending.question, answer }];
-                void deliver(next, true);
-              }}
-            >
-              {t(busy ? "clarifyChecking" : "clarifySend")}
-            </button>
-          </section>
-        )}
-        {summary !== null && (
-          <section className="request-summary" aria-label={t("taskSummary")}>
-            <h2>{t("taskSummary")}</h2>
-            <p className="text-sm text-muted">{t("confirmRequest")}</p>
+            {pending?.slot === "place" && !user?.privacy.allowLocation && (
+              <div className="location-alert" role="status">
+                <p>{t("locationPrivacyPrompt")}</p>
+                <button
+                  className="button secondary w-full"
+                  type="button"
+                  disabled={locatingPrivacy}
+                  onClick={() => void authorizeLocation()}
+                >
+                  {t(locatingPrivacy ? "findingLocation" : "allowLocation")}
+                </button>
+              </div>
+            )}
             <label className="field">
-              <span className="sr-only">{t("taskSummary")}</span>
+              <span className="sr-only">{t("clarifyAnswer")}</span>
               <textarea
                 rows={4}
                 maxLength={4000}
-                value={summary}
-                aria-label={t("taskSummary")}
-                onChange={(e) => setSummary(e.target.value)}
-                disabled={busy}
+                placeholder={t("clarifyAnswer")}
+                aria-label={t("clarifyAnswer")}
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                disabled={busy || transcribing}
               />
             </label>
           </section>
         )}
+        {attachments}
+        {error && (
+          <p className="error text-sm" role="alert">
+            {t(error)}
+          </p>
+        )}
+        {summary === null && (
+          <button
+            className="button w-full"
+            type="button"
+            disabled={busy || recording || starting || transcribing || !draft.trim()}
+            onClick={() => {
+              const answer = draft.trim();
+              if (!answer || !pending) return;
+              const next = [
+                ...turns,
+                { slot: pending.slot, question: pending.question, answer },
+              ];
+              void deliver(next, true);
+            }}
+          >
+            {t(busy ? "clarifyChecking" : "clarifySend")}
+          </button>
+        )}
+        <button
+          className={"button w-full" + (summary === null ? " secondary" : "")}
+          disabled={
+            busy ||
+            recording ||
+            starting ||
+            transcribing ||
+            (summary !== null && !summary.trim())
+          }
+        >
+          {t(
+            busy
+              ? "clarifyChecking"
+              : transcribing
+                ? "transcribing"
+                : summary !== null
+                  ? "sendRequest"
+                  : "clarifySkip",
+          )}
+        </button>
+      </form>
+    );
+  }
+  return (
+    <form
+      className="simple-request"
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (asking) {
+          setFollowPage(true);
+          return;
+        }
+        void deliver([], true);
+      }}
+    >
+      <div className="simple-request-content">
+        <label className="field">
+          <span className="sr-only">{t("description")}</span>
+          <textarea
+            rows={6}
+            maxLength={4000}
+            placeholder={t("describeTitle")}
+            aria-label={t("description")}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            disabled={busy || transcribing}
+          />
+        </label>
+        {attachments}
       </div>
-      {location}
       {error && (
         <p className="error text-sm" role="alert">
           {t(error)}
@@ -649,20 +721,16 @@ export default function RequestForm({
       )}
       <button
         className="button w-full"
-        disabled={busy || recording || starting || transcribing || (summary !== null && !summary.trim())}
+        disabled={busy || recording || starting || transcribing}
       >
         {t(
           busy
-            ? summary !== null || asking
-              ? "clarifyChecking"
-              : "sending"
+            ? "sending"
             : transcribing
               ? "transcribing"
-              : summary !== null
-                ? "sendRequest"
-                : asking
-                  ? "clarifySkip"
-                  : "sendRequest",
+              : asking
+                ? "clarifyLog"
+                : "sendRequest",
         )}
       </button>
     </form>
