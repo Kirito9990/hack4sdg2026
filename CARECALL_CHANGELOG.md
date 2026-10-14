@@ -458,3 +458,9 @@ Additional user corrections this run: simplify login; phone examples belong in p
 
 - The large mark above Log in is removed. The icon stays in the top-left corner, next to CareCall. Login spacing is a little tighter so a phone screen does not have to scroll; buttons stay at least 48px tall.
 - Validation: on a 390×844 phone and a 375×667 phone, Log in fits without scrolling. Create account fits at 390×844. On the shorter phone, Create account still needs a short scroll because of the name, privacy agreement, and location note. User asked to publish the icon and this login layout on codex/CareCall. Render auto-deploys that branch.
+
+### 2026-10-14 — clearer phone navigation, same warm palette
+
+- Bottom tabs no longer use the small symbols. The words are 15px and the current tab is the existing dark ink on cream, so the selected page is obvious. The tiny uppercase role label above the page title is hidden.
+- Waiting and pending notices use warm sand instead of the cold blue. Completed and emergency colors stay as they were. On a new request, “Use my location” is a full-width 48px button and stays with Send, instead of a small control beside the hint.
+- Validation: ESLint passed. On the local server at 390×844, a temporary resident saw New request, Community, and History without clipped labels, and the request screen did not scroll. At 375×667 the location button and Send stayed on screen; the writing box can scroll inside itself. The temporary account was deleted. User asked to publish this navigation layout on codex/CareCall. Render auto-deploys that branch.

@@ -111,18 +111,14 @@ export default function Resident() {
         ) : null}
       </div>
       <nav className="bottom-tabs" aria-label={t("home")}>
-        {[
-          ["newHelp", "＋"],
-          ["activity", "◷"],
-          ["community", "☺"],
-          ["history", "◴"],
-        ].filter(([k]) => k !== "activity" || ongoing.length > 0).map(([k, icon]) => (
+        {["newHelp", "activity", "community", "history"]
+          .filter((k) => k !== "activity" || ongoing.length > 0)
+          .map((k) => (
           <button
             key={k}
             aria-current={actualTab === k ? "page" : undefined}
             onClick={() => setTab(k)}
           >
-            <span aria-hidden>{icon}</span>
             {t(k)}
           </button>
         ))}

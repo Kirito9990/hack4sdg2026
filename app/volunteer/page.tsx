@@ -279,18 +279,14 @@ export default function Volunteer() {
         )}
       </div>
       <nav className="bottom-tabs" aria-label={t("volunteer")}>
-        {[
-          ["allTasks", "⌕"],
-          ["activity", "◷"],
-          ["community", "☺"],
-          ["history", "◴"],
-        ].filter(([k]) => k !== "activity" || !!active).map(([k, icon]) => (
+        {["allTasks", "activity", "community", "history"]
+          .filter((k) => k !== "activity" || !!active)
+          .map((k) => (
           <button
             key={k}
             aria-current={actualTab === k ? "page" : undefined}
             onClick={() => setTab(k)}
           >
-            <span aria-hidden>{icon}</span>
             {t(k)}
           </button>
         ))}

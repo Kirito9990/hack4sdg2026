@@ -531,7 +531,6 @@ export default function RequestForm({
             </button>
           </div>
         )}
-        {location}
         {asking && summary === null && (
           <section
             className="clarify-chat"
@@ -642,6 +641,7 @@ export default function RequestForm({
           </section>
         )}
       </div>
+      {location}
       {error && (
         <p className="error text-sm" role="alert">
           {t(error)}
