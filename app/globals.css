@@ -1327,6 +1327,8 @@ body {
   font-size: 26px;
   flex-shrink: 0;
 }
+.selected-media { flex-wrap: wrap; }
+.selected-media .keep-recording { flex: 1 1 12rem; min-width: 0; }
 .location-picker {
   display: flex;
   flex-direction: column;
@@ -1548,6 +1550,7 @@ body {
   margin-top: 14px;
   line-height: 1.6;
 }
+.ai-choice{margin:0 0 16px;padding:16px;border:1px solid var(--line,#d8d2bf);border-radius:20px;background:var(--surface,#fffdf5);color:var(--foreground,#25241f)}.ai-choice h2{font-size:22px;font-weight:600;line-height:1.35;margin:0 0 8px}.ai-choice p{font-size:16px;line-height:1.55;margin:0 0 12px}.ai-choice .button{width:100%;margin-top:8px}.keep-recording{display:flex;align-items:flex-start;gap:10px;font-size:16px;line-height:1.45;margin:8px 0}.keep-recording input{width:22px;height:22px;margin-top:2px;flex-shrink:0}.keep-recording-note,.ai-off-note{display:block;margin-top:4px;font-size:14px;font-weight:400;line-height:1.5;color:var(--muted,#5c574c)}.ai-off-note{margin:0 0 8px 32px}
 .privacy-dialog{margin:auto;width:min(520px,calc(100vw - 32px));max-height:85dvh;overflow:auto;background:var(--surface,#fffdf5);color:var(--foreground,#25241f);border:1px solid #d8d2bf;border-radius:20px;padding:24px}.privacy-dialog::backdrop{background:#171b1880}.privacy-dialog p{margin:16px 0;line-height:1.6}.consent-row{display:flex;align-items:flex-start;gap:10px;font-size:14px;line-height:1.6}.consent-row input{margin-top:5px;width:18px;height:18px;flex-shrink:0}.history-item{width:100%;display:flex;align-items:center;justify-content:space-between;text-align:left;padding:18px 12px;border-bottom:1px solid #d8d2bf;gap:16px}.history-item:hover{background:#eee9da}.call-number{font-size:26px;font-weight:700;overflow-wrap:anywhere}.readonly-chat{padding:12px;flex-shrink:0;font-size:14px;text-align:center}.shift-toggle:disabled{opacity:.55;cursor:not-allowed}
 
 /* Private volunteer achievements, using the existing cream surfaces. */

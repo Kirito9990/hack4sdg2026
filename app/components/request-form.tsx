@@ -10,6 +10,7 @@ import {
   type ClarifySlot,
   type ClarifyTurn,
 } from "@/lib/clarify";
+import { aiProcessingAllowed, needsAiChoice } from "@/lib/ai-consent";
 import { IMAGE_ACCEPT, isAcceptedImage } from "@/lib/image-accept";
 import { messageVoiceLang, transcriptionLanguage } from "@/lib/speech";
 import { recordingToWav } from "@/lib/wav";
@@ -88,7 +89,9 @@ export default function RequestForm({
     [photo, setPhoto] = useState<File | null>(null),
     [photoUrl, setPhotoUrl] = useState(""),
     [audio, setAudio] = useState<Blob | null>(null),
+    [keepAudio, setKeepAudio] = useState(false),
     [audioUrl, setAudioUrl] = useState(""),
+    [choosingAi, setChoosingAi] = useState(false),
     [recording, setRecording] = useState(false),
     [starting, setStarting] = useState(false),
     [transcribing, setTranscribing] = useState(false),
@@ -235,6 +238,7 @@ export default function RequestForm({
       return;
     }
     const target = recordTarget.current;
+    setKeepAudio(false);
     setAudio(wav);
     void applyTranscript(wav, target);
   }
@@ -250,6 +254,7 @@ export default function RequestForm({
     setText("");
     setPhoto(null);
     setAudio(null);
+    setKeepAudio(false);
     setTranscriptNote(false);
     lastTranscript.current = "";
     setAsking(false);
@@ -263,6 +268,7 @@ export default function RequestForm({
   }
   async function deliver(nextTurns: ClarifyTurn[], clarify: boolean, confirmed?: string) {
     if (requestLock.current) return;
+    if (user && needsAiChoice(user.privacy)) return;
     if (recording || starting || transcribing) {
       setError(transcribing ? "transcribing" : "stopRecordingFirst");
       return;
@@ -311,7 +317,10 @@ export default function RequestForm({
         body.set("answering", answering);
       }
       if (photo) body.set("image", photo);
-      if (audio) body.set("audio", audio, "voice-note");
+      if (audio && keepAudio) {
+        body.set("audio", audio, "voice-note.wav");
+        body.set("keepAudio", "1");
+      }
       const saved = await api<
         | RequestView
         | {
@@ -390,7 +399,7 @@ export default function RequestForm({
     }
   }
   async function applyTranscript(blob: Blob, target: "request" | "answer" | "summary") {
-    if (!user?.privacy.allowAI) {
+    if (!aiProcessingAllowed(user?.privacy)) {
       setTranscriptNote(false);
       setError("speechNeedsConsent");
       return;
@@ -429,6 +438,23 @@ export default function RequestForm({
       setTranscribing(false);
     }
   }
+  async function chooseAi(choice: "allow" | "decline") {
+    if (!user || choosingAi) return;
+    setChoosingAi(true);
+    setError("");
+    try {
+      const body = await api<{ user: User }>("/api/account/ai-choice", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ choice }),
+      });
+      setUser(body.user);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setChoosingAi(false);
+    }
+  }
   async function authorizeLocation() {
     if (!user) return;
     setLocatingPrivacy(true);
@@ -454,6 +480,8 @@ export default function RequestForm({
     }
   }
   const voiceFor = followPage ? (summary !== null ? "summary" : "answer") : "request";
+  const aiChoiceOpen = !!user && needsAiChoice(user.privacy);
+  const aiOn = aiProcessingAllowed(user?.privacy);
   const attachments = (
     <>
       <div className="request-input-tools">
@@ -532,6 +560,9 @@ export default function RequestForm({
           {t("recording")} · {t("recordLimit")}
         </p>
       )}
+      {!aiChoiceOpen && !aiOn && (
+        <p className="text-sm">{t("speechNeedsConsent")}</p>
+      )}
       {transcribing && (
         <p role="status" className="text-sm">
           {t("transcribing")}
@@ -566,10 +597,23 @@ export default function RequestForm({
       {audio && (
         <div className="selected-media">
           {audioUrl && <audio controls src={audioUrl} />}
+          <label className="keep-recording">
+            <input
+              type="checkbox"
+              checked={keepAudio}
+              disabled={busy}
+              onChange={(e) => setKeepAudio(e.target.checked)}
+            />
+            <span>
+              <strong>{t("keepRecording")}</strong>
+              <span className="keep-recording-note">{t("keepRecordingNote")}</span>
+            </span>
+          </label>
           <button
             type="button"
             onClick={() => {
               setAudio(null);
+              setKeepAudio(false);
             }}
             aria-label={t("removeAudio")}
           >
@@ -765,6 +809,28 @@ export default function RequestForm({
       }}
     >
       <div className="simple-request-content">
+        {aiChoiceOpen && (
+          <section className="ai-choice" aria-labelledby="ai-choice-title">
+            <h2 id="ai-choice-title">{t("aiChoiceTitle")}</h2>
+            <p>{t("aiChoiceBody")}</p>
+            <button
+              className="button w-full"
+              type="button"
+              disabled={choosingAi}
+              onClick={() => void chooseAi("allow")}
+            >
+              {t("aiChoiceAllow")}
+            </button>
+            <button
+              className="button secondary w-full"
+              type="button"
+              disabled={choosingAi}
+              onClick={() => void chooseAi("decline")}
+            >
+              {t("aiChoiceDecline")}
+            </button>
+          </section>
+        )}
         <label className="field">
           <span className="sr-only">{t("description")}</span>
           <textarea
@@ -795,7 +861,7 @@ export default function RequestForm({
       )}
       <button
         className="button w-full"
-        disabled={busy || recording || starting || transcribing}
+        disabled={busy || recording || starting || transcribing || aiChoiceOpen}
       >
         {t(
           busy

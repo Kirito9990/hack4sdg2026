@@ -209,6 +209,7 @@ test("a heic attachment is stored for the matched volunteer only", async () => {
 
     const withVoice = form("Please bring a flashlight upstairs.");
     withVoice.set("audio", new Blob(["audio"], { type: "audio/webm" }), "voice.webm");
+    withVoice.set("keepAudio", "1");
     withVoice.set("image", new Blob([heic], { type: "image/heif" }), "photo.heif");
     const voiceImage = await send(resident, withVoice);
     assert.equal(voiceImage.status, 201, JSON.stringify(voiceImage.body));

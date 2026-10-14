@@ -1,3 +1,4 @@
+import { aiProcessingAllowed } from "@/lib/ai-consent";
 import { transcribeWithOpenRouter } from "@/lib/openrouter";
 import {
   acceptedDeepgramLanguage,
@@ -18,7 +19,7 @@ export async function POST(request: Request) {
   const user = await currentUser();
   if (!user) return fail("sessionExpired", 401);
   if (user.role !== "resident") return fail("forbidden", 403);
-  if (!user.privacy.allowAI) return fail("speechNeedsConsent", 403);
+  if (!aiProcessingAllowed(user.privacy)) return fail("speechNeedsConsent", 403);
   if (!process.env.OPENROUTER_API_KEY) return fail("audioUnavailable");
   if (Number(request.headers.get("content-length")) > 9 * 1024 * 1024)
     return fail("fileTooLarge", 413);

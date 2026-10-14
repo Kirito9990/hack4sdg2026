@@ -56,7 +56,7 @@ export async function POST(request: Request) {
       privacy: {
         allowCalls: body.allowCalls === true,
         allowChat: true,
-        allowAI: true,
+        allowAI: false,
         showName: false,
         shareAddress: false,
         shareLocation: false,

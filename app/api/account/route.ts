@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { store, persist } from "@/lib/db";
+import { applyAiChoice } from "@/lib/ai-consent";
 import { clearVolunteerLocations, clearSharedLocation } from "@/lib/volunteer-location";
 import {
   COOKIE,
@@ -37,18 +38,26 @@ export async function PATCH(request: Request) {
     return fail("invalidInput");
   if(body.address!==undefined && (typeof body.address!=="string" || body.address.length>450 || body.address.split(/\r?\n/).length>3))return fail("invalidAddress");
   for(const key of ["showName","shareAddress","allowLocation","shareLocation"])if(body.privacy[key]!==undefined && typeof body.privacy[key]!=="boolean")return fail("invalidInput");
+  if(body.aiChoice!==undefined && body.aiChoice!=="allow" && body.aiChoice!=="decline")return fail("invalidInput");
   if(body.address!==undefined)user.address=body.address.trim();
   user.name = body.name.trim();
   user.phone = phone;
+  const previous = user.privacy;
   user.privacy = {
     allowCalls: body.privacy.allowCalls,
-    allowAI: body.privacy.allowAI,
+    allowAI: previous.allowAI === true,
     allowChat: body.privacy.allowChat,
-    showName: body.privacy.showName ?? user.privacy.showName ?? false,
-    shareAddress: user.role === "resident" && (body.privacy.shareAddress ?? user.privacy.shareAddress ?? false),
-    shareLocation: user.role === "volunteer" && (body.privacy.allowLocation ?? user.privacy.allowLocation ?? false) && (body.privacy.shareLocation ?? user.privacy.shareLocation ?? false),
-    allowLocation: body.privacy.allowLocation ?? user.privacy.allowLocation ?? false,
+    showName: body.privacy.showName ?? previous.showName ?? false,
+    shareAddress: user.role === "resident" && (body.privacy.shareAddress ?? previous.shareAddress ?? false),
+    shareLocation: user.role === "volunteer" && (body.privacy.allowLocation ?? previous.allowLocation ?? false) && (body.privacy.shareLocation ?? previous.shareLocation ?? false),
+    allowLocation: body.privacy.allowLocation ?? previous.allowLocation ?? false,
+    ...(previous.aiChoice === "allow" || previous.aiChoice === "decline" ? { aiChoice: previous.aiChoice } : {}),
+    ...(previous.aiChoiceAt ? { aiChoiceAt: previous.aiChoiceAt } : {}),
+    ...(previous.aiNoticeVersion ? { aiNoticeVersion: previous.aiNoticeVersion } : {}),
   };
+  if (body.aiChoice === "allow" || body.aiChoice === "decline") {
+    user.privacy = applyAiChoice(user.privacy, body.aiChoice);
+  }
   if (!user.privacy.shareLocation) clearVolunteerLocations(user.id);
   persist();
   return json({ user: publicUser(user) });

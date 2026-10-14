@@ -9,10 +9,18 @@ import {
 } from "@/lib/clarify";
 import { openRouterAudioFormat, transcriptInstruction } from "@/lib/speech";
 
+export function openRouterCompletionsUrl() {
+  const configured = process.env.OPENROUTER_API_BASE?.trim();
+  const base = configured || "https://openrouter.ai";
+  return base.replace(/\/$/, "") + "/api/v1/chat/completions";
+}
+
+async function discardBody(response: Response) {
+  await response.body?.cancel().catch(() => undefined);
+}
+
 async function requestTriage(text: string, locale: string, key: string) {
-  const response = await fetch(
-    "https://openrouter.ai/api/v1/chat/completions",
-    {
+  const response = await fetch(openRouterCompletionsUrl(), {
       method: "POST",
       signal: AbortSignal.timeout(45000),
       headers: {
@@ -37,13 +45,10 @@ async function requestTriage(text: string, locale: string, key: string) {
           json_schema: { name: "triage", strict: true, schema: TRIAGE_SCHEMA },
         },
       }),
-    },
-  );
+  });
   if (!response.ok) {
-    const detail = await response.text().catch(() => "");
-    throw new Error(
-      `OpenRouter ${response.status}${detail ? `: ${detail.slice(0, 180)}` : ""}`,
-    );
+    await discardBody(response);
+    throw new Error("OpenRouter " + response.status);
   }
   const result = (await response.json()) as {
     choices?: Array<{ message?: { content?: string } }>;
@@ -59,7 +64,7 @@ export async function clarifyQuestion(input: {
   const key = process.env.OPENROUTER_API_KEY?.trim();
   if (!key || !input.text.trim()) return null;
   try {
-    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    const response = await fetch(openRouterCompletionsUrl(), {
       method: "POST",
       signal: AbortSignal.timeout(20_000),
       headers: {
@@ -106,7 +111,7 @@ export async function reviewResidentReply(input: {
       ? "where the resident is now"
       : "what a neighbour should help with";
   try {
-    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    const response = await fetch(openRouterCompletionsUrl(), {
       method: "POST",
       signal: AbortSignal.timeout(20_000),
       headers: {
@@ -163,7 +168,7 @@ export async function transcribeWithOpenRouter(
   if (!key) throw new Error("OPENROUTER_API_KEY is not set");
   const format = openRouterAudioFormat(mimeType);
   if (!format) throw new Error("Unsupported audio format");
-  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+  const response = await fetch(openRouterCompletionsUrl(), {
     method: "POST",
     signal: AbortSignal.timeout(20000),
     headers: {
@@ -197,10 +202,8 @@ export async function transcribeWithOpenRouter(
     }),
   });
   if (!response.ok) {
-    const detail = await response.text().catch(() => "");
-    throw new Error(
-      `OpenRouter ${response.status}${detail ? `: ${detail.slice(0, 180)}` : ""}`,
-    );
+    await discardBody(response);
+    throw new Error("OpenRouter " + response.status);
   }
   const result = (await response.json()) as {
     choices?: Array<{ message?: { content?: string } }>;

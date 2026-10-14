@@ -9,6 +9,7 @@ import {
 } from "@/lib/openrouter";
 import { askedSlots, holdForClarification, nextClarifySlot, readyToConfirm, retryReason, type AnswerTarget } from "@/lib/clarify";
 import { classifyPrepared, prepareAiInput } from "@/lib/pipeline";
+import { aiProcessingAllowed } from "@/lib/ai-consent";
 import { effectiveRequestText } from "@/lib/request-content";
 import { audioContentType, transcriptionLanguage } from "@/lib/speech";
 import { redact, store, persist, view } from "@/lib/db";
@@ -93,19 +94,23 @@ export async function POST(request: Request) {
       return fail("invalidImage");
     }
   }
-  const audioBuffer = audio
-    ? Buffer.from(await audio.arrayBuffer())
+  const allowAI = aiProcessingAllowed(user.privacy);
+  const keepAudio = form.get("keepAudio") === "1";
+  const shouldHoldAudio = !!audio && (keepAudio || (allowAI && !typed));
+  const audioBuffer = shouldHoldAudio
+    ? Buffer.from(await audio!.arrayBuffer())
     : undefined;
-  let audioStatus: HelpRequest["audioStatus"] = audio ? "unavailable" : "none";
+  let audioStatus: HelpRequest["audioStatus"] = "none";
   const audioType = audio ? audioContentType(audio.type) || "audio/webm" : "";
-  const audioData = audioBuffer
-    ? "data:" + audioType + ";base64," + audioBuffer.toString("base64")
-    : undefined;
-  if (audio && typed) audioStatus = "provided";
+  const audioData =
+    keepAudio && audioBuffer
+      ? "data:" + audioType + ";base64," + audioBuffer.toString("base64")
+      : undefined;
+  if (keepAudio && audioBuffer && typed) audioStatus = "provided";
   if (
     audioBuffer &&
     !typed &&
-    user.privacy.allowAI &&
+    allowAI &&
     process.env.OPENROUTER_API_KEY
   ) {
     try {
@@ -129,7 +134,7 @@ export async function POST(request: Request) {
     let reason = retryReason(redact(latest), answering);
     if (
       reason === "review" &&
-      user.privacy.allowAI === true &&
+      allowAI &&
       process.env.OPENROUTER_API_KEY
     ) {
       const accepted = await reviewResidentReply({
@@ -149,7 +154,7 @@ export async function POST(request: Request) {
     metadata: { locale, audioStatus },
   });
   const assessed = await classifyPrepared(prepared, {
-    allowAI: user.privacy.allowAI === true,
+    allowAI,
     locale,
     classifyText: process.env.OPENROUTER_API_KEY
       ? (text, requestLocale) =>
@@ -204,7 +209,7 @@ export async function POST(request: Request) {
   const slot = nextClarifySlot(redact(typed) || safeText, asked);
   const gate = {
     clarify: form.get("clarify") === "1",
-    allowAI: user.privacy.allowAI === true,
+    allowAI,
     urgency: triage.urgency_level,
     slot,
   };

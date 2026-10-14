@@ -81,7 +81,8 @@ test("a request needs typed text or a voice transcript", async () => {
     const voiceOnly = await send(voice);
     assert.equal(voiceOnly.status, 201);
     assert.equal(voiceOnly.body.transcript, "I need help carrying supplies.");
-    assert.equal(voiceOnly.body.audioStatus, "provided");
+    assert.equal(voiceOnly.body.audioStatus, "none");
+    assert.equal(voiceOnly.body.audioData, undefined);
     assert.equal(voiceOnly.body.imageStatus, "none");
 
     const withPhoto = form("The entrance light is out.");
@@ -96,7 +97,8 @@ test("a request needs typed text or a voice transcript", async () => {
     voicePhoto.set("image", new Blob([image], { type: "image/jpeg" }), "photo.jpg");
     const voiceImage = await send(voicePhoto);
     assert.equal(voiceImage.status, 201);
-    assert.equal(voiceImage.body.audioStatus, "provided");
+    assert.equal(voiceImage.body.audioStatus, "none");
+    assert.equal(voiceImage.body.audioData, undefined);
     assert.equal(voiceImage.body.imageStatus, "prepared");
     assert.equal(voiceImage.body.transcript, "Please bring a flashlight.");
   } finally {

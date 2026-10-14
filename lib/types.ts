@@ -15,6 +15,7 @@ export function volunteerCanReceive(request: {
   );
 }
 export type RequestStatus = "PENDING" | "ACCEPTED" | "CLOSED";
+export type AiChoice = "allow" | "decline";
 export type Privacy = {
   allowCalls: boolean;
   allowAI: boolean;
@@ -23,6 +24,11 @@ export type Privacy = {
   shareAddress?: boolean;
   shareLocation?: boolean;
   allowLocation?: boolean;
+  /** Explicit choice. Absent on older accounts, including those created with allowAI already true. */
+  aiChoice?: AiChoice;
+  /** Set only when the person chooses. Never backfilled from a historical default. */
+  aiChoiceAt?: string;
+  aiNoticeVersion?: string;
 };
 export type User = {
   id: string;

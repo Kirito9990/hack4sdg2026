@@ -3,6 +3,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api, useApp } from "@/app/components/providers";
+import { aiProcessingAllowed } from "@/lib/ai-consent";
 import {requestLocation,rememberPoint} from "@/lib/location-client";
 import PrivacyNotice from "./privacy-notice";
 import type { User } from "@/lib/types";
@@ -12,7 +13,11 @@ function AccountForm({ user, tab }: { user: User; tab: string }) {
   const [name, setName] = useState(user.name),
     [phone, setPhone] = useState(user.phone),
     [address,setAddress]=useState(user.address||""),
-    [privacy, setPrivacy] = useState(user.privacy),
+    [privacy, setPrivacy] = useState({
+      ...user.privacy,
+      allowAI: aiProcessingAllowed(user.privacy),
+    }),
+    [aiTouched, setAiTouched] = useState(false),
     [busy, setBusy] = useState(false),
     [message, setMessage] = useState("");
   return (
@@ -27,7 +32,13 @@ function AccountForm({ user, tab }: { user: User; tab: string }) {
             const b = await api<{ user: User }>("/api/account", {
               method: "PATCH",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ name, phone, privacy, address }),
+              body: JSON.stringify({
+                name,
+                phone,
+                privacy,
+                address,
+                ...(aiTouched ? { aiChoice: privacy.allowAI ? "allow" : "decline" } : {}),
+              }),
             });
             setUser(b.user);
             if(!b.user.privacy.allowLocation)try{sessionStorage.removeItem("carecall_position_"+user.id);}catch{}
@@ -76,6 +87,7 @@ function AccountForm({ user, tab }: { user: User; tab: string }) {
                       checked={!!privacy[key]}
                       onChange={async e=>{
                         const checked=e.target.checked;
+                        if(key==="allowAI") setAiTouched(true);
                         if((key==='allowLocation'||key==='shareLocation')&&checked){setBusy(true);const result=await requestLocation();setBusy(false);if(!result.point){setMessage(result.error);return;}rememberPoint(user.id,result.point);}
                         
                         setPrivacy(p=>({...p,[key]:checked,...(key==='shareLocation'&&checked?{allowLocation:true}:{}),...(key==='allowLocation'&&!checked?{shareLocation:false}:{})}));
@@ -83,6 +95,7 @@ function AccountForm({ user, tab }: { user: User; tab: string }) {
                     />
                     <strong>{t(key)}</strong>
                   </label>
+                  {key === "allowAI" && <p className="ai-off-note">{t("aiOffNote")}</p>}
                 </div>
               ))}
               <PrivacyNotice />
