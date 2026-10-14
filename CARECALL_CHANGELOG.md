@@ -505,3 +505,16 @@ Additional user corrections this run: simplify login; phone examples belong in p
 - Creating an account no longer pauses on “Finding your location…”. The account opens immediately. Location is still requested when a resident sends a request, and the note on the form says they can decline.
 - On a 375×667 phone, Create account fits without scrolling. Buttons stay at least 48px. The normal 390×844 layout keeps the previous spacing.
 - Validation: on an isolated server at port 47371, a temporary resident was created from the short phone layout and reached Request help without a location wait. The request screen also fit. The isolated database was removed. User asked to publish this stability work on codex/CareCall. Render auto-deploys that branch.
+
+### 2026-10-15 — pitch evidence check against b1caf91
+
+- Confirmed local HEAD b1caf91 and no tracked application changes before/after this check. No remote verification, push, deployment or application edits.
+- Passed 19 focused tests covering speech-language selection, mocked transcription/model requests, clarification, AI fallback, priority ordering and mutual friendship rules.
+- Passed friends-api.test.mjs on an isolated localhost server at port 47383 with a separate database under local-artifacts/pitch-20261015/prototype-check. Verified completion, bilateral friendship acceptance, bidirectional messages, third-party denial and disabling chat sharing. Synthetic accounts deleted by test cleanup; server stopped. External AI key was disabled for this server.
+- Pitch corrections: audioData is stored for participant playback; do not claim original recordings are never stored. Signup sets allowAI=true; do not claim default-off AI. Phone ownership is not verified. Pending requests can be cancelled but no response-time guarantee or staffed escalation was established. Emergency fallback can yield HIGH when AI fails, whereas AI disabled remains NOT_ASSESSED.
+- No real Cantonese speech or current browser UI recording was tested in this session. Mocked speech tests do not establish real transcription accuracy. PPT/video production remains pending under the agreed guided-design workflow.
+
+### 2026-10-15 — Render build failed on the emergency import
+
+- `next build` stopped in TypeScript because `lib/pipeline.ts` imported `./clarify.ts`. Production typecheck does not allow a `.ts` extension. The emergency check now lives in `lib/emergency-triage.mjs`, which both the app and the tests can load.
+- Validation: `npx next build` completed, including TypeScript, and `node scripts/prepare-standalone.mjs` prepared the standalone assets. `node --test tests/clarify.test.mjs tests/ai-pipeline.test.mjs` passed. User reported the Render deploy failed. This fix is published on codex/CareCall. Render auto-deploys that branch.

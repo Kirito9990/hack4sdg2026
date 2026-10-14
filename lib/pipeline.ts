@@ -1,4 +1,4 @@
-import { emergencyTriage } from "./clarify.ts";
+import { emergencyTriage } from "./emergency-triage.mjs";
 import type { SafetyClassification, TriageFields } from "@/lib/types";
 
 export type PreparedRequest = {
@@ -88,7 +88,7 @@ export async function classifyPrepared(
       /* A failed text classification stays unassessed, unless it is a clear emergency. */
     }
   }
-  const emergency = emergencyTriage(summary);
+  const emergency = emergencyTriage(summary) as TriageFields | null;
   if (emergency) {
     return {
       prepared,

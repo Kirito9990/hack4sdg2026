@@ -1,5 +1,6 @@
-import type { TriageFields } from "@/lib/types";
+import { emergencyTriage, isEmergencyText } from "./emergency-triage.mjs";
 
+export { emergencyTriage };
 export const CLARIFY_LIMIT = 3;
 export const CLARIFY_SLOTS = ["need", "detail", "place"] as const;
 export type ClarifySlot = (typeof CLARIFY_SLOTS)[number];
@@ -76,17 +77,6 @@ const GENERIC_NEED =
 const NEED_ACTION =
   /\b(?:buy|bring|deliver|pick\s*up|carry|repair|fix|walk|clean|cook|move|shop|charge|accompany|lend|translate|install|escort|chat|talk|visit|company)\b|\b(?:need|want)\s+(?:some\s+|a\s+|an\s+)?(?!help\b|assistance\b)[a-z]{3,}|買|买|帶|带|送|搬|修|陪|煮|清潔|清洁|拎|扶|換|换|充電|充电|購物|购物|行街|落樓|落楼|上樓|上楼|聊天|傾計|倾计|傾偈|倾偈|探訪|探访|陪伴/i;
 
-const MEDICAL_EMERGENCY =
-  /\b(?:breath(?:e|ing)?|bleed(?:ing)?|unconscious)\b|不能呼吸|唔夠氣|唔够气|流血|昏迷/i;
-
-const HAZARD_EMERGENCY =
-  /\b(?:fire|flood|collapse)\b|火災|火灾|火燭|火烛|水浸|倒塌/i;
-
-const EMERGENCY = new RegExp(
-  `${MEDICAL_EMERGENCY.source}|${HAZARD_EMERGENCY.source}`,
-  "i",
-);
-
 const BOT_QUESTION =
   /who are you|what are you|what can you do|how are you|what(?:'s| is) the weather|tell me a joke|what time is it|你是谁|你是誰|你係邊個|你係咩|天氣|天气|點解|点解|为什么|為什麼|什麼是|什么是|講個笑話|讲个笑话|而家幾點|现在几点/i;
 
@@ -152,7 +142,7 @@ export function retryReason(
   answering: AnswerTarget,
 ): RetryAdvice | "review" | null {
   const value = text.replace(/\s+/g, " ").trim();
-  if (!value || EMERGENCY.test(value)) return null;
+  if (!value || isEmergencyText(value)) return null;
   const advice: RetryAdvice = answering === "place" ? "retryPlace" : "retryRequest";
   if (isGibberish(value) || asksTheAssistant(value)) return advice;
   if (
@@ -173,27 +163,11 @@ export function retryReason(
 }
 
 /** Complete the task before asking where the resident is. Each slot is asked once. */
-/** A clear emergency is not a neighbour errand, so it is not held for follow-up questions. */
-export function emergencyTriage(text: string): TriageFields | null {
-  const value = text.replace(/\s+/g, " ").trim();
-  if (!value || !EMERGENCY.test(value)) return null;
-  const medical = MEDICAL_EMERGENCY.test(value);
-  return {
-    urgency_level: "HIGH",
-    category: medical ? "MEDICAL" : "NON_MEDICAL",
-    summary: value.slice(0, 400),
-    dispatch_action: medical ? "EMERGENCY_medical" : "EMERGENCY_nonmedical",
-    requirements: [],
-    tools: [],
-    resources: [],
-  };
-}
-
 export function nextClarifySlot(
   text: string,
   asked: readonly ClarifySlot[] = [],
 ): ClarifySlot | null {
-  if (EMERGENCY.test(text)) return null;
+  if (isEmergencyText(text)) return null;
   if (asked.length >= CLARIFY_LIMIT) return null;
   const seen = new Set(asked);
   if (!matterComplete(text)) {
