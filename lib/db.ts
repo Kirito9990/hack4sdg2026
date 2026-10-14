@@ -1,11 +1,9 @@
-import {loadSnapshot,writeSnapshot,rewardForRequest,ratingsFor,ratingFrom,friendOffer,friendshipBetween} from "./persistence.mjs";
-export { ratingsFor };
+import {loadSnapshot,writeSnapshot,rewardForRequest,friendOffer,friendshipBetween} from "./persistence.mjs";
 import type { RewardEvent, BadgeUnlock } from "./rewards";
 import {historyVisible} from "./retention";
 import { sharedLocation } from "./volunteer-location";
 import type { ChatMessage, HelpRequest, Session, User } from "@/lib/types";
 import { shareVoiceNote } from "@/lib/request-content";
-import { credibilitySummary } from "@/lib/ratings";
 import { offerState, type FriendDecision } from "@/lib/friends";
 type Store = {
   users: User[];
@@ -103,7 +101,6 @@ export function view(r: HelpRequest, user: User) {
     items?.map((item) => redact(item, people)).filter((item) => item.trim());
   const testPhone = process.env.CARECALL_TEST_CALL_PHONE?.trim();
   const partnerId = user.id === r.residentId ? r.volunteerId : r.residentId;
-  const mine = ratingFrom(r.id, user.id);
   const callPhone =
     active && other?.privacy.allowCalls
       ? user.role === "volunteer" && testPhone
@@ -151,12 +148,6 @@ export function view(r: HelpRequest, user: User) {
     chatAvailable: chatOpen(r),
     callPhone,
     testCall: !!(callPhone && testPhone && user.role === "volunteer"),
-    ...(partnerId
-      ? {
-          partnerCredibility: credibilitySummary(ratingsFor(partnerId)),
-        }
-      : {}),
-    ...(typeof mine === "number" ? { myRating: mine } : {}),
     ...(r.closedReason === "completed" && partnerId && partnerId !== user.id
       ? friendFields(r.id, user.id, partnerId)
       : {}),

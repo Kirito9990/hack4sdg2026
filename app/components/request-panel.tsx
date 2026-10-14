@@ -11,7 +11,6 @@ import RequestProgress, { ProgressLink } from "./request-progress";
 import { IMAGE_ACCEPT, isAcceptedImage } from "@/lib/image-accept";
 import type { ChatMessage, RequestView } from "@/lib/types";
 import ReportPolice from "./report-police";
-import { CredibilityFlag } from "./credibility";
 
 function Photo({ src, label }: { src: string; label: string }) {
   return (
@@ -291,7 +290,6 @@ export default function RequestPanel({
   }
   return (
     <article className="request-workspace" id={"request-" + r.id}>
-      <CredibilityFlag credibility={r.partnerCredibility} />
       {pending ? (
         <details className="pending-card">
           <summary className="pending-card-summary" aria-label={t("pendingSummaryToggle")}>
@@ -451,7 +449,7 @@ export default function RequestPanel({
           {t("emergencyCall")} 999
         </a>
       )}
-      <ReportPolice />
+      {accepted && <ReportPolice />}
     </article>
   );
 }

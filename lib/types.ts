@@ -107,8 +107,6 @@ export type RequestView = Omit<HelpRequest, "lat" | "lng"> & {
   callPhone: string | null;
   testCall: boolean;
   distanceMeters?: number;
-  partnerCredibility?: { average: number; count: number; flagged: boolean };
-  myRating?: number;
   friendStatus?: "none" | "outgoing" | "incoming" | "friends" | "declined";
   friendshipId?: string;
 };

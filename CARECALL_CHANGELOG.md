@@ -431,3 +431,15 @@ Additional user corrections this run: simplify login; phone examples belong in p
 
 - The teammate's OpenRouter key is in gitignored `.env.local`. The Deepgram key is stored there too, and the app does not call Deepgram.
 - A live call to `google/gemini-2.5-flash-lite` returned HTTP 403, model unavailable in this region. `qwen/qwen3.8-omni-flash` answered from the same network: a text ping, an empty transcript for a tone with no speech, one follow-up question, and a JSON priority. Transcription, follow-up, and classification now default to that model.
+
+### 2026-10-14 — larger history summary, report only while helping, add friend on Community
+
+- The completed-request summary card now fills the space under the tabs, and the 1–5 rating buttons are larger. Removed the small notes under that card: the 999 explanation, the hidden-contact sentence, and the seven-day line.
+- Report malicious act to police stays on an accepted request only. It is no longer on every nearby card or inside history. The button still opens the phone app at 999, without the extra sentence underneath.
+- Adding a friend is no longer inside history. Community lists people from completed requests; opening one is its own page, like opening a message. Both people still have to accept. English, Traditional Chinese, and Simplified Chinese.
+- Validation: ESLint passed on the changed files. `node --test tests/friends-api.test.mjs` passed against an isolated server on port 47341. Browser check at 390×844: history summary had no report button and no descriptive lines, the card filled the stage, Community opened an add-friend page, the nearby list had no report control, and the accepted request still had the tel:999 report link. Accepting the friend request moved that person into Messages. Synthetic accounts stayed on the isolated database. No commit or push.
+
+### 2026-10-14 — ratings removed
+
+- Completed requests no longer ask for a 1–5 rating. The credibility average and the low-credibility flag are gone from history, the active request, and the nearby list. The rating route is removed. Old rating rows stay in the database and are not shown. CarePoints are unchanged.
+- Validation: ESLint passed on the changed files. Browser check on the isolated server: a completed history summary showed the request text and no rating controls. No commit or push.

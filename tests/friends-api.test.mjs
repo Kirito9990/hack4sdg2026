@@ -87,6 +87,12 @@ test("completed requests become friends only when both accept, then they can cha
       return id;
     }
     const first = await complete();
+    const offered = await resident.call("/api/friends");
+    assert.equal(offered.body.suggestions.length, 1);
+    assert.equal(offered.body.suggestions[0].requestId, first);
+    assert.equal(offered.body.suggestions[0].name, "Friend volunteer");
+    assert.equal(offered.body.suggestions[0].status, "none");
+    assert.equal(JSON.stringify(offered.body).includes(volunteerPhone), false);
     assert.equal((await resident.call("/api/friends", { id: first, decision: "accept" })).body.friendStatus, "outgoing");
     assert.equal((await resident.call("/api/friends", { id: first, decision: "decline" })).status, 409);
     assert.equal((await volunteer.call("/api/request/status?id=" + first)).body.friendStatus, "incoming");
@@ -103,6 +109,7 @@ test("completed requests become friends only when both accept, then they can cha
     assert.equal(list.body.friends.length, 1);
     assert.equal(list.body.friends[0].name, "Friend volunteer");
     assert.equal(list.body.invites.length, 0);
+    assert.equal(list.body.suggestions.length, 0);
     assert.equal(JSON.stringify(list.body).includes(volunteerPhone), false);
     const friendshipId = list.body.friends[0].id;
     assert.equal(
@@ -140,7 +147,10 @@ test("completed requests become friends only when both accept, then they can cha
     assert.equal((await resident.call("/api/request/close", { id: third })).status, 200);
     assert.equal((await other.call("/api/friends", { id: third, decision: "decline" })).body.friendStatus, "declined");
     assert.equal((await resident.call("/api/friends", { id: third, decision: "accept" })).body.friendStatus, "declined");
-    assert.equal((await resident.call("/api/friends")).body.friends.length, 1);
+    const afterDecline = await resident.call("/api/friends");
+    assert.equal(afterDecline.body.friends.length, 1);
+    assert.equal(afterDecline.body.suggestions.some((row) => row.requestId === third), false);
+    assert.equal(afterDecline.body.invites.some((row) => row.requestId === third), false);
 
     const quiet = await resident.call("/api/auth");
     assert.equal(

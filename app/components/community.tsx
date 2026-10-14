@@ -4,46 +4,15 @@ import { api, post, useApp } from "./providers";
 import type { RequestView, UserRole } from "@/lib/types";
 
 type Friend = { id: string; name: string; role: UserRole; createdAt: string };
-type Invite = {
+type Person = {
   requestId: string;
+  name: string;
   role: UserRole;
   category: string;
   closedAt?: string;
-  status: "incoming" | "outgoing";
+  status: "incoming" | "outgoing" | "none";
 };
 type FriendMessage = { id: string; senderId: string; text: string; createdAt: string };
-
-export function FriendOffer({ request }: { request: RequestView }) {
-  const { t } = useApp();
-  const [status, setStatus] = useState(request.friendStatus || "none");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-  useEffect(() => {
-    if (request.friendStatus) setStatus(request.friendStatus);
-  }, [request.friendStatus]);
-  if (request.closedReason !== "completed" || !request.volunteerId) return null;
-  return (
-    <div className="friend-offer">
-      <FriendChoice
-        status={status}
-        busy={busy}
-        error={error}
-        onChoose={async (decision) => {
-          setBusy(true);
-          setError("");
-          try {
-            const next = await post<RequestView>("/api/friends", { id: request.id, decision });
-            setStatus(next.friendStatus || "none");
-          } catch (e) {
-            setError((e as Error).message);
-          } finally {
-            setBusy(false);
-          }
-        }}
-      />
-    </div>
-  );
-}
 
 function FriendChoice({
   status,
@@ -63,13 +32,9 @@ function FriendChoice({
       {status === "outgoing" ? <p role="status">{t("friendWaiting")}</p> : null}
       {status === "declined" ? <p role="status">{t("friendDeclined")}</p> : null}
       {status === "none" ? (
-        <>
-          <p>{t("addFriend")}</p>
-          <p className="text-sm text-muted">{t("addFriendHint")}</p>
-          <button type="button" className="button" disabled={busy} onClick={() => void onChoose("accept")}>
-            {t("addFriend")}
-          </button>
-        </>
+        <button type="button" className="button w-full" disabled={busy} onClick={() => void onChoose("accept")}>
+          {t("addFriend")}
+        </button>
       ) : null}
       {status === "incoming" ? (
         <>
@@ -86,6 +51,59 @@ function FriendChoice({
       ) : null}
       {error ? <p className="error" role="alert">{t(error)}</p> : null}
     </>
+  );
+}
+
+function FriendRequestPage({
+  person,
+  onBack,
+  onChanged,
+}: {
+  person: Person;
+  onBack: () => void;
+  onChanged: () => Promise<void>;
+}) {
+  const { t, locale } = useApp();
+  const [status, setStatus] = useState<string>(person.status);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  return (
+    <section className="conversation" aria-label={t("addFriendPage")}>
+      <header className="conversation-header">
+        <button type="button" className="history-back" onClick={onBack}>‹ {t("backToFriends")}</button>
+        <strong className="truncate">{person.name || t(person.role)}</strong>
+      </header>
+      <div className="friend-request-body">
+        <p>
+          <strong>{t(person.role)}</strong>
+          {" · "}
+          {t(person.category)}
+        </p>
+        {person.closedAt ? (
+          <p className="text-sm text-muted">{new Date(person.closedAt).toLocaleDateString(locale)}</p>
+        ) : null}
+        <FriendChoice
+          status={status}
+          busy={busy}
+          error={error}
+          onChoose={async (decision) => {
+            setBusy(true);
+            setError("");
+            try {
+              const next = await post<RequestView>("/api/friends", { id: person.requestId, decision });
+              const nextStatus = next.friendStatus || "none";
+              setStatus(nextStatus);
+              await onChanged();
+              if (nextStatus === "friends" || nextStatus === "declined") onBack();
+            } catch (e) {
+              setError((e as Error).message);
+            } finally {
+              setBusy(false);
+            }
+          }}
+        />
+      </div>
+    </section>
   );
 }
 
@@ -168,24 +186,30 @@ function FriendChat({ friend, onBack }: { friend: Friend; onBack: () => void }) 
 }
 
 export default function Community() {
-  const { t, locale } = useApp();
+  const { t } = useApp();
   const [friends, setFriends] = useState<Friend[]>([]);
-  const [invites, setInvites] = useState<Invite[]>([]);
+  const [people, setPeople] = useState<Person[]>([]);
   const [open, setOpen] = useState<Friend | null>(null);
+  const [person, setPerson] = useState<Person | null>(null);
   const [error, setError] = useState("");
   const [loaded, setLoaded] = useState(false);
-  const [busyId, setBusyId] = useState("");
-  const [choiceError, setChoiceError] = useState("");
+  const load = async () => {
+    const body = await api<{ friends: Friend[]; invites: Person[]; suggestions: Person[] }>("/api/friends");
+    const rank = { incoming: 0, none: 1, outgoing: 2 };
+    setFriends(body.friends);
+    setPeople(
+      [...(body.suggestions || []), ...(body.invites || [])].sort(
+        (a, b) => rank[a.status] - rank[b.status],
+      ),
+    );
+    setError("");
+    setLoaded(true);
+  };
   useEffect(() => {
     let live = true;
     const poll = async () => {
       try {
-        const body = await api<{ friends: Friend[]; invites: Invite[] }>("/api/friends");
-        if (!live) return;
-        setFriends(body.friends);
-        setInvites(body.invites);
-        setError("");
-        setLoaded(true);
+        if (live) await load();
       } catch (e) {
         if (live) setError((e as Error).message);
       }
@@ -198,54 +222,58 @@ export default function Community() {
     };
   }, []);
   if (open) return <FriendChat friend={open} onBack={() => setOpen(null)} />;
+  if (person) {
+    return (
+      <FriendRequestPage
+        person={person}
+        onBack={() => setPerson(null)}
+        onChanged={async () => {
+          await load();
+        }}
+      />
+    );
+  }
   return (
     <div className="stage-scroll community-list">
       {error ? <p className="error" role="alert">{t(error)}</p> : null}
-      {invites.map((invite) => (
-        <article className="friend-invite" key={invite.requestId}>
-          <p><strong>{t(invite.role)}</strong> · {t(invite.category)}</p>
-          <p className="text-sm text-muted">
-            {invite.closedAt ? new Date(invite.closedAt).toLocaleDateString(locale) + " · " : ""}
-            {t(invite.status === "incoming" ? "friendIncoming" : "friendWaiting")}
-          </p>
-          {invite.status === "incoming" ? (
-            <FriendChoice
-              status="incoming"
-              busy={busyId === invite.requestId}
-              error={busyId === invite.requestId ? choiceError : ""}
-              onChoose={async (decision) => {
-                setBusyId(invite.requestId);
-                setChoiceError("");
-                try {
-                  await post("/api/friends", { id: invite.requestId, decision });
-                  const body = await api<{ friends: Friend[]; invites: Invite[] }>("/api/friends");
-                  setFriends(body.friends);
-                  setInvites(body.invites);
-                } catch (e) {
-                  setChoiceError((e as Error).message);
-                } finally {
-                  setBusyId("");
-                }
-              }}
-            />
-          ) : null}
-        </article>
-      ))}
+      {people.length ? (
+        <section>
+          <h2 className="community-heading">{t("addFriendPage")}</h2>
+          <ul className="friend-list">
+            {people.map((item) => (
+              <li key={item.requestId}>
+                <button type="button" className="history-item" onClick={() => setPerson(item)}>
+                  <span>
+                    <strong>{item.name || t(item.role)}</strong>
+                    <span className="block text-sm">
+                      {t(item.status === "incoming" ? "friendIncoming" : item.status === "outgoing" ? "friendWaiting" : "addFriend")}
+                    </span>
+                  </span>
+                  <span aria-hidden>›</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
       {friends.length ? (
-        <ul className="friend-list">
-          {friends.map((friend) => (
-            <li key={friend.id}>
-              <button type="button" className="history-item" onClick={() => setOpen(friend)}>
-                <span>
-                  <strong>{friend.name || t(friend.role)}</strong>
-                  <span className="block text-sm">{t(friend.role)}</span>
-                </span>
-                <span aria-hidden>›</span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      ) : loaded && !invites.length ? (
+        <section>
+          <h2 className="community-heading">{t("messages")}</h2>
+          <ul className="friend-list">
+            {friends.map((friend) => (
+              <li key={friend.id}>
+                <button type="button" className="history-item" onClick={() => setOpen(friend)}>
+                  <span>
+                    <strong>{friend.name || t(friend.role)}</strong>
+                    <span className="block text-sm">{t(friend.role)}</span>
+                  </span>
+                  <span aria-hidden>›</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : loaded && !people.length ? (
         <div className="empty-state">
           <h2>{t("noFriends")}</h2>
           <p>{t("noFriendsHint")}</p>

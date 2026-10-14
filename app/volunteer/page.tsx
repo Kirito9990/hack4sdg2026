@@ -26,7 +26,6 @@ type Task = {
   resources?: string[];
   distanceMeters: number;
   createdAt?: string;
-  residentFlagged?: boolean;
 };
 function waitingLabel(createdAt: string | undefined, t: (key: string) => string) {
   if (!createdAt) return "";
@@ -234,11 +233,6 @@ export default function Volunteer() {
                 {tasks.map((task, index) => (
                   <li key={task.id}>
                     <PriorityCard {...task} rank={index + 1} />
-                    {task.residentFlagged && (
-                      <p className="credibility-flag" role="status">
-                        {t("lowCredibility")}
-                      </p>
-                    )}
                     {task.rewardPoints > 0 && <p className="task-reward">✦ {task.rewardPoints} {t("rewardOffer")}</p>}
                     <div className="flex flex-wrap items-center justify-between gap-3 p-3">
                       <span className="text-sm">
@@ -249,12 +243,6 @@ export default function Volunteer() {
                         {t("approx")} {(task.distanceMeters / 1000).toFixed(1)}{" "}
                         {t("km")}
                       </span>
-                      <a
-                        className="report-link"
-                        href={"tel:" + (process.env.NEXT_PUBLIC_EMERGENCY_NUMBER || "999")}
-                      >
-                        {t("reportPolice")}
-                      </a>
                       <button
                         className="button"
                         disabled={!!accepting}

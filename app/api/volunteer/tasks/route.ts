@@ -1,5 +1,4 @@
-import { haversineMeters, ratingsFor, store } from "@/lib/db";
-import { credibilitySummary } from "@/lib/ratings";
+import { haversineMeters, store } from "@/lib/db";
 import { currentUser, fail, json, validCoords } from "@/lib/server";
 import { quoteReward } from "@/lib/rewards";
 import { volunteerCanReceive } from "@/lib/types";
@@ -42,7 +41,6 @@ export async function GET(request: Request) {
       resources: r.resources || [],
       distanceMeters: Math.round(distance / 500) * 500,
       createdAt: r.createdAt,
-      residentFlagged: credibilitySummary(ratingsFor(r.residentId)).flagged,
     }));
   return json({ tasks });
 }

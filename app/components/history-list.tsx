@@ -3,9 +3,6 @@ import { useState } from "react";
 import { useApp } from "./providers";
 import { Conversation } from "./request-panel";
 import { RequestNeeds } from "./priority-card";
-import ReportPolice from "./report-police";
-import { CredibilitySummary, RatePartner } from "./credibility";
-import { FriendOffer } from "./community";
 import type { RequestView } from "@/lib/types";
 
 export default function HistoryList({ requests }: { requests: RequestView[] }) {
@@ -29,13 +26,7 @@ export default function HistoryList({ requests }: { requests: RequestView[] }) {
       {r.transcript && r.transcript !== r.summary && <p className="whitespace-pre-wrap break-words"><span className="font-semibold">{t("whatTheySaid")} </span>{r.transcript}</p>}
       {r.imageHidden && <p>{t("historyPhotoHidden")}</p>}
       {r.audioHidden && <p>{t("voiceNoteHidden")}</p>}
-      <CredibilitySummary credibility={r.partnerCredibility} />
-      <RatePartner request={r} />
-      <FriendOffer request={r} />
-      <ReportPolice />
-      <p className="text-sm text-muted">{t("historyPrivacy")}</p>
-      <p className="text-sm text-muted">{t("historySevenDays")}</p>
     </div>}
   </section>;
-  return <div className="stage-scroll history-list"><p className="text-sm text-muted">{t("historySevenDays")}</p>{requests.length ? requests.map(r => <button className="history-item" key={r.id} onClick={() => { setSelected(r.id); setTab("historySummary"); }}><span><strong>{t(r.category)}</strong><span className="block text-sm">{new Date(r.closedAt || r.createdAt).toLocaleDateString(locale)} · {t(r.closedReason === "completed" ? "completedTitle" : "closed")}</span></span><span className="history-item-meta">{user?.role === "volunteer" && !!r.rewardEarnedPoints && <span className="history-reward">+{r.rewardEarnedPoints} {t("carePoints")}</span>}<span aria-hidden>›</span></span></button>) : <div className="empty-state">{t("noHistory")}</div>}</div>;
+  return <div className="stage-scroll history-list">{requests.length ? requests.map(r => <button className="history-item" key={r.id} onClick={() => { setSelected(r.id); setTab("historySummary"); }}><span><strong>{t(r.category)}</strong><span className="block text-sm">{new Date(r.closedAt || r.createdAt).toLocaleDateString(locale)} · {t(r.closedReason === "completed" ? "completedTitle" : "closed")}</span></span><span className="history-item-meta">{user?.role === "volunteer" && !!r.rewardEarnedPoints && <span className="history-reward">+{r.rewardEarnedPoints} {t("carePoints")}</span>}<span aria-hidden>›</span></span></button>) : <div className="empty-state">{t("noHistory")}</div>}</div>;
 }

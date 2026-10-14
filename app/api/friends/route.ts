@@ -25,27 +25,49 @@ export async function GET() {
       createdAt: row.createdAt,
     };
   });
-  const invites = data.requests.flatMap((request) => {
+  type PersonRow = {
+    requestId: string;
+    name: string;
+    role: string;
+    category: string;
+    closedAt?: string;
+    status: "incoming" | "outgoing" | "none";
+  };
+  const rank: Record<PersonRow["status"], number> = { incoming: 0, none: 1, outgoing: 2 };
+  const people = new Map<string, PersonRow>();
+  for (const request of data.requests) {
     if (!historyVisible(request) || request.closedReason !== "completed" || !request.volunteerId || !member(request, user))
-      return [];
+      continue;
     const partnerId = user.id === request.residentId ? request.volunteerId : request.residentId;
-    if (!partnerId || partnerId === user.id || friendshipBetween(user.id, partnerId)) return [];
+    if (!partnerId || partnerId === user.id || friendshipBetween(user.id, partnerId)) continue;
     const status = offerState(
       friendDecision(friendOffer(request.id, user.id)),
       friendDecision(friendOffer(request.id, partnerId)),
       false,
     );
-    if (status !== "incoming" && status !== "outgoing") return [];
+    if (status !== "incoming" && status !== "outgoing" && status !== "none") continue;
     const partner = data.users.find((item) => item.id === partnerId);
-    return [{
+    const row = {
       requestId: request.id,
+      name: partner?.name || "",
       role: partner?.role || (user.role === "resident" ? "volunteer" : "resident"),
       category: request.category,
       closedAt: request.closedAt,
       status,
-    }];
-  });
-  return json({ friends, invites });
+    };
+    const previous = people.get(partnerId);
+    if (
+      !previous ||
+      rank[status] < rank[previous.status] ||
+      (status === previous.status && String(request.closedAt || "") > String(previous.closedAt || ""))
+    ) {
+      people.set(partnerId, row);
+    }
+  }
+  const listed = [...people.values()].sort((a, b) => rank[a.status] - rank[b.status]);
+  const invites = listed.filter((row) => row.status !== "none");
+  const suggestions = listed.filter((row) => row.status === "none");
+  return json({ friends, invites, suggestions });
 }
 
 export async function POST(request: Request) {

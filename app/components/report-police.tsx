@@ -9,7 +9,6 @@ export default function ReportPolice() {
       <a className="button secondary w-full" href={"tel:" + number}>
         {t("reportPolice")}
       </a>
-      <p className="text-sm text-muted">{t("reportPoliceHint")}</p>
     </div>
   );
 }
