@@ -448,3 +448,13 @@ Additional user corrections this run: simplify login; phone examples belong in p
 
 - Removed the sentence under Report malicious act to police. On an accepted request, Cancel (or the resident’s completion button) and Report sit on one row, so the message area can use that space. The conversation log now stays at least 220px tall and grows with the screen.
 - User asked to publish this layout change on codex/CareCall. Render auto-deploys that branch.
+
+### 2026-10-14 — CareCall icon
+
+- The supplied two-person heart mark is now the app icon: browser tab favicon, Apple touch icon, the header beside CareCall, and the login page. The mark fills the icon square on the cream background. On the page itself the background is transparent so it sits on the existing cream surface.
+- The previous favicon.ico was removed so the browser tab uses this mark. Validation: ESLint passed on the header and login files. Browser check on the local server at port 47291: the login page shows the mark in the header and above Log in, on the cream background, and the document head links the icon and Apple touch icon.
+
+### 2026-10-14 — icon only in the header
+
+- The large mark above Log in is removed. The icon stays in the top-left corner, next to CareCall. Login spacing is a little tighter so a phone screen does not have to scroll; buttons stay at least 48px tall.
+- Validation: on a 390×844 phone and a 375×667 phone, Log in fits without scrolling. Create account fits at 390×844. On the shorter phone, Create account still needs a short scroll because of the name, privacy agreement, and location note. User asked to publish the icon and this login layout on codex/CareCall. Render auto-deploys that branch.

@@ -750,6 +750,18 @@ body {
   font-size: 12px;
   min-height: 42px;
 }
+.brand-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.brand-mark img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
 .compact-footer {
   height: 54px;
 }
@@ -792,6 +804,10 @@ body {
   }
   .compact-header a:first-child {
     font-size: 21px;
+  }
+  .brand-mark img {
+    width: 32px;
+    height: 32px;
   }
   .compact-header a.account-link {
     max-width: 96px;
@@ -1416,7 +1432,8 @@ body {
   justify-content: center;
 }
 .login-heading {
-  margin: 20px 0 10px;
+  margin: 4px 0 0;
+  flex-shrink: 0;
 }
 .login-heading h1 {
   font-size: 27px;
@@ -1430,7 +1447,7 @@ body {
 .login-form {
   display: flex;
   flex-direction: column;
-  gap: 22px;
+  gap: 14px;
   padding: 2px;
 }
 .login-form input::placeholder {

@@ -1,4 +1,5 @@
 "use client";
+import Image from "next/image";
 import Link from "next/link";
 import AccountMenu from "./account-menu";
 import { useApp } from "./providers";
@@ -26,8 +27,9 @@ export default function Shell({ children }: { children: React.ReactNode }) {
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
           <Link
             href={user ? "/" + user.role : "/login"}
-            className="text-2xl font-bold tracking-tight"
+            className="brand-mark text-2xl font-bold tracking-tight"
           >
+            <Image src="/carecall-mark.png" alt="" width={40} height={40} priority />
             CareCall
           </Link>
           <nav className="flex flex-wrap items-center gap-3">
