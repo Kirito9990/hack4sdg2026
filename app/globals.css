@@ -1057,8 +1057,30 @@ body {
 .conversation-log {
   min-height: 0;
 }
+.request-workspace .conversation-log {
+  flex: 1 1 auto;
+  min-height: 220px;
+}
 .chat-composer {
   min-height: 62px;
+}
+.request-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.request-actions > .button,
+.request-actions > .report-police {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.request-actions .button {
+  width: 100%;
+  padding-left: 10px;
+  padding-right: 10px;
+  line-height: 1.25;
+  text-align: center;
+  white-space: normal;
 }
 .phone-action:disabled {
   background: #e9e3d7;

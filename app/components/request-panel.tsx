@@ -421,26 +421,28 @@ export default function RequestPanel({
           {t(error)}
         </p>
       )}
-      {!closed &&
-        (resident ? (
-          <button
-            className={
-              "button w-full " + (accepted ? "finish-button" : "secondary")
-            }
-            disabled={busy}
-            onClick={() => void finish()}
-          >
-            {t(busy ? "saving" : accepted ? "finishHelp" : "cancelRequest")}
-          </button>
-        ) : accepted ? (
-          <button
-            className="button secondary w-full"
-            disabled={busy}
-            onClick={() => void volunteerCancel()}
-          >
-            {t(busy ? "saving" : "volunteerCancel")}
-          </button>
-        ) : null)}
+      {!closed && (resident || accepted) ? (
+        <div className="request-actions">
+          {resident ? (
+            <button
+              className={"button " + (accepted ? "finish-button" : "secondary")}
+              disabled={busy}
+              onClick={() => void finish()}
+            >
+              {t(busy ? "saving" : accepted ? "finishHelp" : "cancelRequest")}
+            </button>
+          ) : (
+            <button
+              className="button secondary"
+              disabled={busy}
+              onClick={() => void volunteerCancel()}
+            >
+              {t(busy ? "saving" : "volunteerCancel")}
+            </button>
+          )}
+          {accepted && <ReportPolice />}
+        </div>
+      ) : null}
       {!closed && r.dispatch_action.startsWith("EMERGENCY") && (
         <a
           className="button bg-danger"
@@ -449,7 +451,6 @@ export default function RequestPanel({
           {t("emergencyCall")} 999
         </a>
       )}
-      {accepted && <ReportPolice />}
     </article>
   );
 }

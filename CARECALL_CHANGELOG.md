@@ -443,3 +443,8 @@ Additional user corrections this run: simplify login; phone examples belong in p
 
 - Completed requests no longer ask for a 1–5 rating. The credibility average and the low-credibility flag are gone from history, the active request, and the nearby list. The rating route is removed. Old rating rows stay in the database and are not shown. CarePoints are unchanged.
 - Validation: ESLint passed on the changed files. Browser check on the isolated server: a completed history summary showed the request text and no rating controls. No commit or push.
+
+### 2026-10-14 — active chat actions share one row
+
+- Removed the sentence under Report malicious act to police. On an accepted request, Cancel (or the resident’s completion button) and Report sit on one row, so the message area can use that space. The conversation log now stays at least 220px tall and grows with the screen.
+- User asked to publish this layout change on codex/CareCall. Render auto-deploys that branch.
