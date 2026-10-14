@@ -105,6 +105,26 @@ test("text and voice classify without using an attached image", async () => {
   assert.equal(failed.classification.urgency, "NOT_ASSESSED");
   assert.notEqual(failed.classification.urgency, "HIGH");
 
+  const emergency = await classifyPrepared(
+    prepareAiInput({ text: "I cannot breathe", transcript: "" }),
+    {
+      allowAI: true,
+      locale: "en",
+      classifyText: async () => {
+        throw new Error("OpenRouter 503");
+      },
+    },
+  );
+  assert.equal(emergency.source, "fallback");
+  assert.equal(emergency.classification.urgency, "HIGH");
+  assert.equal(emergency.triage?.dispatch_action, "EMERGENCY_medical");
+
+  const optedOut = await classifyPrepared(
+    prepareAiInput({ text: "I cannot breathe", transcript: "" }),
+    { allowAI: false, locale: "en" },
+  );
+  assert.equal(optedOut.classification.urgency, "NOT_ASSESSED");
+
   let calls = 0;
   const disabled = await classifyPrepared(
     prepareAiInput({

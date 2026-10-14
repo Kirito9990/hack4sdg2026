@@ -3,11 +3,13 @@ import assert from "node:assert/strict";
 import {
   CLARIFY_LIMIT,
   clarifiedText,
+  emergencyTriage,
   holdForClarification,
   isClassified,
   nextClarifySlot,
   readyToConfirm,
   requestSummary,
+  retryReason,
 } from "../lib/clarify.ts";
 import { messageVoiceLang } from "../lib/speech.ts";
 
@@ -94,6 +96,29 @@ test("one essential question is asked, and a clear or repeated gap stops", () =>
   assert.equal(nextClarifySlot("Please buy rice.\nI am at home", ["need"]), null);
   assert.equal(nextClarifySlot("hello\nhelp", ["need", "detail"]), "place");
   assert.equal(nextClarifySlot("hello", ["need", "detail", "place"]), null);
+  assert.equal(nextClarifySlot("I cannot breathe"), null);
+  assert.equal(nextClarifySlot("火災"), null);
+  assert.equal(emergencyTriage("I cannot breathe")?.urgency_level, "HIGH");
+  assert.equal(emergencyTriage("I cannot breathe")?.dispatch_action, "EMERGENCY_medical");
+  assert.equal(emergencyTriage("There is a fire")?.category, "NON_MEDICAL");
+  assert.equal(emergencyTriage("Please buy rice"), null);
+});
+
+test("an off-topic or illogical reply is sent back for another try", () => {
+  assert.equal(retryReason("who are you", "request"), "retryRequest");
+  assert.equal(retryReason("你是谁", "need"), "retryRequest");
+  assert.equal(retryReason("asdfasdf", "detail"), "retryRequest");
+  assert.equal(retryReason("Please buy rice.", "request"), null);
+  assert.equal(retryReason("Can someone help carry my shopping?", "request"), null);
+  assert.equal(retryReason("help", "need"), null);
+  assert.equal(retryReason("yes", "need"), "retryRequest");
+  assert.equal(retryReason("好的", "detail"), "retryRequest");
+  assert.equal(retryReason("ok", "place"), "retryPlace");
+  assert.equal(retryReason("I cannot breathe", "request"), null);
+  assert.equal(retryReason("at home", "place"), null);
+  assert.equal(retryReason("Please buy rice", "place"), "retryPlace");
+  assert.equal(retryReason("????", "place"), "retryPlace");
+  assert.equal(retryReason("near the market", "place"), "review");
 });
 
 test("chatbot speech follows the interface language", () => {

@@ -1,3 +1,5 @@
+import type { TriageFields } from "@/lib/types";
+
 export const CLARIFY_LIMIT = 3;
 export const CLARIFY_SLOTS = ["need", "detail", "place"] as const;
 export type ClarifySlot = (typeof CLARIFY_SLOTS)[number];
@@ -74,6 +76,20 @@ const GENERIC_NEED =
 const NEED_ACTION =
   /\b(?:buy|bring|deliver|pick\s*up|carry|repair|fix|walk|clean|cook|move|shop|charge|accompany|lend|translate|install|escort|chat|talk|visit|company)\b|\b(?:need|want)\s+(?:some\s+|a\s+|an\s+)?(?!help\b|assistance\b)[a-z]{3,}|買|买|帶|带|送|搬|修|陪|煮|清潔|清洁|拎|扶|換|换|充電|充电|購物|购物|行街|落樓|落楼|上樓|上楼|聊天|傾計|倾计|傾偈|倾偈|探訪|探访|陪伴/i;
 
+const MEDICAL_EMERGENCY =
+  /\b(?:breath(?:e|ing)?|bleed(?:ing)?|unconscious)\b|不能呼吸|唔夠氣|唔够气|流血|昏迷/i;
+
+const HAZARD_EMERGENCY =
+  /\b(?:fire|flood|collapse)\b|火災|火灾|火燭|火烛|水浸|倒塌/i;
+
+const EMERGENCY = new RegExp(
+  `${MEDICAL_EMERGENCY.source}|${HAZARD_EMERGENCY.source}`,
+  "i",
+);
+
+const BOT_QUESTION =
+  /who are you|what are you|what can you do|how are you|what(?:'s| is) the weather|tell me a joke|what time is it|你是谁|你是誰|你係邊個|你係咩|天氣|天气|點解|点解|为什么|為什麼|什麼是|什么是|講個笑話|讲个笑话|而家幾點|现在几点/i;
+
 const PLACE =
   /\b(?:here|home|downstairs|upstairs|outside|inside|lobby|building|estate|mall|park|clinic|hospital|floor)\b|屋企|呢度|呢處|這裡|这里|樓下|楼下|樓上|楼上|門口|门口|大廈|大厦|商場|商场|公園|公园|診所|诊所|醫院|医院|附近|而家喺|现在在|而家在|喺屋|在家/i;
 
@@ -111,11 +127,73 @@ function slotFilled(slot: ClarifySlot, text: string) {
   return matterComplete(value);
 }
 
+export type AnswerTarget = "request" | ClarifySlot;
+export type RetryAdvice = "retryRequest" | "retryPlace";
+
+function isGibberish(value: string) {
+  const compact = value.replace(/\s+/g, "");
+  if (!compact) return false;
+  if (/^(.)\1+$/iu.test(compact) && compact.length >= 4) return true;
+  if (/^(?:asdf|qwer|zxcv|haha|hahaha|lol|测试|測試)+$/i.test(compact)) return true;
+  return !/[\p{L}\p{N}]/u.test(compact);
+}
+
+function asksTheAssistant(value: string) {
+  return !hasAction(value) && !matterComplete(value) && BOT_QUESTION.test(value);
+}
+
+/**
+ * A neighbour task or a real place is accepted.
+ * Nonsense, a question to the assistant, or a place answer that is not a place
+ * is sent back with advice. Uncertain place answers return "review" for the model.
+ */
+export function retryReason(
+  text: string,
+  answering: AnswerTarget,
+): RetryAdvice | "review" | null {
+  const value = text.replace(/\s+/g, " ").trim();
+  if (!value || EMERGENCY.test(value)) return null;
+  const advice: RetryAdvice = answering === "place" ? "retryPlace" : "retryRequest";
+  if (isGibberish(value) || asksTheAssistant(value)) return advice;
+  if (
+    /^(?:yes|no|ok|okay|yeah|yep|nope|sure|fine|不知道|唔知|不清楚|随便|隨便|好的|好呀|好啊|好|嗯|唔|是的|是|對|对|不是|没有|沒有|冇)[.!！。\s]*$/i.test(
+      value,
+    )
+  )
+    return advice;
+  if (answering === "place") {
+    if (PLACE.test(value)) return null;
+    if (/[?？]/.test(value) || /^(?:yes|no|ok|okay|不知道|唔知|不清楚|随便|隨便)[.!！。]*$/i.test(value))
+      return "retryPlace";
+    if (hasAction(value)) return "retryPlace";
+    return "review";
+  }
+  if (/[?？]/.test(value) && !hasAction(value)) return "review";
+  return null;
+}
+
 /** Complete the task before asking where the resident is. Each slot is asked once. */
+/** A clear emergency is not a neighbour errand, so it is not held for follow-up questions. */
+export function emergencyTriage(text: string): TriageFields | null {
+  const value = text.replace(/\s+/g, " ").trim();
+  if (!value || !EMERGENCY.test(value)) return null;
+  const medical = MEDICAL_EMERGENCY.test(value);
+  return {
+    urgency_level: "HIGH",
+    category: medical ? "MEDICAL" : "NON_MEDICAL",
+    summary: value.slice(0, 400),
+    dispatch_action: medical ? "EMERGENCY_medical" : "EMERGENCY_nonmedical",
+    requirements: [],
+    tools: [],
+    resources: [],
+  };
+}
+
 export function nextClarifySlot(
   text: string,
   asked: readonly ClarifySlot[] = [],
 ): ClarifySlot | null {
+  if (EMERGENCY.test(text)) return null;
   if (asked.length >= CLARIFY_LIMIT) return null;
   const seen = new Set(asked);
   if (!matterComplete(text)) {

@@ -253,8 +253,9 @@ body {
 .location-alert {
   background: #fff3da;
   border-radius: 12px;
-  padding: 8px 12px;
-  font-size: 13px;
+  padding: 10px 12px;
+  font-size: 18px;
+  line-height: 1.35;
 }
 .bottom-tabs {
   display: flex;
@@ -1483,6 +1484,34 @@ body {
 }
 .login-form input::placeholder {
   color: #888177;
+}
+.signup-note {
+  font-size: 16px;
+  line-height: 1.35;
+  color: var(--muted);
+}
+@media (max-height: 700px) {
+  .login-workspace {
+    gap: 4px;
+    padding-bottom: 0;
+  }
+  .login-heading h1 {
+    font-size: 24px;
+    margin-bottom: 0;
+  }
+  .login-heading p {
+    font-size: 15px;
+    line-height: 1.25;
+  }
+  .login-form {
+    gap: 5px;
+  }
+  .login-form .field {
+    gap: 2px;
+  }
+  .login-form .consent-row {
+    line-height: 1.3;
+  }
 }
 .password-field {
   position: relative;

@@ -486,3 +486,22 @@ Additional user corrections this run: simplify login; phone examples belong in p
 
 - A verb alone no longer counts as a complete request. Buying, carrying, or repairing must name the item or the amount before the follow-up moves on to where the resident is. A still-vague answer gets one more question about the task. Company, such as chatting, is already a complete task. High urgency still posts immediately.
 - Validation: `node --test tests/clarify.test.mjs tests/clarify-question.test.mjs` passed. User asked to publish this task-completeness check on codex/CareCall. Render auto-deploys that branch.
+
+### 2026-10-15 — illogical replies are typed again
+
+- A neighbour task is still accepted, including one phrased as a question. Nonsense, a question to the assistant, or a place answer that is not a place is not saved. The resident sees a short reminder and the box is cleared so they can type it again. An unclear place can be checked by the model; if that check is unavailable, the words are kept. Emergencies are not sent back.
+- Validation: `node --test tests/clarify.test.mjs tests/clarify-question.test.mjs` passed. User asked to publish this stability work on codex/CareCall. Render auto-deploys that branch.
+
+### 2026-10-15 — prototype stability pass
+
+- API walk on the local server covered account creation, a photo with no words, a question to the assistant, vague help, a second vague answer, a named item, a place that is not a place, confirmation, an emergency, a complete request with category and priority, an off-shift volunteer, the 5 km limit, the rounded map pin, accept, chat, resident completion, mutual friend acceptance, a logged-out request list, and account deletion. The deleted account cannot log in again. Those temporary accounts were deleted.
+- A clear emergency such as “I cannot breathe” or a fire is no longer held for follow-up questions. If classification fails, that request is saved as high urgency so a nearby volunteer can still see it. Turning AI off still saves the request as not assessed.
+- A bare reply such as “yes”, “ok”, or “好的” is not saved as the task or the place. The resident is asked to type the help again. A vague word such as “help” can still continue to the next question.
+- The reminder under the request box is 18px, so it can be read without leaning in.
+- Browser check at 390×844: “who are you” showed the reminder and cleared the box; “hello” opened the follow-up page without scrolling; “ok” was sent back and not added to the conversation; “I cannot breathe” posted immediately as Medical and High, with Cancel and the 999 link on screen. Community and History explained an empty list. The temporary resident was deleted. User asked to publish this stability work on codex/CareCall. Render auto-deploys that branch.
+
+### 2026-10-15 — account creation no longer waits for location
+
+- Creating an account no longer pauses on “Finding your location…”. The account opens immediately. Location is still requested when a resident sends a request, and the note on the form says they can decline.
+- On a 375×667 phone, Create account fits without scrolling. Buttons stay at least 48px. The normal 390×844 layout keeps the previous spacing.
+- Validation: on an isolated server at port 47371, a temporary resident was created from the short phone layout and reached Request help without a location wait. The request screen also fit. The isolated database was removed. User asked to publish this stability work on codex/CareCall. Render auto-deploys that branch.

@@ -70,8 +70,8 @@ test("location recovers from old denials without overwriting account consent", a
     await login.getByRole("textbox", { name: "Password", exact: true }).fill("test-password-1");
     await login.locator("#privacy-consent").check();
     await login.getByRole("button", { name: "Create account", exact: true }).click();
-    await login.getByText("Location ready", { exact: true }).waitFor();
-    assert.equal(await login.evaluate(() => window.geoCalls), 1);
+    await login.getByRole("heading", { name: "Request help", exact: true }).waitFor();
+    assert.equal(await login.evaluate(() => window.geoCalls), 0);
 
     // Sending without a point also retries; a manual account opt-out is not an OS denial.
     const { c: rc, p: resident } = await context("throws");

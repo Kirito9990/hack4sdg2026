@@ -3,7 +3,6 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { post, useApp } from "@/app/components/providers";
 import PrivacyNotice from "@/app/components/privacy-notice";
-import { requestLocation, rememberPoint } from "@/lib/location-client";
 import type { User, UserRole } from "@/lib/types";
 
 function PasswordEye({ hidden }: { hidden: boolean }) {
@@ -37,7 +36,6 @@ export default function Login() {
     [role, setRole] = useState<UserRole>("resident"),
     [agreed, setAgreed] = useState(false),
     [busy, setBusy] = useState(false),
-    [phase, setPhase] = useState("saving"),
     [error, setError] = useState("");
   function switchMode(next: "login" | "create") {
     setMode(next);
@@ -63,9 +61,6 @@ export default function Login() {
           setError("");
           try {
             if (mode === "create") {
-              setPhase("findingLocation");
-              const location = await requestLocation();
-              setPhase("saving");
               const b = await post<{ user: User }>("/api/auth", {
                 mode: "create",
                 name,
@@ -73,13 +68,11 @@ export default function Login() {
                 role,
                 password,
                 privacyAccepted: true,
-                allowLocation: location.choice === "allowed",
+                allowLocation: false,
               });
-              if (location.point) rememberPoint(b.user.id, location.point);
               setUser(b.user);
               router.push("/" + b.user.role);
             } else {
-              setPhase("saving");
               const b = await post<{ user: User }>("/api/auth", {
                 mode: "login",
                 phone,
@@ -173,7 +166,7 @@ export default function Login() {
                 <PrivacyNotice />
               </div>
             </div>
-            <p className="text-sm text-muted">{t("signupLocation")}</p>
+            <p className="signup-note">{t("signupLocation")}</p>
           </>
         )}
         {error && (
@@ -182,7 +175,7 @@ export default function Login() {
           </p>
         )}
         <button className="button w-full" disabled={busy}>
-          {t(busy ? phase : mode === "create" ? "createAccount" : "logIn")}
+          {t(busy ? "saving" : mode === "create" ? "createAccount" : "logIn")}
         </button>
         <button
           type="button"

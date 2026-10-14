@@ -82,7 +82,7 @@ export const messages = {
   noticeSharing: ["Name, address, phone and chat sharing are controlled in Privacy settings. Avoid adding private details to free text or photos if you do not want to share them.","姓名、地址、電話及聊天分享可在私隱設定管理。不想分享的私密資料，請勿放入文字或相片。","姓名、地址、电话及聊天分享可在隐私设置管理。不想分享的私密信息，请勿放入文字或照片。"],
   noticeLocation: ["Location is optional. Your browser controls permission; you can revoke it at any time. A selected request location is shared for matching and assistance.","定位為選填。權限由瀏覽器管理，你可隨時撤銷。求助所選位置會用於配對及支援。","定位为选填。权限由浏览器管理，你可随时撤销。求助所选位置会用于匹配和帮助。"],
   noticeData: ["CareCall stores your profile, privacy preferences, requests and conversations to coordinate assistance.","CareCall 儲存個人資料、私隱偏好、求助及對話，以協調支援。","CareCall 保存个人资料、隐私偏好、求助和对话，以协调帮助。"],
-  signupLocation: ["We will ask for location access to help you find nearby assistance. You can decline.","建立帳戶時會請求定位，以協助尋找附近支援；你可以拒絕。","创建账户时会请求定位，以便寻找附近帮助；你可以拒绝。"],
+  signupLocation: ["Location is requested when you send a request. You can decline.","發送求助時才會請求定位，你可以拒絕。","发送求助时才会请求定位，你可以拒绝。"],
   agreePrivacy: ["I agree to the","我已閱讀並同意","我已阅读并同意"],
   privacyNotice: ["Privacy notice","私隱說明","隐私说明"],
   deleteHistory: ["Delete completed history","刪除已完成記錄","删除已完成记录"],
@@ -672,6 +672,16 @@ export const messages = {
   clarifySkip: ["Send request now", "立即送出請求", "立即提交请求"],
   clarifyChecking: ["Checking…", "正在判斷…", "正在判断…"],
   clarifyLog: ["Follow-up questions", "補充問題", "补充问题"],
+  retryRequest: [
+    "CareCall is for asking a neighbour to help, such as shopping, carrying something, or company. Please type that help again.",
+    "這裡是請鄰居幫忙，例如買東西、搬東西或者陪伴。請再講一次你需要的幫助。",
+    "这里是请邻居帮忙，例如买东西、搬东西或者陪伴。请再说一次你需要的帮助。",
+  ],
+  retryPlace: [
+    "That does not say where you are. Please type the place again, such as at home or downstairs.",
+    "這句沒有講你而家喺邊。請再講一次地點，例如屋企或者樓下。",
+    "这句没有说你现在在哪里。请再说一次地点，例如家里或者楼下。",
+  ],
   invalidName: [
     "Enter a name with 2–80 characters.",
     "請輸入 2–80 字的姓名。",

@@ -1,3 +1,4 @@
+import { emergencyTriage } from "./clarify.ts";
 import type { SafetyClassification, TriageFields } from "@/lib/types";
 
 export type PreparedRequest = {
@@ -84,8 +85,17 @@ export async function classifyPrepared(
         source: "openrouter",
       };
     } catch {
-      /* A failed text classification stays unassessed. */
+      /* A failed text classification stays unassessed, unless it is a clear emergency. */
     }
+  }
+  const emergency = emergencyTriage(summary);
+  if (emergency) {
+    return {
+      prepared,
+      classification: classificationFromTriage(emergency),
+      triage: emergency,
+      source: "fallback",
+    };
   }
   return {
     prepared,

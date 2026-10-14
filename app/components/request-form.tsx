@@ -102,6 +102,7 @@ export default function RequestForm({
     [draft, setDraft] = useState(""),
     [voiceTarget, setVoiceTarget] = useState<"request" | "answer" | "summary">("request"),
     [followPage, setFollowPage] = useState(false),
+    [counsel, setCounsel] = useState<"" | "retryRequest" | "retryPlace">(""),
     [locatingPrivacy, setLocatingPrivacy] = useState(false),
     [clarifyPoint, setClarifyPoint] = useState<{
       lat: number;
@@ -269,9 +270,20 @@ export default function RequestForm({
       setError("emptyRequest");
       return;
     }
+    const newest =
+      confirmed !== undefined
+        ? confirmed.trim()
+        : nextTurns.length > turns.length
+          ? nextTurns[nextTurns.length - 1]?.answer || ""
+          : nextTurns.length === 0
+            ? text.trim()
+            : "";
+    const answering =
+      nextTurns.length > turns.length ? nextTurns[nextTurns.length - 1]?.slot || "request" : "request";
     requestLock.current = true;
     setBusy(true);
     setError("");
+    setCounsel("");
     try {
       const point = clarifyPoint || coords || (await onLocate());
       if (!point) {
@@ -286,15 +298,35 @@ export default function RequestForm({
       body.set("language", transcriptionLanguage(locale));
       if (clarify) body.set("clarify", "1");
       if (nextTurns.length) body.set("asked", nextTurns.map((turn) => turn.slot).join(","));
+      if (newest) {
+        body.set("latest", newest);
+        body.set("answering", answering);
+      }
       if (photo) body.set("image", photo);
       if (audio) body.set("audio", audio, "voice-note");
       const saved = await api<
         | RequestView
-        | { needsClarification?: true; needsConfirmation?: true; slot?: string; question?: string }
+        | {
+            needsClarification?: true;
+            needsConfirmation?: true;
+            needsRetry?: true;
+            advice?: string;
+            slot?: string;
+            question?: string;
+          }
       >(
         "/api/triage",
         { method: "POST", body },
       );
+      if (saved && "needsRetry" in saved && saved.needsRetry) {
+        const key = saved.advice === "retryPlace" ? "retryPlace" : "retryRequest";
+        setCounsel(key);
+        speakMessage(t(key), locale);
+        if (confirmed !== undefined) setSummary("");
+        else if (nextTurns.length > turns.length) setDraft("");
+        else setText("");
+        return;
+      }
       if (clarify && saved && "needsConfirmation" in saved && saved.needsConfirmation) {
         setClarifyPoint(point);
         setTurns(nextTurns);
@@ -568,6 +600,11 @@ export default function RequestForm({
           <section className="request-summary" aria-label={t("taskSummary")}>
             <h2>{t("taskSummary")}</h2>
             <p>{t("confirmRequest")}</p>
+            {counsel && (
+              <p className="location-alert" role="status">
+                {t(counsel)}
+              </p>
+            )}
             <label className="field">
               <span className="sr-only">{t("taskSummary")}</span>
               <textarea
@@ -575,7 +612,10 @@ export default function RequestForm({
                 maxLength={4000}
                 value={summary}
                 aria-label={t("taskSummary")}
-                onChange={(e) => setSummary(e.target.value)}
+                onChange={(e) => {
+                  setSummary(e.target.value);
+                  setCounsel("");
+                }}
                 disabled={busy}
               />
             </label>
@@ -599,6 +639,19 @@ export default function RequestForm({
                   <p className="bubble sent">{turn.answer}</p>
                 </div>
               ))}
+              {counsel && (
+                <div className="bubble-line">
+                  <p className="bubble received">{t(counsel)}</p>
+                  <button
+                    type="button"
+                    className="bubble-speak"
+                    aria-label={t("playMessage")}
+                    onClick={() => speakMessage(t(counsel), locale)}
+                  >
+                    <Speaker />
+                  </button>
+                </div>
+              )}
               {pending && (
                 <div className="bubble-line">
                   <p className="bubble received">{pending.question}</p>
@@ -634,7 +687,10 @@ export default function RequestForm({
                 placeholder={t("clarifyAnswer")}
                 aria-label={t("clarifyAnswer")}
                 value={draft}
-                onChange={(e) => setDraft(e.target.value)}
+                onChange={(e) => {
+                  setDraft(e.target.value);
+                  setCounsel("");
+                }}
                 disabled={busy || transcribing}
               />
             </label>
@@ -708,12 +764,20 @@ export default function RequestForm({
             placeholder={t("describeTitle")}
             aria-label={t("description")}
             value={text}
-            onChange={(e) => setText(e.target.value)}
+            onChange={(e) => {
+              setText(e.target.value);
+              setCounsel("");
+            }}
             disabled={busy || transcribing}
           />
         </label>
         {attachments}
       </div>
+      {counsel && (
+        <p className="location-alert" role="status">
+          {t(counsel)}
+        </p>
+      )}
       {error && (
         <p className="error text-sm" role="alert">
           {t(error)}

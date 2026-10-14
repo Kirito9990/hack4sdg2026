@@ -32,7 +32,7 @@ test("request usability: large composer, GPS retry, conditional tabs, photos, re
   await p.getByRole("textbox",{name:"Password",exact:true}).fill("test-password-1");
   await p.locator("#privacy-consent").check();await p.getByRole("button",{name:"Create account",exact:true}).click();
   await p.getByRole("button",{name:"Send request",exact:true}).waitFor();
-  assert.equal(await p.evaluate(()=>window.geoCalls),1);
+  assert.equal(await p.evaluate(()=>window.geoCalls),0);
   assert.equal(await p.evaluate(()=>getComputedStyle(document.body).backgroundColor),"rgb(243, 239, 228)");
   assert.equal(await p.locator(".form-surface .leaflet-container").count(),0);
   assert.equal(await p.locator(".bottom-tabs button").count(),2);

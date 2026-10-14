@@ -4,9 +4,10 @@ import { rasterizeUpload } from "@/lib/heif-image";
 import {
   triageTextWithOpenRouter,
   clarifyQuestion,
+  reviewResidentReply,
   transcribeWithOpenRouter,
 } from "@/lib/openrouter";
-import { askedSlots, holdForClarification, nextClarifySlot, readyToConfirm } from "@/lib/clarify";
+import { askedSlots, holdForClarification, nextClarifySlot, readyToConfirm, retryReason, type AnswerTarget } from "@/lib/clarify";
 import { classifyPrepared, prepareAiInput } from "@/lib/pipeline";
 import { effectiveRequestText } from "@/lib/request-content";
 import { audioContentType, transcriptionLanguage } from "@/lib/speech";
@@ -118,6 +119,29 @@ export async function POST(request: Request) {
     }
   }
   if (!effectiveRequestText(typed, spoken)) return fail("emptyRequest");
+  const latest = String(form.get("latest") || "").trim().slice(0, 4000);
+  const answeringRaw = String(form.get("answering") || "request");
+  const answering: AnswerTarget =
+    answeringRaw === "need" || answeringRaw === "detail" || answeringRaw === "place"
+      ? answeringRaw
+      : "request";
+  if (latest) {
+    let reason = retryReason(redact(latest), answering);
+    if (
+      reason === "review" &&
+      user.privacy.allowAI === true &&
+      process.env.OPENROUTER_API_KEY
+    ) {
+      const accepted = await reviewResidentReply({
+        text: redact(latest),
+        answering,
+        locale,
+      });
+      reason = accepted === false ? (answering === "place" ? "retryPlace" : "retryRequest") : null;
+    } else if (reason === "review") reason = null;
+    if (reason === "retryRequest" || reason === "retryPlace")
+      return json({ needsRetry: true, advice: reason });
+  }
   const safeText = redact(transcript);
   const prepared = prepareAiInput({
     text: redact(typed),
