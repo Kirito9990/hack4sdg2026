@@ -314,7 +314,7 @@ export default function RequestForm({
               )
             : null;
         const slot =
-          saved.slot === "need" || saved.slot === "place"
+          saved.slot === "need" || saved.slot === "detail" || saved.slot === "place"
             ? saved.slot
             : localSlot;
         if (slot && !nextTurns.some((turn) => turn.slot === slot) && nextTurns.length < CLARIFY_LIMIT) {

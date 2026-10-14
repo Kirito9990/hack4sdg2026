@@ -481,3 +481,8 @@ Additional user corrections this run: simplify login; phone examples belong in p
 
 - After a request is sent, the waiting card no longer has an expand control. The category and priority are shown immediately under “Request sent successfully”. The map stays, and it can still open full screen.
 - Validation: on the local server at 390×844, a temporary resident’s sent request showed Mobility and Low without an expand control, with the map still underneath. The temporary account was deleted. User asked to publish these follow-up and sent-request changes on codex/CareCall. Render auto-deploys that branch.
+
+### 2026-10-15 — the task question waits until a neighbour could act
+
+- A verb alone no longer counts as a complete request. Buying, carrying, or repairing must name the item or the amount before the follow-up moves on to where the resident is. A still-vague answer gets one more question about the task. Company, such as chatting, is already a complete task. High urgency still posts immediately.
+- Validation: `node --test tests/clarify.test.mjs tests/clarify-question.test.mjs` passed. User asked to publish this task-completeness check on codex/CareCall. Render auto-deploys that branch.

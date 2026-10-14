@@ -30,6 +30,7 @@ test("follow-up questions use Qwen3.8 Omni Flash", () => {
   assert.match(clarifySystemPrompt("place", "zh-Hant"), /Traditional Chinese/);
   assert.match(clarifySystemPrompt("need", "en"), /practical task or company/);
   assert.match(clarifySystemPrompt("place", "en"), /where they are right now/);
+  assert.match(clarifySystemPrompt("detail", "en"), /neighbour still could not act/);
   assert.deepEqual(askedSlots("need,nope,place"), ["need", "place"]);
 });
 

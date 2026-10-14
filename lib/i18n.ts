@@ -646,6 +646,11 @@ export const messages = {
     "你需要什麼幫助？例如買東西，或者有人陪你。",
     "你需要什么帮助？例如买东西，或者有人陪你。",
   ],
+  clarifyDetail: [
+    "What should they do, or how many?",
+    "要做什麼，或者要多少？",
+    "要做什么，或者要多少？",
+  ],
   clarifyPlace: [
     "Where are you now?",
     "你而家喺邊？",
