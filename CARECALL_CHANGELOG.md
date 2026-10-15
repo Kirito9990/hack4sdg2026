@@ -597,3 +597,8 @@ Additional user corrections this run: simplify login; phone examples belong in p
 - Preserved a backup as Canva design DAHYFeKPUhg before editing. Retained all 17 pages, the user's latest wording on slides 2/5 and added third-page images. No prototype code or deployment changes.
 - Unified all page backgrounds to #111315. Main and auxiliary text now use warm white #F4F4F2; original rust accents use #F1B58E and original sage accents use #BDD6AC. Screenshot/video boxes use #24282C. Table alternating pale rows now use #1B1E21 with light text. Original artwork and logo remain. Moved the cover's illustrative-scenario label onto its dark text area for readability.
 - Checked key pages individually (cover, 2–5, 11–12) and visually reviewed all 17 pages in the fully loaded grid, confirming dark backgrounds and readable placeholder/table combinations. Browser editor auto-saved changes to the original design; Canva source snapshot retained its current content. No regenerated local PPTX in this Canva-only session. Previous speaker-note limitations remain.
+
+### 2026-10-15 — smaller photo and speak buttons
+
+- Add photo and Tap to speak are a compact row: icon beside the label, 44px tall, on both the request form and the follow-up conversation. They still open the photo picker and start or stop the recording.
+- On a phone-sized page at 127.0.0.1:47381, both buttons measured 44×152 in English and Traditional Chinese, and both stayed enabled. The temporary database was removed after the check. User asked to publish this on codex/CareCall. Render auto-deploys that branch.
