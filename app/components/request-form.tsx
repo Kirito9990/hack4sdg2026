@@ -626,7 +626,7 @@ export default function RequestForm({
   if (followPage && asking) {
     return (
       <form
-        className="follow-up-page"
+        className="conversation follow-up-page"
         onSubmit={(e) => {
           e.preventDefault();
           if (summary !== null) {
@@ -642,16 +642,20 @@ export default function RequestForm({
           );
         }}
       >
-        <button
-          className="button secondary follow-up-back"
-          type="button"
-          onClick={() => setFollowPage(false)}
-        >
-          {t("back")}
-        </button>
+        <header className="conversation-header">
+          <button
+            className="history-back"
+            type="button"
+            onClick={() => setFollowPage(false)}
+          >
+            ‹ {t("back")}
+          </button>
+          <strong className="truncate">
+            {t(summary !== null ? "taskSummary" : "clarifyLog")}
+          </strong>
+        </header>
         {summary !== null ? (
-          <section className="request-summary" aria-label={t("taskSummary")}>
-            <h2>{t("taskSummary")}</h2>
+          <div className="conversation-log follow-up-summary" aria-label={t("taskSummary")}>
             <p>{t("confirmRequest")}</p>
             {counsel && (
               <p className="location-alert" role="status">
@@ -661,7 +665,7 @@ export default function RequestForm({
             <label className="field">
               <span className="sr-only">{t("taskSummary")}</span>
               <textarea
-                rows={6}
+                rows={8}
                 maxLength={4000}
                 value={summary}
                 aria-label={t("taskSummary")}
@@ -672,70 +676,78 @@ export default function RequestForm({
                 disabled={busy}
               />
             </label>
-          </section>
+          </div>
         ) : (
-          <section className="clarify-chat" aria-label={t("clarifyLog")}>
-            <div className="clarify-log" role="log">
-              {turns.map((turn) => (
-                <div key={turn.slot}>
-                  <div className="bubble-line">
-                    <p className="bubble received">{turn.question}</p>
-                    <button
-                      type="button"
-                      className="bubble-speak"
-                      aria-label={t("playMessage")}
-                      onClick={() => speakMessage(turn.question, locale)}
-                    >
-                      <Speaker />
-                    </button>
-                  </div>
-                  <p className="bubble sent">{turn.answer}</p>
-                </div>
-              ))}
-              {counsel && (
+          <div className="conversation-log" role="log" aria-label={t("clarifyLog")}>
+            {turns.map((turn) => (
+              <div key={turn.slot}>
                 <div className="bubble-line">
-                  <p className="bubble received">{t(counsel)}</p>
+                  <p className="bubble received">{turn.question}</p>
                   <button
                     type="button"
                     className="bubble-speak"
                     aria-label={t("playMessage")}
-                    onClick={() => speakMessage(t(counsel), locale)}
+                    onClick={() => speakMessage(turn.question, locale)}
                   >
                     <Speaker />
                   </button>
                 </div>
-              )}
-              {pending && (
-                <div className="bubble-line">
-                  <p className="bubble received">{pending.question}</p>
-                  <button
-                    type="button"
-                    className="bubble-speak"
-                    aria-label={t("playMessage")}
-                    onClick={() => speakMessage(pending.question, locale)}
-                  >
-                    <Speaker />
-                  </button>
-                </div>
-              )}
-            </div>
-            {pending?.slot === "place" && !user?.privacy.allowLocation && (
-              <div className="location-alert" role="status">
-                <p>{t("locationPrivacyPrompt")}</p>
+                <p className="bubble sent">{turn.answer}</p>
+              </div>
+            ))}
+            {counsel && (
+              <div className="bubble-line">
+                <p className="bubble received">{t(counsel)}</p>
                 <button
-                  className="button secondary w-full"
                   type="button"
-                  disabled={locatingPrivacy}
-                  onClick={() => void authorizeLocation()}
+                  className="bubble-speak"
+                  aria-label={t("playMessage")}
+                  onClick={() => speakMessage(t(counsel), locale)}
                 >
-                  {t(locatingPrivacy ? "findingLocation" : "allowLocation")}
+                  <Speaker />
                 </button>
               </div>
             )}
+            {pending && (
+              <div className="bubble-line">
+                <p className="bubble received">{pending.question}</p>
+                <button
+                  type="button"
+                  className="bubble-speak"
+                  aria-label={t("playMessage")}
+                  onClick={() => speakMessage(pending.question, locale)}
+                >
+                  <Speaker />
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+        {summary === null && pending?.slot === "place" && !user?.privacy.allowLocation && (
+          <div className="location-alert follow-up-note" role="status">
+            <p>{t("locationPrivacyPrompt")}</p>
+            <button
+              className="button secondary w-full"
+              type="button"
+              disabled={locatingPrivacy}
+              onClick={() => void authorizeLocation()}
+            >
+              {t(locatingPrivacy ? "findingLocation" : "allowLocation")}
+            </button>
+          </div>
+        )}
+        {attachments}
+        {error && (
+          <p className="error text-sm" role="alert">
+            {t(error)}
+          </p>
+        )}
+        <div className="follow-up-dock">
+          {summary === null && (
             <label className="field">
               <span className="sr-only">{t("clarifyAnswer")}</span>
               <textarea
-                rows={4}
+                rows={2}
                 maxLength={4000}
                 placeholder={t("clarifyAnswer")}
                 aria-label={t("clarifyAnswer")}
@@ -747,52 +759,48 @@ export default function RequestForm({
                 disabled={busy || transcribing}
               />
             </label>
-          </section>
-        )}
-        {attachments}
-        {error && (
-          <p className="error text-sm" role="alert">
-            {t(error)}
-          </p>
-        )}
-        {summary === null && (
-          <button
-            className="button w-full"
-            type="button"
-            disabled={busy || recording || starting || transcribing || !draft.trim()}
-            onClick={() => {
-              const answer = draft.trim();
-              if (!answer || !pending) return;
-              const next = [
-                ...turns,
-                { slot: pending.slot, question: pending.question, answer },
-              ];
-              void deliver(next, true);
-            }}
-          >
-            {t(busy ? "clarifyChecking" : "clarifySend")}
-          </button>
-        )}
-        <button
-          className={"button w-full" + (summary === null ? " secondary" : "")}
-          disabled={
-            busy ||
-            recording ||
-            starting ||
-            transcribing ||
-            (summary !== null && !summary.trim())
-          }
-        >
-          {t(
-            busy
-              ? "clarifyChecking"
-              : transcribing
-                ? "transcribing"
-                : summary !== null
-                  ? "sendRequest"
-                  : "clarifySkip",
           )}
-        </button>
+          <div className="follow-up-actions">
+            {summary === null && (
+              <button
+                className="button"
+                type="button"
+                disabled={busy || recording || starting || transcribing || !draft.trim()}
+                onClick={() => {
+                  const answer = draft.trim();
+                  if (!answer || !pending) return;
+                  const next = [
+                    ...turns,
+                    { slot: pending.slot, question: pending.question, answer },
+                  ];
+                  void deliver(next, true);
+                }}
+              >
+                {t(busy ? "clarifyChecking" : "clarifySend")}
+              </button>
+            )}
+            <button
+              className={"button" + (summary === null ? " secondary" : "")}
+              disabled={
+                busy ||
+                recording ||
+                starting ||
+                transcribing ||
+                (summary !== null && !summary.trim())
+              }
+            >
+              {t(
+                busy
+                  ? "clarifyChecking"
+                  : transcribing
+                    ? "transcribing"
+                    : summary !== null
+                      ? "sendRequest"
+                      : "clarifySkip",
+              )}
+            </button>
+          </div>
+        </div>
       </form>
     );
   }

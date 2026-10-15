@@ -8,7 +8,13 @@ import {
   type ClarifySlot,
 } from "@/lib/clarify";
 import { openRouterAudioFormat, transcriptInstruction } from "@/lib/speech";
-import { preferScript, translationPrompt, wrongScript, type ChatLocale } from "@/lib/chat-translate";
+import {
+  cleanTranslation,
+  preferScript,
+  translationPrompt,
+  wrongScript,
+  type ChatLocale,
+} from "@/lib/chat-translate";
 
 export function openRouterCompletionsUrl() {
   const configured = process.env.OPENROUTER_API_BASE?.trim();
@@ -253,9 +259,14 @@ async function completionText(key: string, system: string, user: string) {
 export async function translateChatText(text: string, locale: ChatLocale) {
   const key = process.env.OPENROUTER_API_KEY?.trim();
   if (!key) return null;
-  const first = await completionText(key, translationPrompt(locale), "Message:\n" + JSON.stringify(text));
+  const prompt = translationPrompt(locale);
+  const message =
+    "Translate. Keep the same facts, the same people, and the same direction of movement.\nMessage:\n" +
+    JSON.stringify(text);
+  let first = await completionText(key, prompt, message);
+  if (!first) first = await completionText(key, prompt, message);
   if (!first) return first;
-  const scripted = preferScript(first, locale);
+  const scripted = preferScript(cleanTranslation(first, text) || first, locale);
   if (!wrongScript(scripted, locale)) return scripted;
   const script =
     locale === "zh-Hans"
@@ -263,10 +274,13 @@ export async function translateChatText(text: string, locale: ChatLocale) {
       : "Traditional Chinese characters only, with no Simplified characters";
   const second = await completionText(
     key,
-    translationPrompt(locale),
-    "Rewrite this into " + script + ". Return only the rewritten text.\n" + JSON.stringify(scripted),
+    prompt,
+    "Rewrite this into " +
+      script +
+      ". Keep the same facts and the same direction of movement. Return only the rewritten text.\n" +
+      JSON.stringify(scripted),
   );
-  return second ? preferScript(second, locale) : scripted;
+  return second ? preferScript(cleanTranslation(second, text) || second, locale) : scripted;
 }
 
 export async function triageTextWithOpenRouter(text: string, locale: string) {

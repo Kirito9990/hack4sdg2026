@@ -321,6 +321,21 @@ body {
   border: 1px solid #b3d5e8;
   overflow: hidden;
 }
+.request-workspace {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.location-map {
+  flex-shrink: 0;
+}
+.location-map > .relative {
+  min-height: 280px;
+}
+.location-map .leaflet-container {
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
 .pending-card-summary {
   display: flex;
   align-items: center;
@@ -1269,53 +1284,62 @@ body {
   background: var(--danger);
   color: white;
 }
-.follow-up-page {
-  display: flex;
-  flex-direction: column;
+.form-surface.follow-stage {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  gap: 0;
+}
+.follow-up-page.conversation {
   flex: 1;
   min-height: 0;
+}
+.follow-up-page .conversation-log {
+  flex: 1;
+  min-height: 0;
+  max-height: none;
+}
+.follow-up-summary {
+  display: flex;
+  flex-direction: column;
   gap: 10px;
 }
-.follow-up-page .clarify-chat,
-.follow-up-page .request-summary {
+.follow-up-summary .field,
+.follow-up-summary textarea {
   flex: 1;
-  min-height: 0;
-  border: 0;
-  padding: 0;
-  background: transparent;
-  display: flex;
-  flex-direction: column;
-}
-.follow-up-page .clarify-chat > .field,
-.follow-up-page .request-summary .field {
-  display: flex;
-  flex: 1;
-  min-height: 0;
-}
-.follow-up-page .request-summary textarea,
-.follow-up-page .clarify-chat textarea {
-  flex: 1;
-}
-.follow-up-page .clarify-log {
-  flex: 0 1 auto;
-  max-height: 42%;
-  min-height: 0;
-  overflow-y: auto;
+  min-height: 160px;
 }
 .follow-up-page .bubble {
-  font-size: 20px;
-  line-height: 1.45;
-}
-.follow-up-page textarea {
-  min-height: 140px;
-  font-size: 21px;
-  line-height: 1.45;
-  padding: 16px;
-}
-.follow-up-back {
-  align-self: flex-start;
-  min-height: 48px;
   font-size: 18px;
+  line-height: 1.45;
+}
+.follow-up-note {
+  margin: 0 12px;
+  flex-shrink: 0;
+}
+.follow-up-dock {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  border-top: 1px solid var(--line);
+  background: white;
+}
+.follow-up-dock textarea {
+  min-height: 64px;
+  max-height: 120px;
+  font-size: 18px;
+  line-height: 1.45;
+  resize: none;
+}
+.follow-up-actions {
+  display: flex;
+  gap: 8px;
+}
+.follow-up-actions .button {
+  flex: 1;
+  min-width: 0;
 }
 .selected-media {
   display: flex;

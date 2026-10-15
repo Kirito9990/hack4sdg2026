@@ -571,3 +571,29 @@ Additional user corrections this run: simplify login; phone examples belong in p
 - English, Traditional Chinese, and Simplified Chinese each translate into the other two. The request text, AI summary, requirements, and the other person's chat are shown in the reader's interface language. Traditional Chinese is spoken Cantonese. The original stays underneath. A person's own chat stays as written. A load without a language does not call the model.
 - Translation uses the existing OpenRouter model. The result is cached in server memory for that message and language. If the model is unavailable, the original message remains. The privacy notice says chat text may be sent for this translation and that the original stays. It does not say OpenRouter deletes data. This is separate from the request-assessment switch.
 - Validation: `node --test tests/chat-translate.test.mjs` passed, including all six language directions and a request summary that stays traditional until a Simplified reader opens it. On an isolated server, a Cantonese request was shown in English as "I can't go down the stairs, need someone to help me down to the third floor." and in Simplified as "我下不了楼梯，需要人扶我到三楼。" The same reader's English, Cantonese, and Mandarin summaries differed, and chat translated in all six directions. Own messages were not translated. Temporary accounts were deleted. User asked to publish this on codex/CareCall. Render auto-deploys that branch.
+
+### 2026-10-15 — Canva slide 2 research-statistic draft
+
+- Opened user-authorized design DAHYFG1sWiQ and drafted slide 2 replacements in Canva editing transaction 1151188765346604146. Changed headline statistic from 188,569 living alone to 45.1% classified socially isolated within a Hong Kong study of 596 older adults (Sep 2023–Feb 2025, LSNS-6). Added linked DOI 10.1093/geroni/igaf122.3119, conference-abstract designation and study-scope wording.
+- Checked Canva thumbnail visually. Only slide 2 text/formatting changed. Vertical resize operations were unsupported; content auto-fit and remained within existing columns. Presenter notes still contain the old census narration because the connector exposes only read-only presenter-note access; this needs synchronization before presenting.
+- Draft remains UNSAVED pending explicit user approval after preview, as required by Canva editing/commit tool. Original design is unchanged until commit. Draft edit URL: https://www.canva.com/d/fjr52eNGX5YW_Ka . No prototype edits or deployment.
+
+### 2026-10-15 — Canva slide 2 approved and saved
+
+- User approved the visible slide 2 preview. Canva transaction 1151188765346604146 committed successfully to original design DAHYFG1sWiQ.
+- Slide 2 now uses 45.1% socially isolated within the research sample, with 596 participants, Sep 2023–Feb 2025 survey dates, LSNS-6, conference-abstract identification and linked DOI. Existing style retained; other slides unchanged.
+- Presenter notes remain the previous census narration because Canva connector has no presenter-note mutation tool. This known limitation was disclosed before approval. No local PPTX was regenerated in this Canva-only change.
+
+### 2026-10-15 — translation wording, follow-up page, and request map
+
+- Translation now keeps who moves and whether they arrive or leave. A live check of "Let me know when you arrive downstairs" came back as Cantonese 你到樓下嗰陣話我知。, Mandarin 你到楼下的时候告诉我。, and the reverse English "Tell me when you arrive downstairs." Traditional requirement lines such as 請攜帶一雙手套 are converted to Simplified 请携带一双手套, and the reverse stays in Traditional. A failed translation is retried once and is only remembered for a few seconds, and every request field is translated before the page is shown.
+- The follow-up chatbot opens as its own conversation page, with the messages filling the screen and the answer box fixed at the bottom. The bottom tabs stay hidden while that page is open.
+- The map under a sent request keeps a 320px map surface and the request page scrolls to it, so the map is no longer squeezed into the title row. Dragging stays enabled.
+- Validation: `node --test tests/chat-translate.test.mjs` passed. ESLint passed on the changed TypeScript files. On a temporary server at 127.0.0.1:47380 with a phone-sized page, the follow-up conversation filled the stage (message log about 311px, composer docked, tabs hidden) and a sent request showed a 320px map with tiles, zoom, and a scrollable request page. The temporary database was removed after the check. No commit or deployment.
+
+### 2026-10-15 — Canva full dark theme
+
+- Applied the user's requested black-background/light-text theme directly to original Canva design DAHYFG1sWiQ using the native browser editor, because connector operations do not expose background, shape or table-fill changes. The original share URL allowed native editing; no user login was needed. Inspection-only transaction 485781920671383234 was cancelled without edits before browser changes.
+- Preserved a backup as Canva design DAHYFeKPUhg before editing. Retained all 17 pages, the user's latest wording on slides 2/5 and added third-page images. No prototype code or deployment changes.
+- Unified all page backgrounds to #111315. Main and auxiliary text now use warm white #F4F4F2; original rust accents use #F1B58E and original sage accents use #BDD6AC. Screenshot/video boxes use #24282C. Table alternating pale rows now use #1B1E21 with light text. Original artwork and logo remain. Moved the cover's illustrative-scenario label onto its dark text area for readability.
+- Checked key pages individually (cover, 2–5, 11–12) and visually reviewed all 17 pages in the fully loaded grid, confirming dark backgrounds and readable placeholder/table combinations. Browser editor auto-saved changes to the original design; Canva source snapshot retained its current content. No regenerated local PPTX in this Canva-only session. Previous speaker-note limitations remain.

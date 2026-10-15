@@ -52,7 +52,10 @@ export default function Resident() {
       )}
       <div className="app-stage">
         <div
-          className="form-surface"
+          className={
+            "form-surface" +
+            (composer === "follow" && actualTab === "newHelp" ? " follow-stage" : "")
+          }
           style={{ display: actualTab === "newHelp" ? "flex" : "none" }}
         >
           <RequestForm

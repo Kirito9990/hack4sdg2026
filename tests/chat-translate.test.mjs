@@ -23,6 +23,8 @@ test("partner messages are translated into the reader's language", async () => {
   assert.equal(needsTranslation("我十分鐘之後到你度。", "zh-Hans"), true);
   assert.equal(needsTranslation("我十分钟后到你那里。", "zh-Hans"), false);
   assert.match(translationPrompt("zh-Hant"), /spoken Hong Kong Cantonese/);
+  assert.match(translationPrompt("en"), /arrive downstairs/);
+  assert.match(translationPrompt("zh-Hans"), /Do not add or remove facts/);
   assert.equal(cleanTranslation("粵語：我十分鐘之後到你度。", "I will arrive in ten minutes."), "我十分鐘之後到你度。");
   assert.equal(cleanTranslation("", "hello"), null);
 
@@ -96,6 +98,10 @@ test("English, Cantonese, and Mandarin each translate into the other two", async
   assert.equal(unchanged.summary, samples["zh-Hant"]);
   assert.equal(unchanged.summarySource, undefined);
   assert.equal(preferScript("居民表示無法自行下樓梯。", "zh-Hans"), "居民表示无法自行下楼梯。");
+  assert.equal(preferScript("請攜帶手套。", "zh-Hans"), "请携带手套。");
+  assert.equal(wrongScript("請攜帶手套。", "zh-Hans"), true);
+  assert.equal(wrongScript(preferScript("請攜帶手套。", "zh-Hans"), "zh-Hans"), false);
+  assert.equal(preferScript("请携带手套。", "zh-Hant"), "請攜帶手套。");
   assert.equal(wrongScript("居民表示無法自行下樓梯。", "zh-Hans"), true);
   assert.equal(wrongScript("居民表示无法自行下楼梯。", "zh-Hans"), false);
   assert.equal(wrongScript("我十分钟后到。", "zh-Hant"), true);

@@ -377,7 +377,7 @@ export default function RequestPanel({
           title={t("requestLocation")}
           points={[{ id: r.id, lat: r.lat, lng: r.lng, label: t(r.category) }]}
           radius={5000}
-          heightClassName="h-[50vh]"
+          heightClassName="h-80"
           allowFullscreen
           legend={t("pendingMapLegend")}
         />

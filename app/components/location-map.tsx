@@ -119,8 +119,10 @@ export default function LocationMap({
             zoomAnimation: false,
             fadeAnimation: false,
             markerZoomAnimation: false,
+            dragging: true,
           })
           .setView([lat, lng], 16);
+        map.dragging.enable();
         activeMap.current = map;
         api
           .tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -173,6 +175,9 @@ export default function LocationMap({
         });
         observer = new ResizeObserver(() => map?.invalidateSize());
         observer.observe(container.current);
+        requestAnimationFrame(() => {
+          if (!cancelled) map?.invalidateSize();
+        });
         setContext({ api, map, markers, lines, position, accuracy });
       })
       .catch(() => {
