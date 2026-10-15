@@ -87,23 +87,28 @@ export function useLocation(enabled: boolean) {
   return { coords, error, locating, locate, retry: () => void locate(), pick };
 }
 export function useRequests(enabled: boolean) {
+  const { locale } = useApp();
   const [requests, setRequests] = useState<RequestView[]>([]),
     [error, setError] = useState("");
   const refresh = useCallback(async () => {
     try {
-      const b = await api<{ requests: RequestView[] }>("/api/request/status");
+      const b = await api<{ requests: RequestView[] }>(
+        "/api/request/status?locale=" + encodeURIComponent(locale),
+      );
       setRequests(b.requests);
       setError("");
     } catch (e) {
       setError((e as Error).message);
     }
-  }, []);
+  }, [locale]);
   useEffect(() => {
     if (!enabled) return;
     let active = true;
     const poll = async () => {
       try {
-        const b = await api<{ requests: RequestView[] }>("/api/request/status");
+        const b = await api<{ requests: RequestView[] }>(
+          "/api/request/status?locale=" + encodeURIComponent(locale),
+        );
         if (active) {
           setRequests(b.requests);
           setError("");
@@ -118,7 +123,7 @@ export function useRequests(enabled: boolean) {
       active = false;
       clearInterval(id);
     };
-  }, [enabled]);
+  }, [enabled, locale]);
   return {
     requests,
     error,

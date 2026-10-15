@@ -34,7 +34,7 @@ function waitingLabel(createdAt: string | undefined, t: (key: string) => string)
   return t("waitingFor") + " " + parts.count + " " + t(parts.key);
 }
 export default function Volunteer() {
-  const { t, user, setUser } = useApp(),
+  const { t, user, setUser, locale } = useApp(),
     { ready, profile } = useRoleProfile("volunteer"),
     geo = useLocation(!!profile),
     feed = useRequests(!!profile);
@@ -61,7 +61,9 @@ export default function Volunteer() {
           "/api/volunteer/tasks?lat=" +
             geo.coords!.lat +
             "&lng=" +
-            geo.coords!.lng,
+            geo.coords!.lng +
+            "&locale=" +
+            encodeURIComponent(locale),
         );
         if (live) {
           const arrival = unseenTasks(seenTasks.current, b.tasks);
@@ -80,7 +82,7 @@ export default function Volunteer() {
       live = false;
       clearInterval(id);
     };
-  }, [geo.coords, profile, available]);
+  }, [geo.coords, profile, available, locale]);
   useEffect(() => {
     const node = incomingDialog.current;
     if (!node) return;

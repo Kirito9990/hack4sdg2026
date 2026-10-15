@@ -22,8 +22,9 @@ export default function HistoryList({ requests }: { requests: RequestView[] }) {
         {r.closedAt && <><dt>{t("historyFinished")}</dt><dd>{new Date(r.closedAt).toLocaleString(locale)}</dd></>}
       </dl>
       <p className="whitespace-pre-wrap break-words">{r.summary === "mediaRequest" ? t("mediaRequest") : r.summary}</p>
-      <RequestNeeds requirements={r.requirements} tools={r.tools} resources={r.resources} />
-      {r.transcript && r.transcript !== r.summary && <p className="whitespace-pre-wrap break-words"><span className="font-semibold">{t("whatTheySaid")} </span>{r.transcript}</p>}
+      {r.summarySource && <p className="chat-original">{t("originalMessage")} {r.summarySource}</p>}
+      <RequestNeeds requirements={r.requirements} tools={r.tools} resources={r.resources} requirementsSource={r.requirementsSource} toolsSource={r.toolsSource} resourcesSource={r.resourcesSource} />
+      {r.transcript && r.transcript !== r.summary && <p className="whitespace-pre-wrap break-words"><span className="font-semibold">{t("whatTheySaid")} </span>{r.transcript}{r.transcriptSource && <span className="chat-original block">{t("originalMessage")} {r.transcriptSource}</span>}</p>}
       {r.imageHidden && <p>{t("historyPhotoHidden")}</p>}
       {r.audioHidden && <p>{t("voiceNoteHidden")}</p>}
     </div>}

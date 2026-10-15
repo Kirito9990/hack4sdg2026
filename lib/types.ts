@@ -111,6 +111,11 @@ export type RequestView = Omit<HelpRequest, "lat" | "lng"> & {
   volunteerName?: string;
   chatAvailable: boolean;
   chatReadable: boolean;
+  summarySource?: string;
+  transcriptSource?: string;
+  requirementsSource?: string[];
+  toolsSource?: string[];
+  resourcesSource?: string[];
   residentAddress?: string;
   callPhone: string | null;
   testCall: boolean;

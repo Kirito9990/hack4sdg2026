@@ -5,7 +5,10 @@ import {
   chatLocale,
   cleanTranslation,
   needsTranslation,
+  translateRequestContent,
+  preferScript,
   translationPrompt,
+  wrongScript,
 } from "../lib/chat-translate.ts";
 
 test("partner messages are translated into the reader's language", async () => {
@@ -51,6 +54,51 @@ test("partner messages are translated into the reader's language", async () => {
   });
   assert.equal(calls, 1);
   assert.equal(unscoped[1].translation, undefined);
+});
+
+test("English, Cantonese, and Mandarin each translate into the other two", async () => {
+  const samples = {
+    en: "I will arrive in ten minutes.",
+    "zh-Hant": "我十分鐘之後到你度。",
+    "zh-Hans": "我十分钟后到你那里。",
+  };
+  assert.equal(needsTranslation("居民表示無法自行下樓梯。", "zh-Hans"), true);
+  for (const from of Object.keys(samples)) {
+    for (const to of Object.keys(samples)) {
+      assert.equal(needsTranslation(samples[from], to), from !== to, from + " -> " + to);
+    }
+  }
+  const request = {
+    id: "request-" + Date.now(),
+    summary: samples["zh-Hant"],
+    transcript: samples["zh-Hant"],
+    requirements: ["扶我落三樓"],
+  };
+  const requirements = request.requirements;
+  const english = await translateRequestContent(request, "en", async (text) => "EN:" + text);
+  assert.equal(english.summary, "EN:" + samples["zh-Hant"]);
+  assert.equal(english.summarySource, samples["zh-Hant"]);
+  assert.equal(english.transcript, "EN:" + samples["zh-Hant"]);
+  assert.equal(english.requirements[0], "EN:扶我落三樓");
+  assert.equal(requirements[0], "扶我落三樓");
+  const mandarin = await translateRequestContent(request, "zh-Hans", async (text, locale) => {
+    assert.equal(locale, "zh-Hans");
+    return "ZH:" + text;
+  });
+  assert.equal(mandarin.summary, "ZH:" + samples["zh-Hant"]);
+  const unchanged = await translateRequestContent(
+    { id: "same-" + Date.now(), summary: samples["zh-Hant"] },
+    "zh-Hant",
+    async () => {
+      throw new Error("already Cantonese");
+    },
+  );
+  assert.equal(unchanged.summary, samples["zh-Hant"]);
+  assert.equal(unchanged.summarySource, undefined);
+  assert.equal(preferScript("居民表示無法自行下樓梯。", "zh-Hans"), "居民表示无法自行下楼梯。");
+  assert.equal(wrongScript("居民表示無法自行下樓梯。", "zh-Hans"), true);
+  assert.equal(wrongScript("居民表示无法自行下楼梯。", "zh-Hans"), false);
+  assert.equal(wrongScript("我十分钟后到。", "zh-Hant"), true);
 });
 
 test("a failed translation leaves the original message", async () => {

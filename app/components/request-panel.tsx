@@ -313,6 +313,11 @@ export default function RequestPanel({
               <p className="whitespace-pre-wrap break-words text-sm">
                 <span className="font-semibold">{t("whatTheySaid")} </span>
                 {r.transcript}
+                {r.transcriptSource && (
+                  <span className="chat-original block">
+                    {t("originalMessage")} {r.transcriptSource}
+                  </span>
+                )}
               </p>
             )}
             {r.imageData && (
@@ -411,6 +416,11 @@ export default function RequestPanel({
                 <p className="whitespace-pre-wrap break-words">
                   <span className="font-semibold">{t("whatTheySaid")} </span>
                   {r.transcript}
+                  {r.transcriptSource && (
+                    <span className="chat-original block">
+                      {t("originalMessage")} {r.transcriptSource}
+                    </span>
+                  )}
                 </p>
               )}
               {r.imageData && (

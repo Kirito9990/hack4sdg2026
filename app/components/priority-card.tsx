@@ -6,10 +6,16 @@ export function RequestNeeds({
   requirements,
   tools,
   resources,
+  requirementsSource,
+  toolsSource,
+  resourcesSource,
 }: {
   requirements?: string[];
   tools?: string[];
   resources?: string[];
+  requirementsSource?: string[];
+  toolsSource?: string[];
+  resourcesSource?: string[];
 }) {
   const { t } = useApp();
   const groups = (
@@ -32,6 +38,12 @@ export function RequestNeeds({
                 <li key={key + index}>{item}</li>
               ))}
           </ul>
+          {(key === "requirements" ? requirementsSource : key === "tools" ? toolsSource : resourcesSource)?.length ? (
+            <p className="chat-original">
+              {t("originalMessage")}{" "}
+              {(key === "requirements" ? requirementsSource : key === "tools" ? toolsSource : resourcesSource)!.join(" · ")}
+            </p>
+          ) : null}
         </div>
       ))}
     </div>
@@ -43,18 +55,26 @@ export default function PriorityCard({
   category,
   source,
   summary,
+  summarySource,
   requirements,
+  requirementsSource,
   tools,
+  toolsSource,
   resources,
+  resourcesSource,
   rank,
 }: {
   urgency_level: UrgencyLevel;
   category: RequestCategory;
   source: string;
   summary?: string;
+  summarySource?: string;
   requirements?: string[];
+  requirementsSource?: string[];
   tools?: string[];
+  toolsSource?: string[];
   resources?: string[];
+  resourcesSource?: string[];
   rank?: number;
 }) {
   const { t } = useApp();
@@ -85,10 +105,18 @@ export default function PriorityCard({
           {summary === "mediaRequest" ? t("mediaRequest") : summary}
         </p>
       )}
+      {summarySource && (
+        <p className="chat-original">
+          {t("originalMessage")} {summarySource}
+        </p>
+      )}
       <RequestNeeds
         requirements={requirements}
         tools={tools}
         resources={resources}
+        requirementsSource={requirementsSource}
+        toolsSource={toolsSource}
+        resourcesSource={resourcesSource}
       />
       <p className="mt-1 text-xs">
         {t(source === "fallback" ? "assessmentPending" : "priorityLabel")}

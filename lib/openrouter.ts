@@ -8,7 +8,7 @@ import {
   type ClarifySlot,
 } from "@/lib/clarify";
 import { openRouterAudioFormat, transcriptInstruction } from "@/lib/speech";
-import { translationPrompt, type ChatLocale } from "@/lib/chat-translate";
+import { preferScript, translationPrompt, wrongScript, type ChatLocale } from "@/lib/chat-translate";
 
 export function openRouterCompletionsUrl() {
   const configured = process.env.OPENROUTER_API_BASE?.trim();
@@ -214,9 +214,7 @@ export async function transcribeWithOpenRouter(
   return text;
 }
 
-export async function translateChatText(text: string, locale: ChatLocale) {
-  const key = process.env.OPENROUTER_API_KEY?.trim();
-  if (!key) return null;
+async function completionText(key: string, system: string, user: string) {
   const response = await fetch(openRouterCompletionsUrl(), {
     method: "POST",
     signal: AbortSignal.timeout(12000),
@@ -230,8 +228,8 @@ export async function translateChatText(text: string, locale: ChatLocale) {
       temperature: 0,
       max_tokens: 400,
       messages: [
-        { role: "system", content: translationPrompt(locale) },
-        { role: "user", content: "Message:\n" + JSON.stringify(text) },
+        { role: "system", content: system },
+        { role: "user", content: user },
       ],
     }),
   });
@@ -250,6 +248,25 @@ export async function translateChatText(text: string, locale: ChatLocale) {
       typeof part === "string" ? part : typeof part?.text === "string" ? part.text : "",
     )
     .join("");
+}
+
+export async function translateChatText(text: string, locale: ChatLocale) {
+  const key = process.env.OPENROUTER_API_KEY?.trim();
+  if (!key) return null;
+  const first = await completionText(key, translationPrompt(locale), "Message:\n" + JSON.stringify(text));
+  if (!first) return first;
+  const scripted = preferScript(first, locale);
+  if (!wrongScript(scripted, locale)) return scripted;
+  const script =
+    locale === "zh-Hans"
+      ? "Simplified Chinese characters only, with no Traditional characters"
+      : "Traditional Chinese characters only, with no Simplified characters";
+  const second = await completionText(
+    key,
+    translationPrompt(locale),
+    "Rewrite this into " + script + ". Return only the rewritten text.\n" + JSON.stringify(scripted),
+  );
+  return second ? preferScript(second, locale) : scripted;
 }
 
 export async function triageTextWithOpenRouter(text: string, locale: string) {

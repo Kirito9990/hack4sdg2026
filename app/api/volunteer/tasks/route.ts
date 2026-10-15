@@ -1,4 +1,6 @@
 import { haversineMeters, store } from "@/lib/db";
+import { translateRequestContent } from "@/lib/chat-translate";
+import { translateChatText } from "@/lib/openrouter";
 import { currentUser, fail, json, validCoords } from "@/lib/server";
 import { quoteReward } from "@/lib/rewards";
 import { volunteerCanReceive } from "@/lib/types";
@@ -42,5 +44,10 @@ export async function GET(request: Request) {
       distanceMeters: Math.round(distance / 500) * 500,
       createdAt: r.createdAt,
     }));
-  return json({ tasks });
+  const locale = params.get("locale");
+  return json({
+    tasks: await Promise.all(
+      tasks.map((task) => translateRequestContent(task, locale, translateChatText)),
+    ),
+  });
 }
