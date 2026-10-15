@@ -94,6 +94,8 @@ export type ChatMessage = {
   text: string;
   imageData?: string;
   imageHidden?: boolean;
+  /** Present only in a chat response, for the other person's message. */
+  translation?: string;
   createdAt: string;
 };
 export type SharedLocation = { lat: number; lng: number; accuracy: number; updatedAt: number };

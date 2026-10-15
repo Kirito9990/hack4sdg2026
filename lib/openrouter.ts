@@ -8,6 +8,7 @@ import {
   type ClarifySlot,
 } from "@/lib/clarify";
 import { openRouterAudioFormat, transcriptInstruction } from "@/lib/speech";
+import { translationPrompt, type ChatLocale } from "@/lib/chat-translate";
 
 export function openRouterCompletionsUrl() {
   const configured = process.env.OPENROUTER_API_BASE?.trim();
@@ -211,6 +212,44 @@ export async function transcribeWithOpenRouter(
   const text = spokenTranscript(result.choices?.[0]?.message?.content || "");
   if (!text) throw new Error("OpenRouter returned an empty transcript");
   return text;
+}
+
+export async function translateChatText(text: string, locale: ChatLocale) {
+  const key = process.env.OPENROUTER_API_KEY?.trim();
+  if (!key) return null;
+  const response = await fetch(openRouterCompletionsUrl(), {
+    method: "POST",
+    signal: AbortSignal.timeout(12000),
+    headers: {
+      Authorization: "Bearer " + key,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: triageModel(),
+      reasoning: { effort: "none" },
+      temperature: 0,
+      max_tokens: 400,
+      messages: [
+        { role: "system", content: translationPrompt(locale) },
+        { role: "user", content: "Message:\n" + JSON.stringify(text) },
+      ],
+    }),
+  });
+  if (!response.ok) {
+    await discardBody(response);
+    return null;
+  }
+  const result = (await response.json()) as {
+    choices?: Array<{ message?: { content?: unknown } }>;
+  };
+  const content = result.choices?.[0]?.message?.content;
+  if (typeof content === "string") return content;
+  if (!Array.isArray(content)) return null;
+  return content
+    .map((part) =>
+      typeof part === "string" ? part : typeof part?.text === "string" ? part.text : "",
+    )
+    .join("");
 }
 
 export async function triageTextWithOpenRouter(text: string, locale: string) {

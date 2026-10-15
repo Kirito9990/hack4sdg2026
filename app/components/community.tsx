@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { api, post, useApp } from "./providers";
 import type { RequestView, UserRole } from "@/lib/types";
+import { ChatText } from "./chat-text";
 
 type Friend = { id: string; name: string; role: UserRole; createdAt: string };
 type Person = {
@@ -12,7 +13,7 @@ type Person = {
   closedAt?: string;
   status: "incoming" | "outgoing" | "none";
 };
-type FriendMessage = { id: string; senderId: string; text: string; createdAt: string };
+type FriendMessage = { id: string; senderId: string; text: string; translation?: string; createdAt: string };
 
 function FriendChoice({
   status,
@@ -108,7 +109,7 @@ function FriendRequestPage({
 }
 
 function FriendChat({ friend, onBack }: { friend: Friend; onBack: () => void }) {
-  const { t, user } = useApp();
+  const { t, user, locale } = useApp();
   const [messages, setMessages] = useState<FriendMessage[]>([]);
   const [text, setText] = useState("");
   const [error, setError] = useState("");
@@ -118,7 +119,9 @@ function FriendChat({ friend, onBack }: { friend: Friend; onBack: () => void }) 
     let live = true;
     const poll = async () => {
       try {
-        const body = await api<{ messages: FriendMessage[] }>("/api/friends/chat?id=" + encodeURIComponent(friend.id));
+        const body = await api<{ messages: FriendMessage[] }>(
+          "/api/friends/chat?id=" + encodeURIComponent(friend.id) + "&locale=" + encodeURIComponent(locale),
+        );
         if (live) {
           setMessages(body.messages);
           setError("");
@@ -133,7 +136,7 @@ function FriendChat({ friend, onBack }: { friend: Friend; onBack: () => void }) 
       live = false;
       clearInterval(id);
     };
-  }, [friend.id]);
+  }, [friend.id, locale]);
   useEffect(() => {
     if (box.current) box.current.scrollTop = box.current.scrollHeight;
   }, [messages.length]);
@@ -145,9 +148,10 @@ function FriendChat({ friend, onBack }: { friend: Friend; onBack: () => void }) 
       </header>
       <div className="conversation-log" ref={box} role="log" aria-live="polite" aria-label={t("chat")}>
         {error ? <p className="chat-system">{t(error)}</p> : null}
+        <p className="chat-system">{t("chatTranslateHint")}</p>
         {messages.length ? messages.map((message) => (
           <div key={message.id} className={"bubble " + (message.senderId === user?.id ? "sent" : "received")}>
-            <p className="whitespace-pre-wrap break-words">{message.text}</p>
+            <ChatText text={message.text} translation={message.senderId === user?.id ? undefined : message.translation} />
           </div>
         )) : <p className="chat-system">{t("noMessages")}</p>}
       </div>
@@ -162,7 +166,9 @@ function FriendChat({ friend, onBack }: { friend: Friend; onBack: () => void }) 
           try {
             await post("/api/friends/chat", { id: friend.id, text: next });
             setText("");
-            const body = await api<{ messages: FriendMessage[] }>("/api/friends/chat?id=" + encodeURIComponent(friend.id));
+            const body = await api<{ messages: FriendMessage[] }>(
+              "/api/friends/chat?id=" + encodeURIComponent(friend.id) + "&locale=" + encodeURIComponent(locale),
+            );
             setMessages(body.messages);
           } catch (e) {
             setError((e as Error).message);

@@ -5,6 +5,8 @@ import {
   friendMessagesSince,
   insertFriendMessage,
 } from "@/lib/persistence.mjs";
+import { attachTranslations } from "@/lib/chat-translate";
+import { translateChatText } from "@/lib/openrouter";
 import { currentUser, fail, json, sameOrigin } from "@/lib/server";
 export const runtime = "nodejs";
 
@@ -22,11 +24,17 @@ export async function GET(request: Request) {
   const found = thread(new URL(request.url).searchParams.get("id") || "", user.id);
   if (!found) return fail("notFound", 404);
   if (found === "closed") return fail("chatUnavailable", 403);
+  const messages = friendMessages(found.row.id).map((message: { id: string; senderId: string; text: string; createdAt: string }) => ({
+    ...message,
+    text: redact(message.text, found.people),
+  }));
   return json({
-    messages: friendMessages(found.row.id).map((message: { id: string; senderId: string; text: string; createdAt: string }) => ({
-      ...message,
-      text: redact(message.text, found.people),
-    })),
+    messages: await attachTranslations(
+      messages,
+      user.id,
+      new URL(request.url).searchParams.get("locale"),
+      translateChatText,
+    ),
   });
 }
 

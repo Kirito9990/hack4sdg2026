@@ -11,6 +11,7 @@ import RequestProgress, { ProgressLink } from "./request-progress";
 import { IMAGE_ACCEPT, isAcceptedImage } from "@/lib/image-accept";
 import type { ChatMessage, RequestView } from "@/lib/types";
 import ReportPolice from "./report-police";
+import { ChatText } from "./chat-text";
 
 function Photo({ src, label }: { src: string; label: string }) {
   return (
@@ -54,7 +55,10 @@ export function Conversation({ request: r }: { request: RequestView }) {
     const poll = async () => {
       try {
         const b = await api<{ messages: ChatMessage[] }>(
-          "/api/request/chat?id=" + encodeURIComponent(r.id),
+          "/api/request/chat?id=" +
+            encodeURIComponent(r.id) +
+            "&locale=" +
+            encodeURIComponent(locale),
         );
         if (live) { setMessages(b.messages); setLoadedFor(version); }
       } catch (e) {
@@ -70,7 +74,7 @@ export function Conversation({ request: r }: { request: RequestView }) {
       live = false;
       clearInterval(id);
     };
-  }, [r.id, r.chatReadable, version]);
+  }, [r.id, r.chatReadable, version, locale]);
   useEffect(() => {
     if (box.current) box.current.scrollTop = box.current.scrollHeight;
   }, [messages.length]);
@@ -106,7 +110,9 @@ export function Conversation({ request: r }: { request: RequestView }) {
         {!r.chatReadable ? (
           <p className="chat-system">{t("chatUnavailable")}</p>
         ) : visibleMessages.length ? (
-          visibleMessages.map((m) => (
+          <>
+          <p className="chat-system">{t("chatTranslateHint")}</p>
+          {visibleMessages.map((m) => (
             <div
               key={m.id}
               className={
@@ -117,9 +123,7 @@ export function Conversation({ request: r }: { request: RequestView }) {
                 <Photo src={m.imageData} label={t("photoMessage")} />
               )}
               {m.imageHidden && <p className="text-sm text-muted">{t("historyPhotoHidden")}</p>}
-              {m.text && (
-                <p className="whitespace-pre-wrap break-words">{m.text}</p>
-              )}
+              <ChatText text={m.text} translation={m.senderId === user?.id ? undefined : m.translation} />
               <p className="mt-1 text-right text-xs opacity-70">
                 {m.senderId === user?.id ? t("you") : t("partner")} ·{" "}
                 {new Date(m.createdAt).toLocaleTimeString(locale, {
@@ -128,9 +132,13 @@ export function Conversation({ request: r }: { request: RequestView }) {
                 })}
               </p>
             </div>
-          ))
+          ))}
+          </>
         ) : (
-          <p className="chat-system">{t("noMessages")}</p>
+          <>
+            <p className="chat-system">{t("chatTranslateHint")}</p>
+            <p className="chat-system">{t("noMessages")}</p>
+          </>
         )}
       </div>
       {error && (

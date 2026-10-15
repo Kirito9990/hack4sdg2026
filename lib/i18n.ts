@@ -430,7 +430,7 @@ export const messages = {
     "關閉後，之後的求助不再使用 AI。已經評估的文字，以及你選擇保留的錄音，不會因這個開關而刪除。",
     "关闭后，之后的求助不再使用 AI。已经评估的文字，以及你选择保留的录音，不会因这个开关而删除。",
   ],
-  privacyInfo: ["Your matched partner can read messages while chat sharing is enabled. Finished chats are read-only for 7 days, then archived on the server.","開啟聊天分享時，配對對象可查看對話。完成後只能查看7天，之後在伺服器歸檔。","开启聊天分享时，匹配对象可查看对话。完成后只能查看7天，之后在服务器归档。"],
+  privacyInfo: ["Your matched partner can read messages while chat sharing is enabled. Finished chats are read-only for 7 days, then archived on the server. If you use a different language, their chat text is sent through OpenRouter and shown in your language. The original message stays in the chat.","開啟聊天分享時，配對對象可查看對話。完成後只能查看7天，之後在伺服器歸檔。如果雙方語言不同，對方的對話文字會經 OpenRouter 譯成你的語言。原文仍留在對話中。","开启聊天分享时，匹配对象可查看对话。完成后只能查看7天，之后在服务器归档。如果双方语言不同，对方的对话文字会经 OpenRouter 译成你的语言。原文仍留在对话中。"],
   demo: [
     "Local demo: identity is not phone-verified. Data is held in server memory and clears on restart. Keep this session open to return to your requests.",
     "本機示範：未驗證電話身份。資料暫存於伺服器記憶體，重啟後清除。請保留登入狀態以返回請求。",
@@ -574,6 +574,13 @@ export const messages = {
   message: ["Message", "訊息", "消息"],
   send: ["Send", "傳送", "发送"],
   noMessages: ["No messages yet.", "尚無訊息。", "暂无消息。"],
+  chatTranslateHint: [
+    "If your partner writes in another language, their message is shown in yours.",
+    "如果對方用其他語言，訊息會自動顯示成廣東話。",
+    "如果对方用其他语言，消息会自动显示成普通话。",
+  ],
+  translatedToYou: ["Translated", "已譯成廣東話", "已译成普通话"],
+  originalMessage: ["Original:", "原文：", "原文："],
   you: ["You", "你", "你"],
   expires: ["Visible until","顯示至","显示至"],
 
