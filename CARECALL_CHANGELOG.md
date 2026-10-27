@@ -602,3 +602,11 @@ Additional user corrections this run: simplify login; phone examples belong in p
 
 - Add photo and Tap to speak are a compact row: icon beside the label, 44px tall, on both the request form and the follow-up conversation. They still open the photo picker and start or stop the recording.
 - On a phone-sized page at 127.0.0.1:47381, both buttons measured 44×152 in English and Traditional Chinese, and both stayed enabled. The temporary database was removed after the check. User asked to publish this on codex/CareCall. Render auto-deploys that branch.
+
+
+### 2026-10-27 — personal portfolio fork and contribution evidence
+
+- Created Kirito9990/hack4sdg2026 as a fork with the default-branch-only option disabled, preserving upstream provenance and original attribution.
+- Added ANDY_CONTRIBUTIONS.md with an upstream default-branch attribution inventory (24 authored commits including 3 merges, plus 2 co-author records), selected implementation evidence and a CV summary.
+- Added a prominent README link to the evidence. Documentation changes are confined to the personal fork.
+- Validation: inspected GitHub commit metadata and selected diffs; confirmed the fork and published documentation through GitHub. No application code changed; no application tests rerun.
