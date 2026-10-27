@@ -2,6 +2,14 @@
 
 Local community assistance prototype with English, 繁體中文 and 简体中文. Residents submit requests; nearby volunteers accept them. Both participants see acceptance, temporary chat and call controls.
 
+## Andy Wang — contributions
+
+This is [Andy Wang (Kirito9990)](https://github.com/Kirito9990)'s personal fork of the [Hack4SDG 2026 team repository](https://github.com/liangxuntan/hack4sdg2026). Original team history and author credits are preserved.
+
+My contributions include request clarification and classification improvements, OpenRouter speech integration, multilingual request/chat translation, and explicit consent controls for request AI processing.
+
+**[View contribution evidence, commit links and CV summary](ANDY_CONTRIBUTIONS.md)** · [My upstream commit history](https://github.com/liangxuntan/hack4sdg2026/commits/codex/CareCall/?author=Kirito9990)
+
 ## Run locally
 
 ```sh
